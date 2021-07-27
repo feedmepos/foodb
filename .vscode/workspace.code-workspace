@@ -1,0 +1,29 @@
+{
+  "folders": [
+    {
+      "name": "ROOT",
+      "path": "../"
+    },
+    {
+      "name": "foodb_objectbox_adapter",
+      "path": "../foodb_objectbox_adapter"
+    },
+    {
+      "name": "foodb",
+      "path": "../foodb"
+    },
+    {
+      "name": "foodb_repository",
+      "path": "../foodb_repository"
+    },
+  ],
+  "settings": {
+    "dart.allowTestsOutsideTestFolder": true,
+    "files.exclude": {
+      "foodb_core/": true,
+      "foodb/": true,
+      "foodb_objectbox_adapter/": true,
+      "foodb_repository/": true,
+    }
+  }
+}
