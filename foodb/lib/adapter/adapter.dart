@@ -37,7 +37,10 @@ abstract class AbstractAdapter {
       bool revsInfo = false,
       required T Function(Object? json) fromJsonT});
 
-  Future<PutResponse> put({required Map<String, dynamic> body});
+  Future<PutResponse> put(
+      {required Doc<Map<String, dynamic>> body,
+      bool newEdits = true,
+      String? newRev});
 
   Future<DeleteResponse> delete({required String id, required String rev});
 

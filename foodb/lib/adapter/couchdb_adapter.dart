@@ -181,25 +181,54 @@ class CouchdbAdapter extends AbstractAdapter {
 
   @override
   Future<PutResponse> put(
-      {required Map<String, dynamic> body, bool newEdits = false}) async {
-    String newRev = generateNewRev(body['_rev']);
-    UriBuilder uriBuilder = new UriBuilder.fromUri(this.getUri(body['_id']));
-    uriBuilder.queryParameters =
-        convertToParams({'new_edits': newEdits, '_rev': newRev});
+      {required Doc<Map<String, dynamic>> body,
+      bool newEdits = true,
+      String? newRev}) async {
+    UriBuilder uriBuilder = new UriBuilder.fromUri(this.getUri(body.id));
+    uriBuilder.queryParameters = convertToParams(
+        {'new_edits': newEdits, '_rev': newEdits ? body.rev : newRev});
 
     Map<String, dynamic> newBody = {};
-    newBody['_revisions'] = {
-      "ids": body['_rev'] == null
-          ? [newRev.split('-')[1]]
-          : [newRev.split('-')[1], body['_rev'].split('-')[1]],
-      "start": int.parse(newRev.split('-')[0])
-    };
-    newBody.addAll(body['model']);
-
-    return PutResponse.fromJson(jsonDecode(
+    if (!newEdits) {
+      if (newRev != null) {
+        newBody['_revisions'] = {
+          "ids": body.rev == null
+              ? [newRev.split('-')[1]]
+              : [newRev.split('-')[1], body.rev!.split('-')[1]],
+          "start": int.parse(newRev.split('-')[0])
+        };
+      }
+    }
+    newBody.addAll(body.model);
+    newBody['rev'] = body.rev;
+    var response = jsonDecode(
         (await this.client.put(uriBuilder.build(), body: jsonEncode(newBody)))
-            .body));
+            .body);
+    print(response);
+    return PutResponse.fromJson(response);
   }
+
+  // @override
+  // Future<PutResponse> put(
+  //     {required Map<String, dynamic> body, bool newEdits = false}) async {
+  //   String newRev = generateNewRev(body['_rev']);
+  //   UriBuilder uriBuilder = new UriBuilder.fromUri(this.getUri(body['_id']));
+  //   uriBuilder.queryParameters =
+  //       convertToParams({'new_edits': newEdits, '_rev': newRev});
+
+  //   Map<String, dynamic> newBody = {};
+  //   newBody['_revisions'] = {
+  //     "ids": body['_rev'] == null
+  //         ? [newRev.split('-')[1]]
+  //         : [newRev.split('-')[1], body['_rev'].split('-')[1]],
+  //     "start": int.parse(newRev.split('-')[0])
+  //   };
+  //   newBody.addAll(body['model']);
+
+  //   return PutResponse.fromJson(jsonDecode(
+  //       (await this.client.put(uriBuilder.build(), body: jsonEncode(newBody)))
+  //           .body));
+  // }
 
   @override
   Future<DeleteResponse> delete(

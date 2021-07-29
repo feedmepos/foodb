@@ -68,19 +68,22 @@ abstract class FoodbRepository<T extends FoodbModel> {
   Future<Doc<T>?> create(
     T model,
   ) async {
-    Doc<T> newDoc =
-        new Doc(id: "$prefix-${jsonEncode(toJsonT(model))}", model: model);
-    PutResponse putResponse =
-        await db.adapter.put(body: newDoc.toJson((value) => toJsonT(value)));
+    String id = "$prefix-${jsonEncode(toJsonT(model))}";
+    // Doc<T> newDoc =
+    //     new Doc(id: "$prefix-${jsonEncode(toJsonT(model))}", model: model);
+    Doc<Map<String, dynamic>> newDoc2 = new Doc(
+        id: "$prefix-${jsonEncode(toJsonT(model))}", model: toJsonT(model));
+    PutResponse putResponse = await db.adapter.put(body: newDoc2);
 
-    return putResponse.ok ? newDoc : null;
+    return putResponse.ok == true ? await read(id) : null;
   }
 
-  Future<Doc<T>?> update(Doc<T> model) async {
-    return (await db.adapter.put(body: model.toJson((value) => toJsonT(value))))
-            .ok
-        ? model
-        : null;
+  Future<Doc<T>?> update(Doc<T> doc) async {
+    Doc<Map<String, dynamic>> newDoc =
+        Doc(model: toJsonT(doc.model), id: doc.id, rev: doc.rev);
+    PutResponse putResponse = await db.adapter.put(body: newDoc);
+
+    return putResponse.ok == true ? await read(newDoc.id) : null;
   }
 
   Future<DeleteResponse> delete(Doc<T> model) async {
