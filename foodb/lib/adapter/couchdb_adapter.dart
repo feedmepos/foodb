@@ -115,6 +115,54 @@ class CouchdbAdapter extends AbstractAdapter {
   }
 
   @override
+  Future<Stream<String>> changesStreamString(ChangeRequest request) async {
+    final path =
+        '_changes?${includeNonNullParam('doc_ids', request.body?.docIds)}&'
+        'conflicts=${request.conflicts}&descending=${request.descending}&'
+        'feed=${request.feed}&${includeNonNullParam('filter', request.filter)}&heartbeat='
+        '${request.heartbeat}&include_docs=${request.includeDocs}&attachments=${request.attachments}&'
+        'att_encoding_info=${request.attEncodingInfo}&${includeNonNullParam('last-event-id', request.lastEventId)}'
+        '&${includeNonNullParam('limit', request.limit)}&since=${request.since}&style=${request.style}&'
+        'timeout=${request.timeout}&${includeNonNullParam('view', request.view)}&'
+        '${includeNonNullParam('seq_interval', request.seqInterval)}';
+
+    var streamedRes =
+        (await this.client.send(Request('get', this.getUri(path))))
+            .stream
+            .toStringStream();
+    return streamedRes;
+
+    // switch (request.feed) {
+    //   case 'continuous':
+    //     final mappedRes = streamedRes.map((v) => v.replaceAll('}\n{', '},\n{'));
+    //     return mappedRes.map((results) => ChangeResponse(
+    //         results: jsonDecode('[$results]')
+    //             .map<ChangeResult>((result) => ChangeResult.fromJson(result))
+    //             .toList()));
+
+    //   //***Need adjust
+    //   // case 'eventsource':
+    //   //   final mappedRes = streamedRes
+    //   //       .map((v) => v.replaceAll(RegExp('\n+data'), '},\n{data'))
+    //   //       .map((v) => v.replaceAll('data', '"data"'))
+    //   //       .map((v) => v.replaceAll('\nid', ',\n"id"'));
+    //   //   return mappedRes.map<ChangeResponse>((results) {
+    //   //     return jsonDecode('[{$results}]')
+    //   //         .map((result) => ChangeResult.fromJson(result))
+    //   //         .toList();
+    //   //   });
+
+    //   case 'normal':
+    //   case 'longpoll':
+    //   default:
+    //     String? res = await streamedRes.join();
+    //     print(res);
+    //     return Stream<ChangeResponse>.fromFuture(Future<ChangeResponse>.value(
+    //         ChangeResponse.fromJson(jsonDecode(res))));
+    // }
+  }
+
+  @override
   Future<EnsureFullCommitResponse> ensureFullCommit() async {
     return EnsureFullCommitResponse.fromJson(jsonDecode((await this.client.post(
             this.getUri('_ensure_full_commit'),
@@ -181,31 +229,32 @@ class CouchdbAdapter extends AbstractAdapter {
 
   @override
   Future<PutResponse> put(
-      {required Doc<Map<String, dynamic>> body,
+      {required Doc<Map<String, dynamic>> doc,
       bool newEdits = true,
       String? newRev}) async {
-    UriBuilder uriBuilder = new UriBuilder.fromUri(this.getUri(body.id));
-    uriBuilder.queryParameters = convertToParams(
-        {'new_edits': newEdits, '_rev': newEdits ? body.rev : newRev});
+    UriBuilder uriBuilder = new UriBuilder.fromUri(this.getUri(doc.id));
+    uriBuilder.queryParameters =
+        convertToParams({'new_edits': newEdits, 'rev': doc.rev});
 
-    Map<String, dynamic> newBody = {};
+    Map<String, dynamic> newBody = doc.model;
+
     if (!newEdits) {
-      if (newRev != null) {
-        newBody['_revisions'] = {
-          "ids": body.rev == null
-              ? [newRev.split('-')[1]]
-              : [newRev.split('-')[1], body.rev!.split('-')[1]],
-          "start": int.parse(newRev.split('-')[0])
-        };
+      if (newRev == null) {
+        throw new AdapterException(
+            error: 'newRev is required when newEdits is false');
       }
+      // if(body['_revisions'] == null) {
+      //   throw new AdapterException(
+      //       error: '_revisions is required when newEdits is false');
+      // }
+      newBody['_revisions'] = {
+        "ids": doc.rev == null ? [newRev] : [newRev, doc.rev!.split('-')[1]],
+        "start": int.parse(newRev.split('-')[0])
+      };
     }
-    newBody.addAll(body.model);
-    newBody['rev'] = body.rev;
-    var response = jsonDecode(
+    return PutResponse.fromJson(jsonDecode(
         (await this.client.put(uriBuilder.build(), body: jsonEncode(newBody)))
-            .body);
-    print(response);
-    return PutResponse.fromJson(response);
+            .body));
   }
 
   // @override
@@ -322,5 +371,22 @@ class CouchdbAdapter extends AbstractAdapter {
     print(response);
 
     return FindResponse.fromJson(response);
+  }
+
+  @override
+  Future<bool> init() async {
+    try {
+      await this.client.head(this.getUri(""));
+    } catch (err) {
+      print(err);
+      await this.client.put(this.getUri(''));
+    }
+    return true;
+  }
+
+  @override
+  Future<bool> destroy() async {
+    await this.client.delete(this.getUri(''));
+    return true;
   }
 }

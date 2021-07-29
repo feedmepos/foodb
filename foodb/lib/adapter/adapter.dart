@@ -12,6 +12,12 @@ import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/replication.dart';
 import 'package:synchronized/synchronized.dart';
 
+class ChangesStreamMode {
+  static final continuous = "continuous";
+  static final longpoll = "longpoll";
+  static final normal = "normal";
+}
+
 abstract class AbstractAdapter {
   var _lock = new Lock();
   Lock get lock => _lock;
@@ -38,7 +44,7 @@ abstract class AbstractAdapter {
       required T Function(Object? json) fromJsonT});
 
   Future<PutResponse> put(
-      {required Doc<Map<String, dynamic>> body,
+      {required Doc<Map<String, dynamic>> doc,
       bool newEdits = true,
       String? newRev});
 
@@ -53,6 +59,7 @@ abstract class AbstractAdapter {
   Future<EnsureFullCommitResponse> ensureFullCommit();
 
   Future<Stream<ChangeResponse>> changesStream(ChangeRequest request);
+  Future<Stream<String>> changesStreamString(ChangeRequest request);
 
   Future<PutResponse> putReplicationLog(
       {required String id, required Map<String, dynamic> body});
@@ -70,4 +77,7 @@ abstract class AbstractAdapter {
       Map<String, Object>? partialFilterSelector});
 
   Future<FindResponse> find(FindRequest findRequest);
+
+  Future<bool> init();
+  Future<bool> destroy();
 }
