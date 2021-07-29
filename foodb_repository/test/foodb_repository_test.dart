@@ -103,8 +103,8 @@ void main() async {
 
     print(docs.toString());
     print(docs2.toString());
-    expect(docs.length > 0, isTrue);
-    expect(docs2.length > 0, isTrue);
+    expect(docs.length, equals(2));
+    expect(docs2.length, equals(2));
 
     // update doc, should can only update own doc
     print(docs[0].model.name);
@@ -163,13 +163,13 @@ void main() async {
     Doc<UserModel>? doc = await userRepo.read(
       'Sales-{\"name\":\"4\",\"no\":20}',
     );
-    // Doc<UserModel> newDoc = new Doc(
-    //     id: doc!.id,
-    //     rev: "1-${doc.rev!.split('-')[1]}",
-    //     model: doc.model,
-    //     deleted: true,
-    //     revisions: Revisions(
-    //         start: 1, ids: [doc.rev!.split('-')[1], doc.rev!.split('-')[1]]));
+    Doc<UserModel> newDoc = new Doc(
+        id: doc!.id,
+        rev: "1-${doc.rev!.split('-')[1]}",
+        model: doc.model,
+        deleted: true,
+        revisions: Revisions(
+            start: 1, ids: [doc.rev!.split('-')[1], doc.rev!.split('-')[1]]));
     BulkDocResponse bulkDocResponse = await userRepo.bulkDocs([
       //newDoc,
       Doc<UserModel>(
