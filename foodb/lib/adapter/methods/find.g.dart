@@ -45,7 +45,9 @@ Map<String, dynamic> _$FindRequestToJson(FindRequest instance) =>
 FindResponse _$FindResponseFromJson(Map<String, dynamic> json) {
   return FindResponse(
     docs: (json['docs'] as List<dynamic>)
-        .map((e) => e == null ? null : Doc.fromJson(e as Map<String, dynamic>))
+        .map((e) => e == null
+            ? null
+            : Doc.fromJson(e as Map<String, dynamic>, (value) => value))
         .toList(),
     executionStats: json['execution_stats'] == null
         ? null
@@ -58,7 +60,11 @@ FindResponse _$FindResponseFromJson(Map<String, dynamic> json) {
 
 Map<String, dynamic> _$FindResponseToJson(FindResponse instance) =>
     <String, dynamic>{
-      'docs': instance.docs,
+      'docs': instance.docs
+          .map((e) => e?.toJson(
+                (value) => value,
+              ))
+          .toList(),
       'execution_stats': instance.executionStats,
       'warning': instance.warning,
       'bookmark': instance.bookmark,

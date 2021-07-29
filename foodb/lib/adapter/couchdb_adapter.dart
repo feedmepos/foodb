@@ -40,14 +40,16 @@ class CouchdbAdapter extends AbstractAdapter {
   }
 
   @override
-  Future<BulkDocResponse> bulkDocs(
-      {required List<Doc> body, bool newEdits = false}) async {
+  Future<BulkDocResponse> bulkDocs<T>(
+      {required List<Doc<T>> body,
+      bool newEdits = false,
+      required Object? Function(T value) toJsonT}) async {
     var response = jsonDecode((await this.client.post(this.getUri('_bulk_docs'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'new_edits': newEdits,
               'docs': body.map((e) {
-                Map map = e.toJson();
+                Map map = e.toJson((T value) => toJsonT(value));
                 map.removeWhere((key, value) => value == null);
                 return map;
               }).toList()
@@ -121,7 +123,7 @@ class CouchdbAdapter extends AbstractAdapter {
   }
 
   @override
-  Future<Doc?> get(
+  Future<Doc<T>?> get<T>(
       {required String id,
       bool attachments = false,
       bool attEncodingInfo = false,
@@ -134,7 +136,8 @@ class CouchdbAdapter extends AbstractAdapter {
       Object? openRevs,
       String? rev,
       bool revs = false,
-      bool revsInfo = false}) async {
+      bool revsInfo = false,
+      required T Function(Object? json) fromJsonT}) async {
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri(id)));
     uriBuilder.queryParameters = convertToParams({
       'revs': revs,
@@ -153,7 +156,9 @@ class CouchdbAdapter extends AbstractAdapter {
 
     Map<String, dynamic> result =
         jsonDecode((await this.client.get(uriBuilder.build())).body);
-    return result.containsKey('_id') ? Doc.fromJson(result) : null;
+    return result.containsKey('_id')
+        ? Doc<T>.fromJson(result, (json) => fromJsonT(json))
+        : null;
   }
 
   @override
@@ -176,23 +181,23 @@ class CouchdbAdapter extends AbstractAdapter {
 
   @override
   Future<PutResponse> put(
-      {required String id, required Map<String, dynamic> body}) async {
+      {required Map<String, dynamic> body, bool newEdits = false}) async {
     String newRev = generateNewRev(body['_rev']);
-    UriBuilder uriBuilder = new UriBuilder.fromUri(this.getUri(id));
+    UriBuilder uriBuilder = new UriBuilder.fromUri(this.getUri(body['_id']));
     uriBuilder.queryParameters =
-        convertToParams({'new_edits': false, '_rev': newRev});
+        convertToParams({'new_edits': newEdits, '_rev': newRev});
 
-    return PutResponse.fromJson(
-        jsonDecode((await this.client.put(uriBuilder.build(),
-                body: jsonEncode({
-                  'json': body['json'],
-                  '_revisions': {
-                    "ids": body['_rev'] == null
-                        ? [newRev.split('-')[1]]
-                        : [newRev.split('-')[1], body['_rev'].split('-')[1]],
-                    "start": int.parse(newRev.split('-')[0])
-                  }
-                })))
+    Map<String, dynamic> newBody = {};
+    newBody['_revisions'] = {
+      "ids": body['_rev'] == null
+          ? [newRev.split('-')[1]]
+          : [newRev.split('-')[1], body['_rev'].split('-')[1]],
+      "start": int.parse(newRev.split('-')[0])
+    };
+    newBody.addAll(body['model']);
+
+    return PutResponse.fromJson(jsonDecode(
+        (await this.client.put(uriBuilder.build(), body: jsonEncode(newBody)))
             .body));
   }
 
@@ -238,11 +243,14 @@ class CouchdbAdapter extends AbstractAdapter {
   }
 
   @override
-  Future<GetAllDocs> allDocs(GetAllDocsRequest getAllDocsRequest) async {
+  Future<GetAllDocs<T>> allDocs<T>(GetAllDocsRequest getAllDocsRequest,
+      T Function(Object? json) fromJsonT) async {
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_all_docs')));
     uriBuilder.queryParameters = convertToParams(getAllDocsRequest.toJson());
-    return GetAllDocs.fromJson(
-        jsonDecode((await this.client.get(uriBuilder.build())).body));
+
+    return GetAllDocs<T>.fromJson(
+        jsonDecode((await this.client.get(uriBuilder.build())).body),
+        fromJsonT);
   }
 
   @override

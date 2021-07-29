@@ -21,7 +21,7 @@ abstract class AbstractAdapter {
 
   Future<GetInfoResponse> info();
 
-  Future<Doc?> get(
+  Future<Doc<T>?> get<T>(
       {required String id,
       bool attachments = false,
       bool attEncodingInfo = false,
@@ -34,17 +34,18 @@ abstract class AbstractAdapter {
       Object? openRevs,
       String? rev,
       bool revs = false,
-      bool revsInfo = false});
+      bool revsInfo = false,
+      required T Function(Object? json) fromJsonT});
 
-  Future<PutResponse> put(
-      {required String id, required Map<String, dynamic> body});
+  Future<PutResponse> put({required Map<String, dynamic> body});
 
   Future<DeleteResponse> delete({required String id, required String rev});
 
   Future<Map<String, RevsDiff>> revsDiff(
       {required Map<String, List<String>> body});
 
-  Future<BulkDocResponse> bulkDocs({required List<Doc> body});
+  Future<BulkDocResponse> bulkDocs<T>(
+      {required List<Doc<T>> body, required Object? Function(T value) toJsonT});
 
   Future<EnsureFullCommitResponse> ensureFullCommit();
 
@@ -55,7 +56,8 @@ abstract class AbstractAdapter {
 
   Future<ReplicationLog?> getReplicationLog({required String id});
 
-  Future<GetAllDocs> allDocs(GetAllDocsRequest allDocsRequest);
+  Future<GetAllDocs<T>> allDocs<T>(
+      GetAllDocsRequest allDocsRequest, T Function(Object? json) fromJsonT);
 
   Future<IndexResponse> createIndex(
       {required List<String> indexFields,

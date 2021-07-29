@@ -6,39 +6,64 @@ part of 'all_docs.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-GetAllDocs _$GetAllDocsFromJson(Map<String, dynamic> json) {
-  return GetAllDocs(
+GetAllDocs<T> _$GetAllDocsFromJson<T>(
+  Map<String, dynamic> json,
+  T Function(Object? json) fromJsonT,
+) {
+  return GetAllDocs<T>(
     offset: json['offset'] as int,
     totalRows: json['total_rows'] as int,
     rows: (json['rows'] as List<dynamic>)
-        .map((e) => e == null ? null : Row.fromJson(e as Map<String, dynamic>))
+        .map((e) => e == null
+            ? null
+            : Row.fromJson(
+                e as Map<String, dynamic>, (value) => fromJsonT(value)))
         .toList(),
     updateSeq: json['update_seq'] as String?,
   );
 }
 
-Map<String, dynamic> _$GetAllDocsToJson(GetAllDocs instance) =>
+Map<String, dynamic> _$GetAllDocsToJson<T>(
+  GetAllDocs<T> instance,
+  Object? Function(T value) toJsonT,
+) =>
     <String, dynamic>{
       'offset': instance.offset,
       'total_rows': instance.totalRows,
-      'rows': instance.rows,
+      'rows': instance.rows
+          .map((e) => e?.toJson(
+                (value) => toJsonT(value),
+              ))
+          .toList(),
       'update_seq': instance.updateSeq,
     };
 
-Row _$RowFromJson(Map<String, dynamic> json) {
-  return Row(
+Row<T> _$RowFromJson<T>(
+  Map<String, dynamic> json,
+  T Function(Object? json) fromJsonT,
+) {
+  return Row<T>(
     id: json['id'] as String,
     key: json['key'] as String,
     value: Value.fromJson(json['value'] as Map<String, dynamic>),
-    doc: Doc.fromJson(json['doc'] as Map<String, dynamic>),
+    doc: json['doc'] == null
+        ? null
+        : Doc.fromJson(
+            json['doc'] as Map<String, dynamic>, (value) => fromJsonT(value)),
   );
 }
 
-Map<String, dynamic> _$RowToJson(Row instance) => <String, dynamic>{
+Map<String, dynamic> _$RowToJson<T>(
+  Row<T> instance,
+  Object? Function(T value) toJsonT,
+) =>
+    <String, dynamic>{
       'id': instance.id,
       'key': instance.key,
       'value': instance.value,
-      'doc': instance.doc,
+      'doc': instance.doc?.toJson(
+        (value) => toJsonT(value),
+      ),
     };
 
 Value _$ValueFromJson(Map<String, dynamic> json) {
@@ -55,7 +80,7 @@ GetAllDocsRequest _$GetAllDocsRequestFromJson(Map<String, dynamic> json) {
   return GetAllDocsRequest(
     conflicts: json['conflicts'] as bool,
     descending: json['descending'] as bool,
-    endKey: json['endKey'],
+    endKey: json['endkey'],
     endKeyDocId: json['endkey_docid'] as String?,
     group: json['group'] as bool,
     groupLevel: json['group_level'] as int?,
@@ -71,7 +96,7 @@ GetAllDocsRequest _$GetAllDocsRequestFromJson(Map<String, dynamic> json) {
     sorted: json['sorted'] as bool,
     stable: json['stable'] as bool,
     stale: json['stale'] as String?,
-    startKey: json['startKey'],
+    startKey: json['startkey'],
     startKeyDocId: json['startkey_docid'] as String?,
     update: json['update'] as String?,
     updateSeq: json['update_seq'] as bool,
@@ -82,7 +107,7 @@ Map<String, dynamic> _$GetAllDocsRequestToJson(GetAllDocsRequest instance) =>
     <String, dynamic>{
       'conflicts': instance.conflicts,
       'descending': instance.descending,
-      'endKey': instance.endKey,
+      'endkey': instance.endKey,
       'endkey_docid': instance.endKeyDocId,
       'group': instance.group,
       'group_level': instance.groupLevel,
@@ -98,7 +123,7 @@ Map<String, dynamic> _$GetAllDocsRequestToJson(GetAllDocsRequest instance) =>
       'sorted': instance.sorted,
       'stable': instance.stable,
       'stale': instance.stale,
-      'startKey': instance.startKey,
+      'startkey': instance.startKey,
       'startkey_docid': instance.startKeyDocId,
       'update': instance.update,
       'update_seq': instance.updateSeq,

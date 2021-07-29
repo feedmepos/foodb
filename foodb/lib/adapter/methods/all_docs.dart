@@ -4,14 +4,14 @@ import 'package:foodb/common/doc.dart';
 
 part 'all_docs.g.dart';
 
-@JsonSerializable()
-class GetAllDocs {
+@JsonSerializable(genericArgumentFactories: true)
+class GetAllDocs<T> {
   int offset;
 
   @JsonKey(name: 'total_rows')
   int totalRows;
 
-  List<Row?> rows;
+  List<Row<T>?> rows;
 
   @JsonKey(name: 'update_seq')
   String? updateSeq;
@@ -22,26 +22,27 @@ class GetAllDocs {
       required this.rows,
       this.updateSeq});
 
-  factory GetAllDocs.fromJson(Map<String, dynamic> json) =>
-      _$GetAllDocsFromJson(json);
-  Map<String, dynamic> toJson() => _$GetAllDocsToJson(this);
+  factory GetAllDocs.fromJson(
+          Map<String, dynamic> json, T Function(Object? json) fromJsonT) =>
+      _$GetAllDocsFromJson(json, fromJsonT);
+  Map<String, dynamic> toJson(Object Function(T value) toJsonT) =>
+      _$GetAllDocsToJson(this, toJsonT);
 }
 
-@JsonSerializable()
-class Row {
+@JsonSerializable(genericArgumentFactories: true)
+class Row<T> {
   String id;
   String key;
   Value value;
-  Doc doc;
+  Doc<T>? doc;
 
-  Row(
-      {required this.id,
-      required this.key,
-      required this.value,
-      required this.doc});
+  Row({required this.id, required this.key, required this.value, this.doc});
 
-  factory Row.fromJson(Map<String, dynamic> json) => _$RowFromJson(json);
-  Map<String, dynamic> toJson() => _$RowToJson(this);
+  factory Row.fromJson(
+          Map<String, dynamic> json, T Function(Object? json) fromJsonT) =>
+      _$RowFromJson(json, fromJsonT);
+  Map<String, dynamic> toJson(Object? Function(T value) toJsonT) =>
+      _$RowToJson(this, toJsonT);
 }
 
 @JsonSerializable()
@@ -57,6 +58,8 @@ class Value {
 class GetAllDocsRequest {
   bool conflicts;
   bool descending;
+
+  @JsonKey(name: 'endkey')
   Object? endKey;
 
   @JsonKey(name: 'endkey_docid')
@@ -85,6 +88,7 @@ class GetAllDocsRequest {
   bool sorted;
   bool stable;
   String? stale;
+  @JsonKey(name: 'startkey')
   Object? startKey;
 
   @JsonKey(name: 'startkey_docid')

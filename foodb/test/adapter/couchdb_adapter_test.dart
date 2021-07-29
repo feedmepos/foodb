@@ -25,12 +25,12 @@ void main() async {
     return new CouchdbAdapter(dbName: dbName, baseUri: Uri.parse(baseUri));
   }
 
-  test('allDocs()', () async {
-    final CouchdbAdapter couchDb = getCouchDbAdapter();
-    var result = await couchDb.allDocs(GetAllDocsRequest(includeDocs: true));
-    print(result.totalRows);
-    expect(result.totalRows, isNotNull);
-  });
+  // test('allDocs()', () async {
+  //   final CouchdbAdapter couchDb = getCouchDbAdapter();
+  //   var result = await couchDb.allDocs(GetAllDocsRequest(includeDocs: true));
+  //   print(result.totalRows);
+  //   expect(result.totalRows, isNotNull);
+  // });
 
   test('info()', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();
@@ -65,39 +65,39 @@ void main() async {
     expect(deleteResponse.ok, true);
   });
 
-  test('bulkdocs()', () async {
-    final CouchdbAdapter couchDb = getCouchDbAdapter();
-    List<Doc> newDocs = [];
-    newDocs.add(Doc(
-        id: 'test2',
-        rev: '1-zu21xehvdaine5smjxy9htiegd4rptkm5',
-        json: {
-          'name': 'test test',
-          'no': 1111,
-        },
-        revisions: Revisions(start: 1, ids: [
-          'zu21xehvdaine5smjxy9htiegd4rptkm5',
-          'zu21xehvdaine5smjxy9htiegd4rptkm5'
-        ])));
-    newDocs.add(Doc(
-        id: 'test7',
-        rev: '0-sasddsdsdfdfdsfdffdd',
-        json: {
-          'name': 'test test asdfgh',
-          'no': 2212,
-        },
-        revisions: Revisions(start: 0, ids: ['sasddsdsdfdfdsfdffdd'])));
-    newDocs.add(Doc(
-        id: 'test5',
-        rev: '0-sasddsdsdfdfdsfdffdd',
-        json: {
-          'name': 'test test 5',
-          'no': 222,
-        },
-        revisions: Revisions(start: 0, ids: ['sasddsdsdfdfdsfdffdd'])));
-    BulkDocResponse bulkDocResponse = await couchDb.bulkDocs(body: newDocs);
-    expect(bulkDocResponse.error, isNull);
-  });
+  // test('bulkdocs()', () async {
+  //   final CouchdbAdapter couchDb = getCouchDbAdapter();
+  //   List<Doc> newDocs = [];
+  //   newDocs.add(Doc(
+  //       id: 'test2',
+  //       rev: '1-zu21xehvdaine5smjxy9htiegd4rptkm5',
+  //       json: {
+  //         'name': 'test test',
+  //         'no': 1111,
+  //       },
+  //       revisions: Revisions(start: 1, ids: [
+  //         'zu21xehvdaine5smjxy9htiegd4rptkm5',
+  //         'zu21xehvdaine5smjxy9htiegd4rptkm5'
+  //       ])));
+  //   newDocs.add(Doc(
+  //       id: 'test7',
+  //       rev: '0-sasddsdsdfdfdsfdffdd',
+  //       json: {
+  //         'name': 'test test asdfgh',
+  //         'no': 2212,
+  //       },
+  //       revisions: Revisions(start: 0, ids: ['sasddsdsdfdfdsfdffdd'])));
+  //   newDocs.add(Doc(
+  //       id: 'test5',
+  //       rev: '0-sasddsdsdfdfdsfdffdd',
+  //       json: {
+  //         'name': 'test test 5',
+  //         'no': 222,
+  //       },
+  //       revisions: Revisions(start: 0, ids: ['sasddsdsdfdfdsfdffdd'])));
+  //   BulkDocResponse bulkDocResponse = await couchDb.bulkDocs(body: newDocs);
+  //   expect(bulkDocResponse.error, isNull);
+  // });
 
   test('createIndex()', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();

@@ -1,18 +1,15 @@
-import 'dart:convert';
-
 import 'package:flutter/cupertino.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'doc.g.dart';
 
-@JsonSerializable()
 @immutable
-class Doc {
+class Doc<T> {
   @JsonKey(name: '_id')
   final String id;
 
   @JsonKey(name: '_rev')
-  final String rev;
+  final String? rev;
 
   @JsonKey(name: '_deleted')
   final bool? deleted;
@@ -20,7 +17,7 @@ class Doc {
   @JsonKey(name: '_revisions')
   final Revisions? revisions;
 
-  final Map<String, dynamic>? json;
+  final T model;
 
   @JsonKey(name: '_attachments')
   final Object? attachments;
@@ -39,10 +36,10 @@ class Doc {
 
   Doc({
     required this.id,
-    required this.rev,
+    this.rev,
+    required this.model,
     this.deleted,
     this.revisions,
-    this.json,
     this.attachments,
     this.conflicts,
     this.deletedConflicts,
@@ -50,9 +47,57 @@ class Doc {
     this.localSeq,
   });
 
-  factory Doc.fromJson(Map<String, dynamic> json) => _$DocFromJson(json);
-  Map<String, dynamic> toJson() => _$DocToJson(this);
+  factory Doc.fromJson(
+          Map<String, dynamic> json, T Function(Object? json) fromJsonT) =>
+      _$DocFromJson(json, fromJsonT);
+  Map<String, dynamic> toJson(Object? Function(T value) toJsonT) =>
+      _$DocToJson(this, toJsonT);
 }
+
+Doc<T> _$DocFromJson<T>(
+  Map<String, dynamic> json,
+  T Function(Object? json) fromJsonT,
+) {
+  return Doc<T>(
+    id: json['_id'] as String,
+    rev: json['_rev'] as String,
+    model: fromJsonT(json),
+    deleted: json['_deleted'] as bool?,
+    revisions: json['_revisions'] == null
+        ? null
+        : Revisions.fromJson(json['_revisions'] as Map<String, dynamic>),
+    attachments: json['_attachments'],
+    conflicts: (json['_conflicts'] as List<dynamic>?)
+        ?.map((e) => e as String)
+        .toList(),
+    deletedConflicts: (json['_deleted_conflicts'] as List<dynamic>?)
+        ?.map((e) => e as String)
+        .toList(),
+    revsInfo: (json['_revs_info'] as List<dynamic>?)
+        ?.map((e) => (e as Map<String, dynamic>).map(
+              (k, e) => MapEntry(k, e as Object),
+            ))
+        .toList(),
+    localSeq: json['_local_seq'] as String?,
+  );
+}
+
+Map<String, dynamic> _$DocToJson<T>(
+  Doc<T> instance,
+  Object? Function(T value) toJsonT,
+) =>
+    <String, dynamic>{
+      '_id': instance.id,
+      '_rev': instance.rev,
+      '_deleted': instance.deleted,
+      '_revisions': instance.revisions,
+      'model': toJsonT(instance.model),
+      '_attachments': instance.attachments,
+      '_conflicts': instance.conflicts,
+      '_deleted_conflicts': instance.deletedConflicts,
+      '_revs_info': instance.revsInfo,
+      '_local_seq': instance.localSeq,
+    };
 
 @JsonSerializable()
 @immutable
