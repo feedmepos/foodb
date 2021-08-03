@@ -42,14 +42,14 @@ void main() async {
     expect(result.dbName, equals(envDbName));
   });
 
-  test('put()', () async {
-    final CouchdbAdapter couchDb = getCouchDbAdapter();
-    PutResponse putResponse = await couchDb.put(body: {
-      "json": {"id": 'test2', "no": 500, "name": "test2"},
-    });
+  // test('put()', () async {
+  //   final CouchdbAdapter couchDb = getCouchDbAdapter();
+  //   PutResponse putResponse = await couchDb.put(body: {
+  //     "json": {"id": 'test2', "no": 500, "name": "test2"},
+  //   });
 
-    expect(putResponse.ok, isTrue);
-  });
+  //   expect(putResponse.ok, isTrue);
+  // });
 
   test('get()', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();
@@ -128,48 +128,58 @@ void main() async {
         await couchDb.ensureFullCommit();
     expect(ensureFullCommitResponse.ok, isTrue);
   });
+  test('init', () async {
+    var dbName = Uuid().v4();
+    final CouchdbAdapter couchDb = getCouchDbAdapter(dbName: dbName.toString());
+    bool test = await couchDb.init();
+    expect(test, true);
 
-  // test('Changes Stream In CouchDB adish', () async {
-  //   final CouchdbAdapter couchDb = getCouchDbAdapter();
-  //   Stream<ChangeResponse> changesStream = await couchDb
-  //       .changesStream(ChangeRequest(includeDocs: true, feed: 'longpoll'));
+    bool destroy = await couchDb.destroy();
+    expect(destroy, true);
+  });
 
-  //   String? changes;
-  //   StreamSubscription streamSubscription = changesStream.listen((event) {
-  //     changes = event.results[0].id;
-  //   }, onDone: () {
-  //     print('done');
-  //   }, onError: (e) {
-  //     print('$e failed to listen');
-  //   });
-  //   if (changes != null) {
-  //     streamSubscription.cancel();
-  //   }
-
-  //   expect(changes, isNotNull);
-  // });
+  test('delete db', () async {
+    final CouchdbAdapter couchDb = getCouchDbAdapter(dbName: "aawertyuytre");
+    await couchDb.destroy();
+  });
 
   test("change stream", () async {
-    var dbName = Uuid();
-    print(dbName);
+    var dbName = "adish";
     int count = 0;
     final CouchdbAdapter couchDb = getCouchDbAdapter(dbName: dbName.toString());
     await couchDb.init();
-    await couchDb.put(body: {"_id": "1"});
-    await couchDb.put(body: {"_id": "2"});
-    Stream<String> changesStream = await couchDb.changesStreamString(
-        ChangeRequest(includeDocs: true, feed: ChangesStreamMode.continuous));
-    var listener;
-    listener = changesStream.listen((event) {
-      print(event);
-      if (++count == 4) {
-        expectAsync0(() async {
-          await couchDb.destroy();
-          listener.cancel();
-        });
-      }
-    }, onDone: expectAsync0(() => {}));
-    await couchDb.put(body: {"_id": "3"});
-    await couchDb.put(body: {"_id": "4"});
+    await couchDb.put(doc: Doc(id: '1', model: {'name': 'ff'}));
+    await couchDb.put(doc: Doc(id: '2', model: {'name': 'zz'}));
+    var fn = expectAsync1((changeResponse) {
+      expect(changeResponse, isNotNull);
+    });
+    couchDb
+        .changesStream(ChangeRequest(
+            includeDocs: true,
+            feed: ChangeFeed.normal,
+            since: '0',
+            heartbeat: 1000))
+        .then((changesStream) {
+      var listener;
+      changesStream.onHeartbeat(() {
+        ++count;
+        print('heartneat $count');
+        // if (count == 5) {
+        //   fn();
+        // }
+      });
+      listener = changesStream.onResult((event) {
+        print('onResult: ${event.toJson()}');
+      });
+
+      listener = changesStream.onComplete((changeResponse) {
+        print('onCompleted: ${changeResponse.toJson()}');
+        fn(changeResponse);
+      });
+    });
+
+    await Future.delayed(Duration(seconds: 3));
+    print('third put');
+    await couchDb.put(doc: Doc(id: '3', model: {'name': 'zz'}));
   });
 }

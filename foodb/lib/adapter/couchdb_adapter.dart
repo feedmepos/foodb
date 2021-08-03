@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:foodb/adapter/adapter.dart';
@@ -24,8 +25,8 @@ class CouchdbAdapter extends AbstractAdapter {
 
   CouchdbAdapter({required String dbName, required this.baseUri})
       : super(dbName: dbName) {
-    this.client = Client();
     try {
+      this.client = getClient();
       if (!this.baseUri.scheme.toLowerCase().startsWith('http')) {
         throw new Exception('URI scheme must be http/https');
       }
@@ -35,27 +36,28 @@ class CouchdbAdapter extends AbstractAdapter {
     }
   }
 
+  Client getClient() {
+    return Client();
+  }
+
   Uri getUri(String path) {
     return Uri.parse("${baseUri.toString()}/$dbName/$path");
   }
 
   @override
-  Future<BulkDocResponse> bulkDocs<T>(
-      {required List<Doc<T>> body,
-      bool newEdits = false,
-      required Object? Function(T value) toJsonT}) async {
+  Future<BulkDocResponse> bulkDocs(
+      {required List<Doc<Map<String, dynamic>>> body,
+      bool newEdits = false}) async {
     var response = jsonDecode((await this.client.post(this.getUri('_bulk_docs'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'new_edits': newEdits,
-              'docs': body.map((e) {
-                Map map = e.toJson((T value) => toJsonT(value));
-                map.removeWhere((key, value) => value == null);
-                return map;
-              }).toList()
+              'docs': body.map((e) => e.toJson((value) => value)).toList()
             })))
         .body);
+
     List<PutResponse> putResponses = [];
+
     if (response is Map<String, dynamic>) {
       return BulkDocResponse.fromJson(response);
     } else if (response.length > 0) {
@@ -68,7 +70,8 @@ class CouchdbAdapter extends AbstractAdapter {
   }
 
   @override
-  Future<Stream<ChangeResponse>> changesStream(ChangeRequest request) async {
+  Future<ChangesStream> changesStream(ChangeRequest request) async {
+    var client = getClient();
     final path =
         '_changes?${includeNonNullParam('doc_ids', request.body?.docIds)}&'
         'conflicts=${request.conflicts}&descending=${request.descending}&'
@@ -78,64 +81,18 @@ class CouchdbAdapter extends AbstractAdapter {
         '&${includeNonNullParam('limit', request.limit)}&since=${request.since}&style=${request.style}&'
         'timeout=${request.timeout}&${includeNonNullParam('view', request.view)}&'
         '${includeNonNullParam('seq_interval', request.seqInterval)}';
+    print(path);
+    var res = await client.send(Request('get', this.getUri(path)));
 
-    var streamedRes =
-        (await this.client.send(Request('get', this.getUri(path))))
-            .stream
-            .toStringStream();
-
-    switch (request.feed) {
-      case 'continuous':
-        final mappedRes = streamedRes.map((v) => v.replaceAll('}\n{', '},\n{'));
-        return mappedRes.map((results) => ChangeResponse(
-            results: jsonDecode('[$results]')
-                .map<ChangeResult>((result) => ChangeResult.fromJson(result))
-                .toList()));
-
-      //***Need adjust
-      // case 'eventsource':
-      //   final mappedRes = streamedRes
-      //       .map((v) => v.replaceAll(RegExp('\n+data'), '},\n{data'))
-      //       .map((v) => v.replaceAll('data', '"data"'))
-      //       .map((v) => v.replaceAll('\nid', ',\n"id"'));
-      //   return mappedRes.map<ChangeResponse>((results) {
-      //     return jsonDecode('[{$results}]')
-      //         .map((result) => ChangeResult.fromJson(result))
-      //         .toList();
-      //   });
-
-      case 'normal':
-      case 'longpoll':
-      default:
-        String? res = await streamedRes.join();
-        print(res);
-        return Stream<ChangeResponse>.fromFuture(Future<ChangeResponse>.value(
-            ChangeResponse.fromJson(jsonDecode(res))));
-    }
-  }
-
-  @override
-  Future<Stream<String>> changesStreamString(ChangeRequest request) async {
-    final path =
-        '_changes?${includeNonNullParam('doc_ids', request.body?.docIds)}&'
-        'conflicts=${request.conflicts}&descending=${request.descending}&'
-        'feed=${request.feed}&${includeNonNullParam('filter', request.filter)}&heartbeat='
-        '${request.heartbeat}&include_docs=${request.includeDocs}&attachments=${request.attachments}&'
-        'att_encoding_info=${request.attEncodingInfo}&${includeNonNullParam('last-event-id', request.lastEventId)}'
-        '&${includeNonNullParam('limit', request.limit)}&since=${request.since}&style=${request.style}&'
-        'timeout=${request.timeout}&${includeNonNullParam('view', request.view)}&'
-        '${includeNonNullParam('seq_interval', request.seqInterval)}';
-
-    var streamedRes =
-        (await this.client.send(Request('get', this.getUri(path))))
-            .stream
-            .toStringStream();
-    return streamedRes;
+    var streamedRes = res.stream.asBroadcastStream().transform(utf8.decoder);
+    var streamedResponse =
+        ChangesStream(stream: streamedRes, client: client, feed: request.feed);
+    return streamedResponse;
 
     // switch (request.feed) {
     //   case 'continuous':
     //     final mappedRes = streamedRes.map((v) => v.replaceAll('}\n{', '},\n{'));
-    //     return mappedRes.map((results) => ChangeResponse(
+    //     return  mappedRes.map((results) => ChangeResponse(
     //         results: jsonDecode('[$results]')
     //             .map<ChangeResult>((result) => ChangeResult.fromJson(result))
     //             .toList()));
@@ -161,6 +118,56 @@ class CouchdbAdapter extends AbstractAdapter {
     //         ChangeResponse.fromJson(jsonDecode(res))));
     // }
   }
+
+  // @override
+  // Future<Stream<String>> changesStreamString(ChangeRequest request) async {
+  //   final path =
+  //       '_changes?${includeNonNullParam('doc_ids', request.body?.docIds)}&'
+  //       'conflicts=${request.conflicts}&descending=${request.descending}&'
+  //       'feed=${request.feed}&${includeNonNullParam('filter', request.filter)}&heartbeat='
+  //       '${request.heartbeat}&include_docs=${request.includeDocs}&attachments=${request.attachments}&'
+  //       'att_encoding_info=${request.attEncodingInfo}&${includeNonNullParam('last-event-id', request.lastEventId)}'
+  //       '&${includeNonNullParam('limit', request.limit)}&since=${request.since}&style=${request.style}&'
+  //       'timeout=${request.timeout}&${includeNonNullParam('view', request.view)}&'
+  //       '${includeNonNullParam('seq_interval', request.seqInterval)}';
+
+  //   var req = Request('get', this.getUri(path));
+  //   var res = (await this.client.send(req));
+  //   //res.
+
+  //   var streamedRes = res.stream.toStringStream();
+
+  //   return streamedRes;
+
+  // switch (request.feed) {
+  //   case 'continuous':
+  //     final mappedRes = streamedRes.map((v) => v.replaceAll('}\n{', '},\n{'));
+  //     return mappedRes.map((results) => ChangeResponse(
+  //         results: jsonDecode('[$results]')
+  //             .map<ChangeResult>((result) => ChangeResult.fromJson(result))
+  //             .toList()));
+
+  //   //***Need adjust
+  //   // case 'eventsource':
+  //   //   final mappedRes = streamedRes
+  //   //       .map((v) => v.replaceAll(RegExp('\n+data'), '},\n{data'))
+  //   //       .map((v) => v.replaceAll('data', '"data"'))
+  //   //       .map((v) => v.replaceAll('\nid', ',\n"id"'));
+  //   //   return mappedRes.map<ChangeResponse>((results) {
+  //   //     return jsonDecode('[{$results}]')
+  //   //         .map((result) => ChangeResult.fromJson(result))
+  //   //         .toList();
+  //   //   });
+
+  //   case 'normal':
+  //   case 'longpoll':
+  //   default:
+  //     String? res = await streamedRes.join();
+  //     print(res);
+  //     return Stream<ChangeResponse>.fromFuture(Future<ChangeResponse>.value(
+  //         ChangeResponse.fromJson(jsonDecode(res))));
+  // }
+  // }
 
   @override
   Future<EnsureFullCommitResponse> ensureFullCommit() async {
@@ -204,6 +211,8 @@ class CouchdbAdapter extends AbstractAdapter {
 
     Map<String, dynamic> result =
         jsonDecode((await this.client.get(uriBuilder.build())).body);
+    print(uriBuilder.build());
+    print(result);
     return result.containsKey('_id')
         ? Doc<T>.fromJson(result, (json) => fromJsonT(json))
         : null;
@@ -233,8 +242,8 @@ class CouchdbAdapter extends AbstractAdapter {
       bool newEdits = true,
       String? newRev}) async {
     UriBuilder uriBuilder = new UriBuilder.fromUri(this.getUri(doc.id));
-    uriBuilder.queryParameters =
-        convertToParams({'new_edits': newEdits, 'rev': doc.rev});
+    uriBuilder.queryParameters = convertToParams(
+        {'new_edits': newEdits, 'rev': newEdits ? doc.rev : newRev});
 
     Map<String, dynamic> newBody = doc.model;
 
@@ -284,7 +293,6 @@ class CouchdbAdapter extends AbstractAdapter {
       {required String id, required String rev}) async {
     UriBuilder uriBuilder = new UriBuilder.fromUri(this.getUri(id));
     uriBuilder.queryParameters = convertToParams({'rev': rev});
-
     return DeleteResponse.fromJson(
         jsonDecode((await this.client.delete(uriBuilder.build())).body));
   }
@@ -292,17 +300,24 @@ class CouchdbAdapter extends AbstractAdapter {
   @override
   Future<Map<String, RevsDiff>> revsDiff(
       {required Map<String, List<String>> body}) async {
-    Response response =
-        await this.client.put(this.getUri("_revs_diff"), body: body);
-    return (jsonDecode(response.body)
-        .map((k, v) => MapEntry<String, RevsDiff>(k, RevsDiff.fromJson(v))));
+    print(jsonEncode(body));
+    Response response = await this.client.post(this.getUri("_revs_diff"),
+        headers: {'Content-Type': 'application/json'}, body: jsonEncode(body));
+    // print(jsonDecode(response.body).keys[0].runtimeType);
+    // print(jsonDecode(response.body).values[0].runtimeType);
+    print(response.body);
+    return (jsonDecode(response.body).map<String, RevsDiff>((k, v) {
+      print("$k, ${k.runtimeType}");
+      print("$v, ${v.runtimeType}");
+      return MapEntry<String, RevsDiff>(k, RevsDiff.fromJson(v));
+    }));
   }
 
   @override
   Future<ReplicationLog?> getReplicationLog({required String id}) async {
-    Map<String, dynamic>? result =
+    Map<String, dynamic> result =
         jsonDecode((await this.client.get(this.getUri(id))).body);
-    return result != null ? ReplicationLog.fromJson(result) : null;
+    return result.containsKey('_id') ? ReplicationLog.fromJson(result) : null;
   }
 
   @override
@@ -375,12 +390,11 @@ class CouchdbAdapter extends AbstractAdapter {
 
   @override
   Future<bool> init() async {
-    try {
-      await this.client.head(this.getUri(""));
-    } catch (err) {
-      print(err);
-      await this.client.put(this.getUri(''));
+    Response response = await this.client.head(this.getUri(""));
+    if (response.statusCode == 404) {
+      Response createResponse = await this.client.put(this.getUri(""));
     }
+
     return true;
   }
 

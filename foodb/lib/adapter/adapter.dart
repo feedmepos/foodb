@@ -12,7 +12,7 @@ import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/replication.dart';
 import 'package:synchronized/synchronized.dart';
 
-class ChangesStreamMode {
+class ChangeFeed {
   static final continuous = "continuous";
   static final longpoll = "longpoll";
   static final normal = "normal";
@@ -53,13 +53,13 @@ abstract class AbstractAdapter {
   Future<Map<String, RevsDiff>> revsDiff(
       {required Map<String, List<String>> body});
 
-  Future<BulkDocResponse> bulkDocs<T>(
-      {required List<Doc<T>> body, required Object? Function(T value) toJsonT});
+  Future<BulkDocResponse> bulkDocs(
+      {required List<Doc<Map<String, dynamic>>> body, bool newEdits = false});
 
   Future<EnsureFullCommitResponse> ensureFullCommit();
 
-  Future<Stream<ChangeResponse>> changesStream(ChangeRequest request);
-  Future<Stream<String>> changesStreamString(ChangeRequest request);
+  Future<ChangesStream> changesStream(ChangeRequest request);
+  // Future<Stream<String>> changesStreamString(ChangeRequest request);
 
   Future<PutResponse> putReplicationLog(
       {required String id, required Map<String, dynamic> body});

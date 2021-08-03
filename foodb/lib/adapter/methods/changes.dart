@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
-
+import 'package:foodb/adapter/adapter.dart';
+import 'package:http/http.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'changes.g.dart';
@@ -64,6 +66,81 @@ Map<String, dynamic> _$ChangeResultToJson(ChangeResult instance) =>
       'changes': instance.changes,
       'doc': instance.doc,
     };
+
+class ChangesStream {
+  Stream<String> _stream;
+  // Stream<String> get stream => _stream;
+  Client _client;
+  String _feed;
+  List<ChangeResult> _results = [];
+  ChangesStream({
+    required stream,
+    required client,
+    required feed,
+  })  : _stream = stream,
+        _client = client,
+        _feed = feed;
+  List<StreamSubscription> subscriptions = [];
+
+  cancel() {
+    subscriptions.forEach((element) {
+      element.cancel();
+    });
+    _client.close();
+  }
+
+  onHeartbeat(Function listener) {
+    var subscription = _stream.listen((event) {
+      print(event);
+      if (event.trim() == '') {
+        listener();
+      }
+    });
+    subscriptions.add(subscription);
+    return subscription;
+  }
+
+  onResult(Function(ChangeResult) listener) {
+    var subscription = _stream.listen((event) {
+      print(event);
+      var splitted = event.split('\n').map((e) => e.trim());
+      var changeResults =
+          splitted.where((element) => RegExp("^{.*},?\$").hasMatch(element));
+      changeResults.forEach((element) {
+        var result = ChangeResult.fromJson(
+            jsonDecode(element.replaceAll(RegExp(",\$"), "")));
+
+        if (_feed != ChangeFeed.continuous) _results.add(result);
+        listener(result);
+      });
+      // if (event is ChangeResult) {
+      //   listener.call(event);
+      // }
+    });
+    subscriptions.add(subscription);
+    return subscription;
+  }
+
+  onComplete(Function(ChangeResponse) listener) {
+    var subscription = _stream.listen((event) {
+      var splitted = event.split('\n').map((e) => e.trim());
+      splitted.forEach((element) {
+        if (element.startsWith("\"last_seq\"")) {
+          element = "{" + element;
+          Map<String, dynamic> map = jsonDecode(element);
+          ChangeResponse changeResponse = new ChangeResponse(results: _results);
+          changeResponse.lastSeq = map['last_seq'];
+          changeResponse.pending = map['pending'];
+          listener(changeResponse);
+
+          cancel();
+        }
+      });
+    });
+    subscriptions.add(subscription);
+    return subscription;
+  }
+}
 
 @JsonSerializable()
 class ChangeResponse {
