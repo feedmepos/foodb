@@ -171,7 +171,7 @@ class ChangeRequest {
   bool attachments;
   bool attEncodingInfo;
   int? lastEventId;
-  int limit;
+  int? limit;
   String since;
   String style;
   int timeout;
@@ -189,7 +189,7 @@ class ChangeRequest {
     this.attachments = false,
     this.attEncodingInfo = false,
     this.lastEventId,
-    this.limit = 50,
+    this.limit,
     this.since = '0',
     this.style = 'main_only',
     this.timeout = 60000,

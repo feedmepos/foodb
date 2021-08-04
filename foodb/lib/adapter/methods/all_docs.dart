@@ -37,7 +37,6 @@ class Row<T> {
   Doc<T>? doc;
 
   Row({required this.id, required this.key, required this.value, this.doc});
-
   factory Row.fromJson(
           Map<String, dynamic> json, T Function(Object? json) fromJsonT) =>
       _$RowFromJson(json, fromJsonT);

@@ -1,7 +1,6 @@
 library foodb_repository;
 
 import 'dart:convert';
-
 import 'package:foodb/adapter/methods/all_docs.dart';
 import 'package:foodb/adapter/methods/bulk_docs.dart';
 import 'package:foodb/adapter/methods/delete.dart';
@@ -73,7 +72,7 @@ abstract class FoodbRepository<T extends FoodbModel> {
     //     new Doc(id: "$prefix-${jsonEncode(toJsonT(model))}", model: model);
     Doc<Map<String, dynamic>> newDoc2 = new Doc(
         id: "$prefix-${jsonEncode(toJsonT(model))}", model: toJsonT(model));
-    PutResponse putResponse = await db.adapter.put(body: newDoc2);
+    PutResponse putResponse = await db.adapter.put(doc: newDoc2);
 
     return putResponse.ok == true ? await read(id) : null;
   }
@@ -81,7 +80,7 @@ abstract class FoodbRepository<T extends FoodbModel> {
   Future<Doc<T>?> update(Doc<T> doc) async {
     Doc<Map<String, dynamic>> newDoc =
         Doc(model: toJsonT(doc.model), id: doc.id, rev: doc.rev);
-    PutResponse putResponse = await db.adapter.put(body: newDoc);
+    PutResponse putResponse = await db.adapter.put(doc: newDoc);
 
     return putResponse.ok == true ? await read(newDoc.id) : null;
   }
@@ -98,7 +97,16 @@ abstract class FoodbRepository<T extends FoodbModel> {
   }
 
   Future<BulkDocResponse> bulkDocs(List<Doc<T>> docs) async {
-    return await db.adapter
-        .bulkDocs<T>(body: docs, toJsonT: (value) => toJsonT(value));
+    List<Doc<Map<String, dynamic>>> mappedDocs = [];
+    for (Doc<T> doc in docs) {
+      Doc<Map<String, dynamic>> newDoc = new Doc(
+          id: doc.id,
+          deleted: doc.deleted,
+          rev: doc.rev,
+          revisions: doc.revisions,
+          model: toJsonT(doc.model));
+      mappedDocs.add(newDoc);
+    }
+    return await db.adapter.bulkDocs(body: mappedDocs);
   }
 }

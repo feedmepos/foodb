@@ -52,10 +52,14 @@ class CouchdbAdapter extends AbstractAdapter {
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'new_edits': newEdits,
-              'docs': body.map((e) => e.toJson((value) => value)).toList()
+              'docs': body.map((e) {
+                Map<String, dynamic> map = e.toJson((value) => value);
+                map.removeWhere((key, value) => value == null);
+                return map;
+              }).toList()
             })))
         .body);
-
+    print(response);
     List<PutResponse> putResponses = [];
 
     if (response is Map<String, dynamic>) {
@@ -81,8 +85,9 @@ class CouchdbAdapter extends AbstractAdapter {
         '&${includeNonNullParam('limit', request.limit)}&since=${request.since}&style=${request.style}&'
         'timeout=${request.timeout}&${includeNonNullParam('view', request.view)}&'
         '${includeNonNullParam('seq_interval', request.seqInterval)}';
-    print(path);
     var res = await client.send(Request('get', this.getUri(path)));
+
+    print(this.getUri(path));
 
     var streamedRes = res.stream.asBroadcastStream().transform(utf8.decoder);
     var streamedResponse =
@@ -208,11 +213,19 @@ class CouchdbAdapter extends AbstractAdapter {
       'rev': rev,
       'revs_info': revsInfo
     });
-
-    Map<String, dynamic> result =
-        jsonDecode((await this.client.get(uriBuilder.build())).body);
     print(uriBuilder.build());
-    print(result);
+    var response = (await this
+            .client
+            .get(uriBuilder.build(), headers: {'Accept': 'application/json'}))
+        .body;
+    print(response);
+    Map<String, dynamic> result;
+    if (openRevs != null) {
+      result = jsonDecode(response.split('\n')[3]);
+    } else {
+      result = jsonDecode(response);
+    }
+
     return result.containsKey('_id')
         ? Doc<T>.fromJson(result, (json) => fromJsonT(json))
         : null;
@@ -261,6 +274,8 @@ class CouchdbAdapter extends AbstractAdapter {
         "start": int.parse(newRev.split('-')[0])
       };
     }
+    print(uriBuilder.build());
+    print(jsonEncode(newBody));
     return PutResponse.fromJson(jsonDecode(
         (await this.client.put(uriBuilder.build(), body: jsonEncode(newBody)))
             .body));
@@ -311,28 +326,6 @@ class CouchdbAdapter extends AbstractAdapter {
       print("$v, ${v.runtimeType}");
       return MapEntry<String, RevsDiff>(k, RevsDiff.fromJson(v));
     }));
-  }
-
-  @override
-  Future<ReplicationLog?> getReplicationLog({required String id}) async {
-    Map<String, dynamic> result =
-        jsonDecode((await this.client.get(this.getUri(id))).body);
-    return result.containsKey('_id') ? ReplicationLog.fromJson(result) : null;
-  }
-
-  @override
-  Future<PutResponse> putReplicationLog(
-      {required String id, required Map<String, dynamic> body}) async {
-    return PutResponse.fromJson(jsonDecode((await this.client.put(
-            this.getUri(
-                '_local/$id?new_edits=true&${includeNonNullParam('rev', body['_rev'])}'),
-            body: jsonEncode({
-              "history": body['history'],
-              "replication_id_version": body['version'],
-              "session_id": body['session_id'],
-              "source_last_seq": body['source_last_seq']
-            })))
-        .body));
   }
 
   @override

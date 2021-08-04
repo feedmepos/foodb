@@ -4,12 +4,6 @@ part 'replication.g.dart';
 
 @JsonSerializable()
 class ReplicationLog {
-  @JsonKey(name: '_id')
-  String id;
-
-  @JsonKey(name: '_rev')
-  String rev;
-
   List<History> history;
 
   @JsonKey(name: 'replication_id_version')
@@ -22,8 +16,6 @@ class ReplicationLog {
   String sourceLastSeq;
 
   ReplicationLog({
-    required this.id,
-    required this.rev,
     required this.history,
     required this.replicationIdVersion,
     required this.sessionId,

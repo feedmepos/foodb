@@ -8,8 +8,6 @@ part of 'replication.dart';
 
 ReplicationLog _$ReplicationLogFromJson(Map<String, dynamic> json) {
   return ReplicationLog(
-    id: json['_id'] as String,
-    rev: json['_rev'] as String,
     history: (json['history'] as List<dynamic>)
         .map((e) => History.fromJson(e as Map<String, dynamic>))
         .toList(),
@@ -21,8 +19,6 @@ ReplicationLog _$ReplicationLogFromJson(Map<String, dynamic> json) {
 
 Map<String, dynamic> _$ReplicationLogToJson(ReplicationLog instance) =>
     <String, dynamic>{
-      '_id': instance.id,
-      '_rev': instance.rev,
       'history': instance.history,
       'replication_id_version': instance.replicationIdVersion,
       'session_id': instance.sessionId,

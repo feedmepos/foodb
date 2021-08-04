@@ -6,10 +6,10 @@ part 'revs_diff.g.dart';
 class RevsDiff {
   List<String> missing;
   @JsonKey(name: 'possible_ancestors')
-  List<String> possibleAncestors;
+  List<String>? possibleAncestors;
   RevsDiff({
     required this.missing,
-    required this.possibleAncestors,
+    this.possibleAncestors,
   });
 
   factory RevsDiff.fromJson(Map<String, dynamic> json) =>

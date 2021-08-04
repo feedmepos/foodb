@@ -155,9 +155,9 @@ void main() async {
         await userRepo.read('User-{\"name\":\"D\",\"no\":200}');
     print(doc?.toJson((value) => userRepo.toJsonT(value)));
     expect(doc?.model.name, isNotNull);
-    doc!.model.name = "wth";
-    Doc? updatedDoc = await userRepo.update(doc);
-    expect(updatedDoc?.model.name, equals('wth'));
+    // doc!.model.name = "wth";
+    // Doc? updatedDoc = await userRepo.update(doc);
+    // expect(updatedDoc?.model.name, equals('wth'));
   });
 
   test('bulkdocs', () async {

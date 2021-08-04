@@ -61,11 +61,6 @@ abstract class AbstractAdapter {
   Future<ChangesStream> changesStream(ChangeRequest request);
   // Future<Stream<String>> changesStreamString(ChangeRequest request);
 
-  Future<PutResponse> putReplicationLog(
-      {required String id, required Map<String, dynamic> body});
-
-  Future<ReplicationLog?> getReplicationLog({required String id});
-
   Future<GetAllDocs<T>> allDocs<T>(
       GetAllDocsRequest allDocsRequest, T Function(Object? json) fromJsonT);
 

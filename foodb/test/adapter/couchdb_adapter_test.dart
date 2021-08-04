@@ -42,14 +42,17 @@ void main() async {
     expect(result.dbName, equals(envDbName));
   });
 
-  // test('put()', () async {
-  //   final CouchdbAdapter couchDb = getCouchDbAdapter();
-  //   PutResponse putResponse = await couchDb.put(body: {
-  //     "json": {"id": 'test2', "no": 500, "name": "test2"},
-  //   });
+  test('put()', () async {
+    final CouchdbAdapter couchDb = getCouchDbAdapter();
+    PutResponse putResponse = await couchDb.put(
+        doc: Doc(
+            id: "User-{\"name\":\"D\",\"no\":200}",
+            model: {"name": "wgg", "no": 300}),
+        newRev: "19-232132434325sfsgdfgdfgd",
+        newEdits: false);
 
-  //   expect(putResponse.ok, isTrue);
-  // });
+    expect(putResponse.ok, isTrue);
+  });
 
   test('get()', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();
@@ -179,7 +182,6 @@ void main() async {
     });
 
     await Future.delayed(Duration(seconds: 3));
-    print('third put');
     await couchDb.put(doc: Doc(id: '3', model: {'name': 'zz'}));
   });
 }

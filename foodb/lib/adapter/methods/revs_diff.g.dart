@@ -10,8 +10,8 @@ RevsDiff _$RevsDiffFromJson(Map<String, dynamic> json) {
   return RevsDiff(
     missing:
         (json['missing'] as List<dynamic>).map((e) => e as String).toList(),
-    possibleAncestors: (json['possible_ancestors'] as List<dynamic>)
-        .map((e) => e as String)
+    possibleAncestors: (json['possible_ancestors'] as List<dynamic>?)
+        ?.map((e) => e as String)
         .toList(),
   );
 }

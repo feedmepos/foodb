@@ -60,7 +60,7 @@ Doc<T> _$DocFromJson<T>(
 ) {
   return Doc<T>(
     id: json['_id'] as String,
-    rev: json['_rev'] as String,
+    rev: json['_rev'] as String?,
     model: fromJsonT(json),
     deleted: json['_deleted'] as bool?,
     revisions: json['_revisions'] == null
