@@ -58,6 +58,15 @@ class CouchdbAdapter extends AbstractAdapter {
               }).toList()
             })))
         .body);
+    print(this.getUri('_bulk_docs'));
+    print(jsonEncode({
+      'new_edits': newEdits,
+      'docs': body.map((e) {
+        Map<String, dynamic> map = e.toJson((value) => value);
+        map.removeWhere((key, value) => value == null);
+        return map;
+      }).toList()
+    }));
     print(response);
     List<PutResponse> putResponses = [];
 
@@ -192,7 +201,6 @@ class CouchdbAdapter extends AbstractAdapter {
       bool latest = false,
       bool localSeq = false,
       bool meta = false,
-      Object? openRevs,
       String? rev,
       bool revs = false,
       bool revsInfo = false,
@@ -208,22 +216,12 @@ class CouchdbAdapter extends AbstractAdapter {
       'att_encoding_info': attEncodingInfo,
       'attachments': attachments,
       'atts_since': attsSince,
-      'open_revs': openRevs,
       'rev': rev,
       'revs_info': revsInfo
     });
-    print(uriBuilder.build());
-    var response = (await this
-            .client
-            .get(uriBuilder.build(), headers: {'Accept': 'application/json'}))
-        .body;
-    print(response);
-    Map<String, dynamic> result;
-    if (openRevs != null) {
-      result = jsonDecode(response.split('\n')[3]);
-    } else {
-      result = jsonDecode(response);
-    }
+
+    var response = (await this.client.get(uriBuilder.build())).body;
+    Map<String, dynamic> result = jsonDecode(response);
 
     return result.containsKey('_id')
         ? Doc<T>.fromJson(
@@ -270,12 +268,12 @@ class CouchdbAdapter extends AbstractAdapter {
       //       error: '_revisions is required when newEdits is false');
       // }
       newBody['_revisions'] = {
-        "ids": doc.rev == null ? [newRev] : [newRev, doc.rev!.split('-')[1]],
+        "ids": doc.rev == null
+            ? [newRev.split('-')[1]]
+            : [newRev.split('-')[1], doc.rev!.split('-')[1]],
         "start": int.parse(newRev.split('-')[0])
       };
     }
-    print(uriBuilder.build());
-    print(jsonEncode(newBody));
     return PutResponse.fromJson(jsonDecode(
         (await this.client.put(uriBuilder.build(), body: jsonEncode(newBody)))
             .body));
@@ -393,5 +391,48 @@ class CouchdbAdapter extends AbstractAdapter {
   Future<bool> destroy() async {
     await this.client.delete(this.getUri(''));
     return true;
+  }
+
+  @override
+  Future<List<Doc<T>>> fetchChanges<T>(
+      {required String id,
+      bool attachments = false,
+      bool attEncodingInfo = false,
+      List<String>? attsSince,
+      bool conflicts = false,
+      bool deletedConflicts = false,
+      bool latest = false,
+      bool localSeq = false,
+      bool meta = false,
+      required Object openRevs,
+      String? rev,
+      bool revs = false,
+      bool revsInfo = false,
+      required T Function(Object? json) fromJsonT}) async {
+    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri(id)));
+    uriBuilder.queryParameters = convertToParams({
+      'revs': revs,
+      'conflicts': conflicts,
+      'deleted_conflicts': deletedConflicts,
+      'latest': latest,
+      'local_seq': localSeq,
+      'meta': meta,
+      'att_encoding_info': attEncodingInfo,
+      'attachments': attachments,
+      'atts_since': attsSince,
+      'rev': rev,
+      'open_revs': openRevs,
+      'revs_info': revsInfo
+    });
+    var response = (await this
+            .client
+            .get(uriBuilder.build(), headers: {'Accept': 'application/json'}))
+        .body;
+    List<Doc<T>> results = jsonDecode(response)
+        .where((value) => value.containsKey("ok") == true)
+        .map<Doc<T>>(
+            (value) => Doc<T>.fromJson(value["ok"], (json) => fromJsonT(json)))
+        .toList();
+    return results;
   }
 }
