@@ -1,6 +1,6 @@
 library foodb_repository;
 
-import 'dart:convert';
+import 'dart:math';
 import 'package:foodb/adapter/methods/all_docs.dart';
 import 'package:foodb/adapter/methods/bulk_docs.dart';
 import 'package:foodb/adapter/methods/delete.dart';
@@ -8,58 +8,31 @@ import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/foodb.dart';
 
-abstract class FoodbModel<T> {
-  T fromJson(Map<String, dynamic>? json);
-  Map<String, dynamic> toJson(T instance);
-}
-
-class Connection {}
-
-abstract class FoodbRepository<T extends FoodbModel> {
+abstract class FoodbRepository<T> {
   Foodb db;
-  Function fromJsonT;
-  //Put toJson ???
-  Function toJsonT;
-  String prefix;
-  FoodbRepository(
-      {required this.db,
-      required this.fromJsonT,
-      required this.toJsonT,
-      required this.prefix});
+  abstract T Function(Map<String, dynamic> json) fromJsonT;
+  abstract Map<String, dynamic> Function(T instance) toJsonT;
+  abstract String type;
+  FoodbRepository({required this.db});
 
-  // performIndex() async {
-  //   type.getIndexKey();
-  //   type.getUniqueKey().forEach((element) {
-  //     createIndex(element);
-  //   });
-  //   type.getIndexKey().forEach((element) {
-  //     createIndex(element);
-  //   });
-  // }
+  var _chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  Random _rnd = Random();
 
-  // Future<String> createIndex(String field) async {
-  //   var fields = [type.getType()];
-  //   if (field != type.getType()) {
-  //     fields.add(field);
-  //   }
-  //   var ddoc = fields.join("_");
-  //   var result = await db.adapter.(
-  //       // TODO
-  //       );
-  //   return result.result;
-  // }
+  String getRandomString(int length) => String.fromCharCodes(Iterable.generate(
+      length, (_) => _chars.codeUnitAt(_rnd.nextInt(_chars.length))));
 
-  Type type() {
-    return T;
+  generateId() {
+    String isoString = DateTime.now().toIso8601String();
+    return '${type}_${isoString}';
   }
 
   Future<List<Doc<T>>> all() async {
     GetAllDocs<T> getAllDocs = await db.adapter.allDocs<T>(
         GetAllDocsRequest(
             includeDocs: true,
-            startKeyDocId: prefix,
-            endKeyDocId: "$prefix\uffff"),
-        (e) => fromJsonT(e));
+            startKeyDocId: "$type",
+            endKeyDocId: "$type\uffff"),
+        fromJsonT);
     List<Row<T>?> rows = getAllDocs.rows;
     return rows.map<Doc<T>>((e) => e!.doc!).toList();
   }
@@ -67,11 +40,10 @@ abstract class FoodbRepository<T extends FoodbModel> {
   Future<Doc<T>?> create(
     T model,
   ) async {
-    String id = "$prefix-${jsonEncode(toJsonT(model))}";
+    String id = generateId();
     // Doc<T> newDoc =
-    //     new Doc(id: "$prefix-${jsonEncode(toJsonT(model))}", model: model);
-    Doc<Map<String, dynamic>> newDoc2 = new Doc(
-        id: "$prefix-${jsonEncode(toJsonT(model))}", model: toJsonT(model));
+    //     new Doc(id: "$type-${jsonEncode(toJsonT(model))}", model: model);
+    Doc<Map<String, dynamic>> newDoc2 = new Doc(id: id, model: toJsonT(model));
     PutResponse putResponse = await db.adapter.put(doc: newDoc2);
 
     return putResponse.ok == true ? await read(id) : null;
@@ -92,7 +64,7 @@ abstract class FoodbRepository<T extends FoodbModel> {
   Future<Doc<T>?> read(String id) async {
     return await db.adapter.get<T>(
       id: id,
-      fromJsonT: (value) => fromJsonT(value),
+      fromJsonT: fromJsonT,
     );
   }
 

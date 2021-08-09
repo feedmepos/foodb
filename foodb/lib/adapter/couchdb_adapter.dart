@@ -14,7 +14,6 @@ import 'package:foodb/adapter/methods/info.dart';
 import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/adapter/methods/revs_diff.dart';
 import 'package:foodb/common/doc.dart';
-import 'package:foodb/common/replication.dart';
 import 'package:http/http.dart';
 import 'package:foodb/adapter/params_converter.dart';
 import 'package:uri/uri.dart';
@@ -197,7 +196,7 @@ class CouchdbAdapter extends AbstractAdapter {
       String? rev,
       bool revs = false,
       bool revsInfo = false,
-      required T Function(Object? json) fromJsonT}) async {
+      required T Function(Map<String, dynamic> json) fromJsonT}) async {
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri(id)));
     uriBuilder.queryParameters = convertToParams({
       'revs': revs,
@@ -227,7 +226,8 @@ class CouchdbAdapter extends AbstractAdapter {
     }
 
     return result.containsKey('_id')
-        ? Doc<T>.fromJson(result, (json) => fromJsonT(json))
+        ? Doc<T>.fromJson(
+            result, (json) => fromJsonT(json as Map<String, dynamic>))
         : null;
   }
 
@@ -318,8 +318,6 @@ class CouchdbAdapter extends AbstractAdapter {
     print(jsonEncode(body));
     Response response = await this.client.post(this.getUri("_revs_diff"),
         headers: {'Content-Type': 'application/json'}, body: jsonEncode(body));
-    // print(jsonDecode(response.body).keys[0].runtimeType);
-    // print(jsonDecode(response.body).values[0].runtimeType);
     print(response.body);
     return (jsonDecode(response.body).map<String, RevsDiff>((k, v) {
       print("$k, ${k.runtimeType}");
@@ -330,13 +328,13 @@ class CouchdbAdapter extends AbstractAdapter {
 
   @override
   Future<GetAllDocs<T>> allDocs<T>(GetAllDocsRequest getAllDocsRequest,
-      T Function(Object? json) fromJsonT) async {
+      T Function(Map<String, dynamic> json) fromJsonT) async {
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_all_docs')));
     uriBuilder.queryParameters = convertToParams(getAllDocsRequest.toJson());
 
     return GetAllDocs<T>.fromJson(
         jsonDecode((await this.client.get(uriBuilder.build())).body),
-        fromJsonT);
+        (a) => fromJsonT(a as Map<String, dynamic>));
   }
 
   @override
