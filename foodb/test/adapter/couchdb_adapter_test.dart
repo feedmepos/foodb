@@ -146,6 +146,19 @@ void main() async {
     await couchDb.destroy();
   });
 
+  test('put conflicts', () async {
+    final CouchdbAdapter couchDb = getCouchDbAdapter(dbName: "adish");
+    PutResponse conflictResponse = await couchDb.put(
+        doc: Doc(
+            id: "put u mf",
+            model: {"name": "berry-berry", "no": 888},
+            rev: "1-d5ea00d10b2471cdbe3420293c980282"),
+        newEdits: false,
+        newRev: "2-testtest2");
+
+    expect(conflictResponse.ok, isTrue);
+  });
+
   test("change stream", () async {
     var dbName = "adish";
     int count = 0;

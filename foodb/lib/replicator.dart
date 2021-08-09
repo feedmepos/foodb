@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:foodb/adapter/adapter.dart';
+import 'package:foodb/adapter/methods/all_docs.dart';
 import 'package:foodb/adapter/methods/bulk_docs.dart';
 import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/adapter/methods/ensure_full_commit.dart';
@@ -24,9 +25,8 @@ class Replicator {
   GetInfoResponse? targetInfo;
   Doc<ReplicationLog>? replicationLog;
   String? replicationId;
-
+  bool? complete;
   Function(dynamic)? onComplete;
-  Function()? onCancel;
   late Function(Exception, Function callback) onError;
   late Function(dynamic) onData;
 
@@ -37,7 +37,9 @@ class Replicator {
   Duration timeout = Duration(seconds: 3);
   Timer? timer;
   String? sourceSequence;
-
+  Map<String, StreamSubscription> onResultSubscriptions = {};
+  Map<String, StreamSubscription> onCompleteSubscriptions = {};
+  Map<String, Function> onCancels = {};
   Replicator({required this.source, required this.target});
 
   Future<void> initialReplicate() async {
@@ -55,7 +57,7 @@ class Replicator {
     }
   }
 
-  runReplicationCycle() async {
+  runReplicationCycle(String since, String? upperbound) async {
     if (running) {
       return;
     } else {
@@ -63,9 +65,9 @@ class Replicator {
       try {
         int untilIndex = min(limit, dbChanges.length);
         List<ChangeResult> toProcess = dbChanges.sublist(0, untilIndex);
+
         this.sourceSequence =
             toProcess.isNotEmpty ? toProcess.last.seq : sourceInfo!.updateSeq;
-        dbChanges.removeRange(0, untilIndex);
         onData(toProcess);
 
         Map<String, List<String>> changes = await readBatchOfChanges(toProcess);
@@ -112,13 +114,26 @@ class Replicator {
             throw ("replication log error: ${insertResponse.error}");
           }
         }
+        dbChanges.removeRange(0, untilIndex);
         onData("One Cycle Completed");
+        if (!this.live && this.complete!) {
+          if (dbChanges.length == 0) {
+            this.onComplete!("Completed");
+          } else {
+            runReplicationCycle(since, upperbound);
+          }
+        }
       } catch (err) {
-        running = false;
-        //print(err);
-        throw err;
+        this.running = false;
+        this.cancel(since);
+        this.onError(Exception(err), () {
+          live
+              ? listenToContinuousChanges(since: since)
+              : listenToNormalChanges(since: since, upperbound: upperbound!);
+        });
+        //throw err;
       } finally {
-        running = false;
+        this.running = false;
       }
     }
   }
@@ -128,10 +143,14 @@ class Replicator {
       int upperboundInt = int.parse(upperbound.split('-')[0]);
       listenToChangesFeed(feed: ChangeFeed.normal, since: since)
           .then((value) async {
-        value.onResult((changeResult) => dbChanges.add(changeResult));
-        value.onComplete((changeResponse) async {
+        this.onCancels[since] = value.cancel;
+        StreamSubscription onResultSubscription =
+            value.onResult((changeResult) => dbChanges.add(changeResult));
+        StreamSubscription onCompleteSubscription =
+            value.onComplete((changeResponse) async {
           try {
-            bool complete = false;
+            complete = false;
+
             if (int.parse(changeResponse.lastSeq!.split('-')[0]) >=
                 upperboundInt) {
               complete = true;
@@ -140,28 +159,28 @@ class Replicator {
                       int.parse(element.seq.split('-')[0]) <= upperboundInt)
                   .toList();
             }
+            await runReplicationCycle(since, upperbound);
 
-            await runReplicationCycle();
-
-            if (changeResponse.pending == 0 || complete == true)
-              this.onComplete!("Completed");
-            else {
+            if (!complete!) {
               sourceInfo = await getSourceInformation();
+              this.cancel(since);
               listenToNormalChanges(
                   since: changeResponse.lastSeq!, upperbound: upperbound);
-              value.cancel();
             }
           } catch (error) {
+            this.cancel(since);
             onError(Exception(error), () {
-              cancel();
               listenToNormalChanges(since: since, upperbound: upperbound);
             });
           }
         });
+
+        onCompleteSubscriptions[since] = onCompleteSubscription;
+        onResultSubscriptions[since] = onResultSubscription;
       });
     } catch (error) {
+      this.cancel(since);
       onError(Exception(error), () {
-        cancel();
         listenToNormalChanges(since: since, upperbound: upperbound);
       });
     }
@@ -171,32 +190,36 @@ class Replicator {
     try {
       listenToChangesFeed(feed: ChangeFeed.continuous, since: since)
           .then((value) async {
-        this.onCancel = value.cancel;
-        value.onResult((changeResult) {
+        this.onCancels[since] = value.cancel;
+        StreamSubscription onResultSubscription =
+            value.onResult((changeResult) {
           try {
             dbChanges.add(changeResult);
             if (dbChanges.length == limit) {
-              runReplicationCycle();
+              runReplicationCycle(since, "");
             }
           } catch (error) {
-            cancel();
-            onError(Exception(error),
+            this.cancel(since);
+            this.onError(Exception(error),
                 () => listenToContinuousChanges(since: since));
           }
         });
+        this.onResultSubscriptions[since] = onResultSubscription;
       });
 
       this.timer = Timer.periodic(timeout, (timer) {
         try {
-          if (dbChanges.length > 0) runReplicationCycle();
+          if (dbChanges.length > 0) runReplicationCycle(since, "");
         } catch (e) {
-          cancel();
-          onError(Exception(e), () => listenToContinuousChanges(since: since));
+          this.cancel(since);
+          this.onError(
+              Exception(e), () => listenToContinuousChanges(since: since));
         }
       });
     } catch (error) {
-      cancel();
-      onError(Exception(error), () => listenToContinuousChanges(since: since));
+      this.cancel(since);
+      this.onError(
+          Exception(error), () => listenToContinuousChanges(since: since));
     }
   }
 
@@ -227,13 +250,21 @@ class Replicator {
         listenToNormalChanges(
             since: sourceLastSeq, upperbound: sourceInfo?.updateSeq ?? "0");
     } catch (e) {
-      onError(Exception(e), () => replicate(onData: onData, onError: onError));
+      this.onError(
+          Exception(e), () => replicate(onData: onData, onError: onError));
     }
   }
 
-  cancel() {
-    this.timer!.cancel();
-    this.onCancel!();
+  cancel(String since) {
+    this.onResultSubscriptions[since]!.cancel();
+    this.onResultSubscriptions.remove(since);
+
+    this.onCompleteSubscriptions[since]?.cancel();
+    if (!live) this.onCompleteSubscriptions.remove(since);
+
+    this.timer?.cancel();
+    this.onCancels[since]!();
+    this.onCancels.remove(since);
   }
 
   Future<GetInfoResponse> getSourceInformation() async {
@@ -268,6 +299,7 @@ class Replicator {
         style: 'all_docs',
         heartbeat: 10000,
         since: since,
+        conflicts: true,
         limit: live ? limit : null));
   }
 
@@ -275,14 +307,23 @@ class Replicator {
       List<ChangeResult> changeResults) async {
     Map<String, List<String>> changes = new Map();
     changeResults.reversed.forEach((changeResult) {
+      print(changeResult.id);
       if (changes.containsKey(changeResult.id)) {
         if (changes[changeResult.id]?[0].split('-')[0] ==
             changeResult.changes[0].rev.split('-')[0]) {
           changes[changeResult.id]?.add(changeResult.changes[0].rev);
         }
       } else {
-        changes.putIfAbsent(
-            changeResult.id, () => [changeResult.changes[0].rev]);
+        List<String> revs = [changeResult.changes[0].rev];
+        if (changeResult.changes.length > 1) {
+          for (int i = 1; i < changeResult.changes.length; i++) {
+            if (int.parse(changeResult.changes[i].rev.split('-')[0]) ==
+                int.parse(revs.first.split('-')[0])) {
+              revs.add(changeResult.changes[i].rev);
+            }
+          }
+        }
+        changes.putIfAbsent(changeResult.id, () => revs);
       }
     });
     return changes;
@@ -300,9 +341,10 @@ class Replicator {
     List<Doc<Map<String, dynamic>>> bulkDocs = [];
 
     for (final entry in revsDiff.entries) {
-      Doc<Map<String, dynamic>>? doc = await source.get(
+      print("fetch: ${entry.key}");
+      List<Doc<Map<String, dynamic>>> docs = await source.fetchChanges(
           id: entry.key,
-          openRevs: changes[entry.key],
+          openRevs: changes[entry.key]!,
           revs: true,
           latest: true,
           fromJsonT: (value) {
@@ -312,9 +354,7 @@ class Replicator {
             map.remove("_revisions");
             return map;
           });
-      if (doc != null) {
-        bulkDocs.add(doc);
-      }
+      bulkDocs.addAll(docs);
     }
 
     return bulkDocs;
@@ -322,13 +362,15 @@ class Replicator {
 
   Future<BulkDocResponse> uploadBatchOfChangedDocuments(
       {required List<Doc<Map<String, dynamic>>> body}) async {
-    BulkDocResponse bulkDocResponse = await target.bulkDocs(body: body);
+    BulkDocResponse bulkDocResponse =
+        await target.bulkDocs(body: body, newEdits: false);
     return bulkDocResponse;
   }
 
   Future<PutResponse> recordReplicationCheckpoint() async {
     replicationLog = new Doc(
         id: "_local/$replicationID",
+        rev: "1-0",
         model: ReplicationLog(
             history: [
               History(
@@ -349,6 +391,7 @@ class Replicator {
             (value) => jsonDecode(jsonEncode(value))["model"]);
 
     PutResponse putResponse = await target.put(doc: newReplicationLog);
+
     return putResponse;
   }
 }
