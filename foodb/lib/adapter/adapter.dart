@@ -41,7 +41,7 @@ abstract class AbstractAdapter {
       String? rev,
       bool revs = false,
       bool revsInfo = false,
-      required T Function(Object? json) fromJsonT});
+      required T Function(Map<String, dynamic> json) fromJsonT});
 
   Future<List<Doc<T>>> fetchChanges<T>(
       {required String id,

@@ -408,7 +408,7 @@ class CouchdbAdapter extends AbstractAdapter {
       String? rev,
       bool revs = false,
       bool revsInfo = false,
-      required T Function(Object? json) fromJsonT}) async {
+      required T Function(Map<String, dynamic> json) fromJsonT}) async {
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri(id)));
     uriBuilder.queryParameters = convertToParams({
       'revs': revs,
@@ -430,8 +430,8 @@ class CouchdbAdapter extends AbstractAdapter {
         .body;
     List<Doc<T>> results = jsonDecode(response)
         .where((value) => value.containsKey("ok") == true)
-        .map<Doc<T>>(
-            (value) => Doc<T>.fromJson(value["ok"], (json) => fromJsonT(json)))
+        .map<Doc<T>>((value) => Doc<T>.fromJson(
+            value["ok"], (json) => fromJsonT(json as Map<String, dynamic>)))
         .toList();
     return results;
   }
