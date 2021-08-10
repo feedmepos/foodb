@@ -1,7 +1,6 @@
 library foodb_repository;
 
 import 'dart:async';
-import 'dart:convert';
 import 'dart:math';
 import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/methods/all_docs.dart';
@@ -12,11 +11,6 @@ import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/foodb.dart';
 import 'package:foodb/replicator.dart';
-
-abstract class FoodbModel<T> {
-  T fromJson(Map<String, dynamic>? json);
-  Map<String, dynamic> toJson(T instance);
-}
 
 class Connection {
   Foodb? main;
@@ -51,11 +45,12 @@ class Connection {
           .main
           ?.adapter
           .changesStream(ChangeRequest(
-              since: "now",
-              includeDocs: true,
-              feed: ChangeFeed.continuous,
-              heartbeat: false,
-              timeout: false))
+            since: "now",
+            includeDocs: true,
+            feed: ChangeFeed.continuous,
+            // heartbeat: false,
+            // timeout: false))
+          ))
           .then((value) {
         this.cancelChange = value.cancel();
         this.mainChangeHandler = value.onResult((changeResult) {

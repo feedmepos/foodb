@@ -70,12 +70,12 @@ void main() async {
   String dbName = dotenv.env['COUCHDB_DB_NAME'] as String;
   String baseUri = dotenv.env['COUCHDB_BASE_URI'] as String;
 
-  // setUp(() async {
-  //   var db = Foodb(
-  //       adapter: CouchdbAdapter(baseUri: Uri.parse(baseUri), dbName: dbName));
-  //   await db.adapter.destroy();
-  //   await db.adapter.init();
-  // });
+  setUp(() async {
+    var db = Foodb(
+        adapter: CouchdbAdapter(baseUri: Uri.parse(baseUri), dbName: dbName));
+    await db.adapter.destroy();
+    await db.adapter.init();
+  });
 
   test('new repo instance', () {
     var repo = UserRepo(Foodb(

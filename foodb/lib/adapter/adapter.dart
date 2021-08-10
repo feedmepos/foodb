@@ -57,7 +57,7 @@ abstract class AbstractAdapter {
       String? rev,
       bool revs = false,
       bool revsInfo = false,
-      required T Function(Object? json) fromJsonT});
+      required T Function(Map<String, dynamic> json) fromJsonT});
 
   Future<PutResponse> put(
       {required Doc<Map<String, dynamic>> doc,
@@ -77,8 +77,8 @@ abstract class AbstractAdapter {
   Future<ChangesStream> changesStream(ChangeRequest request);
   // Future<Stream<String>> changesStreamString(ChangeRequest request);
 
-  Future<GetAllDocs<T>> allDocs<T>(
-      GetAllDocsRequest allDocsRequest, T Function(Object? json) fromJsonT);
+  Future<GetAllDocs<T>> allDocs<T>(GetAllDocsRequest allDocsRequest,
+      T Function(Map<String, dynamic> json) fromJsonT);
 
   Future<IndexResponse> createIndex(
       {required List<String> indexFields,
