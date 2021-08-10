@@ -54,20 +54,13 @@ class CouchdbAdapter extends AbstractAdapter {
               'docs': body.map((e) {
                 Map<String, dynamic> map = e.toJson((value) => value);
                 map.removeWhere((key, value) => value == null);
+                map.addAll(map["model"]);
+                map.remove("model");
                 return map;
               }).toList()
             })))
         .body);
-    print(this.getUri('_bulk_docs'));
-    print(jsonEncode({
-      'new_edits': newEdits,
-      'docs': body.map((e) {
-        Map<String, dynamic> map = e.toJson((value) => value);
-        map.removeWhere((key, value) => value == null);
-        return map;
-      }).toList()
-    }));
-    print(response);
+
     List<PutResponse> putResponses = [];
 
     if (response is Map<String, dynamic>) {

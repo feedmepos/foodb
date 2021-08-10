@@ -161,7 +161,7 @@ void main() async {
         adapter: CouchdbAdapter(baseUri: Uri.parse(baseUri), dbName: dbName)));
 
     Doc<UserModel>? doc =
-        await userRepo.read('User-{\"name\":\"D\",\"no\":200}');
+        await userRepo.read('sales_2021-08-10T13:50:09.658409');
     print(doc?.toJson((value) => userRepo.toJsonT(value)));
     expect(doc?.model.name, isNotNull);
     // doc!.model.name = "wth";
@@ -173,23 +173,22 @@ void main() async {
     UserRepo userRepo = UserRepo(Foodb(
         adapter: CouchdbAdapter(baseUri: Uri.parse(baseUri), dbName: dbName)));
     Doc<UserModel>? doc = await userRepo.read(
-      'Sales-{\"name\":\"4\",\"no\":20}',
+      'sales_2021-08-10T13:50:09.658409',
     );
     Doc<UserModel> newDoc = new Doc(
         id: doc!.id,
-        rev: "1-${doc.rev!.split('-')[1]}",
+        rev: "2-${doc.rev!.split('-')[1]}",
         model: doc.model,
         deleted: true,
         revisions: Revisions(
-            start: 1, ids: [doc.rev!.split('-')[1], doc.rev!.split('-')[1]]));
+            start: 2, ids: [doc.rev!.split('-')[1], doc.rev!.split('-')[1]]));
     BulkDocResponse bulkDocResponse = await userRepo.bulkDocs([
-      //newDoc,
+      newDoc,
       Doc<UserModel>(
           id: 'User-yyyyIsPriority',
           rev: '1-aaaqwertyuiytrew',
-          deleted: true,
-          revisions: Revisions(
-              ids: ["aaaqwertyuiytrew", "aaaqwertyuiytrew"], start: 1),
+          //deleted: true,
+          revisions: Revisions(ids: ["aaaqwertyuiytrew"], start: 1),
           model: UserModel(name: 'prio', no: 2000))
     ]);
 
