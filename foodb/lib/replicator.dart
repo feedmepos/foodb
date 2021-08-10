@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:foodb/adapter/adapter.dart';
-import 'package:foodb/adapter/methods/all_docs.dart';
 import 'package:foodb/adapter/methods/bulk_docs.dart';
 import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/adapter/methods/ensure_full_commit.dart';
@@ -125,13 +124,13 @@ class Replicator {
         }
       } catch (err) {
         this.running = false;
-        this.cancel(since);
-        this.onError(Exception(err), () {
-          live
-              ? listenToContinuousChanges(since: since)
-              : listenToNormalChanges(since: since, upperbound: upperbound!);
-        });
-        //throw err;
+        // this.cancel(since);
+        // this.onError(Exception(err), () {
+        //   live
+        //       ? listenToContinuousChanges(since: since)
+        //       : listenToNormalChanges(since: since, upperbound: upperbound!);
+        // });
+        throw err;
       } finally {
         this.running = false;
       }
@@ -256,15 +255,31 @@ class Replicator {
   }
 
   cancel(String since) {
-    this.onResultSubscriptions[since]!.cancel();
+    this.onResultSubscriptions[since]?.cancel();
     this.onResultSubscriptions.remove(since);
 
     this.onCompleteSubscriptions[since]?.cancel();
     if (!live) this.onCompleteSubscriptions.remove(since);
 
     this.timer?.cancel();
-    this.onCancels[since]!();
+    if (this.onCancels.containsKey(since)) this.onCancels[since]!();
     this.onCancels.remove(since);
+  }
+
+  cancelStream() {
+    this.onResultSubscriptions.forEach((key, value) {
+      value.cancel();
+    });
+    this.onResultSubscriptions.clear();
+    this.onCompleteSubscriptions.forEach((key, value) {
+      value.cancel();
+    });
+
+    this.timer?.cancel();
+    this.onCancels.forEach((key, value) {
+      value();
+    });
+    this.onCancels.clear();
   }
 
   Future<GetInfoResponse> getSourceInformation() async {
@@ -300,7 +315,7 @@ class Replicator {
         heartbeat: 10000,
         since: since,
         conflicts: true,
-        limit: live ? limit : null));
+        limit: !live ? limit : null));
   }
 
   Future<Map<String, List<String>>> readBatchOfChanges(
@@ -340,20 +355,21 @@ class Replicator {
       required Map<String, List<String>> changes}) async {
     List<Doc<Map<String, dynamic>>> bulkDocs = [];
 
-    for (final entry in revsDiff.entries) {
-      print("fetch: ${entry.key}");
+    for (final key in revsDiff.keys) {
       List<Doc<Map<String, dynamic>>> docs = await source.fetchChanges(
-          id: entry.key,
-          openRevs: changes[entry.key]!,
+          id: key,
+          openRevs: changes[key]!,
           revs: true,
           latest: true,
           fromJsonT: (value) {
-            Map<String, dynamic> map = jsonDecode(jsonEncode(value));
+            print("check $value");
+            Map<String, dynamic> map = value as Map<String, dynamic>;
             map.remove("_id");
-            map.remove("_rev");
             map.remove("_revisions");
+            map.remove("_rev");
             return map;
           });
+
       bulkDocs.addAll(docs);
     }
 
@@ -370,7 +386,7 @@ class Replicator {
   Future<PutResponse> recordReplicationCheckpoint() async {
     replicationLog = new Doc(
         id: "_local/$replicationID",
-        rev: "1-0",
+        // rev: "1-0",
         model: ReplicationLog(
             history: [
               History(
@@ -388,7 +404,7 @@ class Replicator {
     Doc<Map<String, dynamic>> newReplicationLog =
         Doc<Map<String, dynamic>>.fromJson(
             replicationLog!.toJson((value) => value.toJson()),
-            (value) => jsonDecode(jsonEncode(value))["model"]);
+            (value) => (value as Map<String, dynamic>)["model"]);
 
     PutResponse putResponse = await target.put(doc: newReplicationLog);
 
