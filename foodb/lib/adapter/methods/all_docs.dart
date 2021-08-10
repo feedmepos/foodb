@@ -59,7 +59,7 @@ class GetAllDocsRequest {
   bool descending;
 
   @JsonKey(name: 'endkey')
-  Object? endKey;
+  String? endKey;
 
   @JsonKey(name: 'endkey_docid')
   String? endKeyDocId;
@@ -88,7 +88,7 @@ class GetAllDocsRequest {
   bool stable;
   String? stale;
   @JsonKey(name: 'startkey')
-  Object? startKey;
+  String? startKey;
 
   @JsonKey(name: 'startkey_docid')
   String? startKeyDocId;
