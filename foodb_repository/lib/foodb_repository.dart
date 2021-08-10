@@ -213,7 +213,6 @@ abstract class FoodbRepository<T> {
     GetAllDocs<T> getAllDocs = await db.adapter.allDocs<T>(
         GetAllDocsRequest(
             includeDocs: true,
-            descending: true,
             startKeyDocId: "$type",
             endKeyDocId: "$type\uffff"),
         (value) => fromJsonT(value as Map<String, dynamic>));
