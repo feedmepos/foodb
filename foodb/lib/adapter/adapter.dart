@@ -3,6 +3,7 @@ import 'package:foodb/adapter/methods/bulk_docs.dart';
 import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/adapter/methods/delete.dart';
 import 'package:foodb/adapter/methods/ensure_full_commit.dart';
+import 'package:foodb/adapter/methods/explain.dart';
 import 'package:foodb/adapter/methods/find.dart';
 import 'package:foodb/adapter/methods/index.dart';
 import 'package:foodb/adapter/methods/info.dart';
@@ -89,6 +90,8 @@ abstract class AbstractAdapter {
 
   Future<FindResponse<T>> find<T>(
       FindRequest findRequest, T Function(Map<String, dynamic>) toJsonT);
+
+  Future<ExplainResponse> explain(FindRequest findRequest);
 
   Future<bool> init();
   Future<bool> destroy();

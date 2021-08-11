@@ -6,7 +6,7 @@ part 'find.g.dart';
 
 @JsonSerializable()
 class FindRequest {
-  Map<String, dynamic> selector;
+  Map<dynamic, dynamic> selector;
   int limit;
   int? skip;
   List<Object>? sort;

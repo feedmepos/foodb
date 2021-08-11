@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/couchdb_adapter.dart';
@@ -118,9 +119,12 @@ void main() async {
 
   test('find()', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();
-    FindResponse findResponse = await couchDb.find(FindRequest(selector: {
-      '_id': {'\$regex': '^test'}
-    }));
+    FindResponse<Map<String, dynamic>> findResponse =
+        await couchDb.find<Map<String, dynamic>>(
+            FindRequest(selector: {
+              '_id': {'\$regex': '^user'}
+            }),
+            (json) => json);
     print(findResponse.docs);
     expect(findResponse.docs.length > 0, isTrue);
   });
