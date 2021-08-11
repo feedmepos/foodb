@@ -2,6 +2,7 @@ library foodb_repository;
 
 import 'dart:async';
 import 'dart:math';
+import 'package:eventify/eventify.dart';
 import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/methods/all_docs.dart';
 import 'package:foodb/adapter/methods/bulk_docs.dart';
@@ -191,8 +192,6 @@ abstract class FoodbRepository<T> {
   }
 
   bool shouldWaitWrite() {
-    // return true;
-    //what !! means in typescipt
     return (!this.atomicConnection &&
         this.connection.mainChangeHandler == null &&
         this.connection.write == null);
@@ -213,10 +212,9 @@ abstract class FoodbRepository<T> {
     GetAllDocs<T> getAllDocs = await db.adapter.allDocs<T>(
         GetAllDocsRequest(
             includeDocs: true,
-            descending: true,
             startKeyDocId: "$type",
             endKeyDocId: "$type\uffff"),
-        (value) => fromJsonT(value as Map<String, dynamic>));
+        (value) => fromJsonT(value));
     List<Row<T>?> rows = getAllDocs.rows;
     return rows.map<Doc<T>>((e) => e!.doc!).toList();
   }
@@ -248,7 +246,7 @@ abstract class FoodbRepository<T> {
   Future<Doc<T>?> read(String id) async {
     return await db.adapter.get<T>(
       id: id,
-      fromJsonT: (value) => fromJsonT(value as Map<String, dynamic>),
+      fromJsonT: (value) => fromJsonT(value),
     );
   }
 

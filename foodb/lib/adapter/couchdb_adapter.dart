@@ -322,7 +322,7 @@ class CouchdbAdapter extends AbstractAdapter {
       T Function(Map<String, dynamic> json) fromJsonT) async {
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_all_docs')));
     uriBuilder.queryParameters = convertToParams(getAllDocsRequest.toJson());
-
+    print(jsonDecode((await this.client.get(uriBuilder.build())).body));
     return GetAllDocs<T>.fromJson(
         jsonDecode((await this.client.get(uriBuilder.build())).body),
         (a) => fromJsonT(a as Map<String, dynamic>));

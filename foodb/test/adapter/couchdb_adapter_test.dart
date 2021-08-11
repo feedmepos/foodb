@@ -28,12 +28,12 @@ void main() async {
         dbName: dbName ?? envDbName, baseUri: Uri.parse(baseUri));
   }
 
-  // test('allDocs()', () async {
-  //   final CouchdbAdapter couchDb = getCouchDbAdapter();
-  //   var result = await couchDb.allDocs(GetAllDocsRequest(includeDocs: true));
-  //   print(result.totalRows);
-  //   expect(result.totalRows, isNotNull);
-  // });
+  test('allDocs()', () async {
+    final CouchdbAdapter couchDb = getCouchDbAdapter();
+    var result = await couchDb.allDocs<Map<String, dynamic>>(
+        GetAllDocsRequest(includeDocs: true), (value) => value);
+    expect(result.totalRows, isNotNull);
+  });
 
   test('info()', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();

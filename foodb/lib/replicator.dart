@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:foodb/adapter/adapter.dart';
+import 'package:foodb/adapter/methods/all_docs.dart';
 import 'package:foodb/adapter/methods/bulk_docs.dart';
 import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/adapter/methods/ensure_full_commit.dart';
@@ -362,12 +363,10 @@ class Replicator {
           revs: true,
           latest: true,
           fromJsonT: (value) {
-            print("check $value");
-            Map<String, dynamic> map = value as Map<String, dynamic>;
-            map.remove("_id");
-            map.remove("_revisions");
-            map.remove("_rev");
-            return map;
+            value.remove("_id");
+            value.remove("_revisions");
+            value.remove("_rev");
+            return value;
           });
 
       bulkDocs.addAll(docs);

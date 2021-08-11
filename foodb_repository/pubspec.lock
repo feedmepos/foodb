@@ -51,7 +51,7 @@ packages:
     source: hosted
     version: "3.0.1"
   eventify:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: eventify
       url: "https://pub.dartlang.org"
