@@ -87,7 +87,8 @@ abstract class AbstractAdapter {
       String type = 'json',
       Map<String, Object>? partialFilterSelector});
 
-  Future<FindResponse> find(FindRequest findRequest);
+  Future<FindResponse<T>> find<T>(
+      FindRequest findRequest, T Function(Map<String, dynamic>) toJsonT);
 
   Future<bool> init();
   Future<bool> destroy();

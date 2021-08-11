@@ -357,7 +357,8 @@ class CouchdbAdapter extends AbstractAdapter {
   }
 
   @override
-  Future<FindResponse> find(FindRequest findRequest) async {
+  Future<FindResponse<T>> find<T>(FindRequest findRequest,
+      T Function(Map<String, dynamic>) fromJsonT) async {
     Map<String, dynamic> body = findRequest.toJson();
     body.removeWhere((key, value) => value == null);
     var response = jsonDecode((await this.client.post(this.getUri('_find'),
@@ -367,7 +368,8 @@ class CouchdbAdapter extends AbstractAdapter {
 
     print(response);
 
-    return FindResponse.fromJson(response);
+    return FindResponse.fromJson(
+        response, (e) => fromJsonT(e as Map<String, dynamic>));
   }
 
   @override

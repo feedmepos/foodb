@@ -2,144 +2,17 @@ library foodb_repository;
 
 import 'dart:async';
 import 'dart:math';
-import 'package:eventify/eventify.dart';
-import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/methods/all_docs.dart';
 import 'package:foodb/adapter/methods/bulk_docs.dart';
-import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/adapter/methods/delete.dart';
+import 'package:foodb/adapter/methods/find.dart';
 import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/foodb.dart';
-import 'package:foodb/replicator.dart';
-
-class Connection {
-  Foodb? main;
-  Foodb? write;
-  Foodb? remote;
-  //can this accept as emitter??
-  Function(String, dynamic)? mainEmitter;
-  StreamSubscription? mainChangeHandler;
-  Function()? cancelChange;
-  Replicator? mainWriteReplicateHandler;
-  // mainRemoteSyncHandler: any;
-
-  Connection() {}
-
-  setMainInstance(Foodb db) {
-    if (this.mainChangeHandler != null) {
-      this.cancel();
-    }
-    this.main = db;
-    this.write = this.main;
-  }
-
-  cancel() {
-    this.mainChangeHandler!.cancel();
-    this.cancelChange!();
-  }
-
-  void setMainInstanceEmitter() {
-    //why there false in heartbeat and timeout???????????
-    try {
-      this
-          .main
-          ?.adapter
-          .changesStream(ChangeRequest(
-            since: "now",
-            includeDocs: true,
-            feed: ChangeFeed.continuous,
-            // heartbeat: false,
-            // timeout: false))
-          ))
-          .then((value) {
-        this.cancelChange = value.cancel();
-        this.mainChangeHandler = value.onResult((changeResult) {
-          try {
-            String id = changeResult.id;
-            String type = id.split('_')[0];
-            if (type.isNotEmpty) {
-              this.mainEmitter!('types/${type}', changeResult.doc);
-            }
-            this.mainEmitter!(id, changeResult.doc);
-          } catch (e) {
-            throw e;
-          }
-        });
-      });
-    } catch (e) {
-      this.cancel();
-      setMainInstanceEmitter();
-    }
-  }
-
-  void setWriteInstace(Foodb db) {
-    if (this.main == null) {
-      throw new Exception("main instance is not set");
-    }
-    this.write = db;
-  }
-
-  void setRemoteInstance(Foodb db) {
-    if (this.main == null) {
-      throw new Exception("main instance is not set");
-    }
-    this.remote = db;
-  }
-
-  // retry is setting before replicate in .ts
-  Future<void> startMainWriteReplication() async {
-    if (this.mainWriteReplicateHandler != null) {
-      this.mainWriteReplicateHandler!.cancelStream();
-    }
-
-    this.mainWriteReplicateHandler =
-        new Replicator(source: this.write!.adapter, target: this.main!.adapter);
-
-    this.mainWriteReplicateHandler?.replicate(
-        live: true, limit: 25, onData: (data) {}, onError: (error, retry) {});
-    //resolve();
-  }
-
-  // startMainRemoteSync(): Promise<boolean> {
-  //   if (this.mainRemoteSyncHandler) {
-  //     return Promise.resolve(true);
-  //   }
-
-  //   return new Promise(async resolve => {
-  //     try {
-  //       this.mainRemoteSyncHandler = PouchDB.sync(this.remote, this.main, {
-  //         live: true,
-  //         retry: true,
-  //         batch_size: 25,
-  //         filter: doc => !doc._id.includes("_design/")
-  //       })
-  //         .on("denied", (err): void => {
-  //           console.error("on sync denied", err);
-  //         })
-  //         .on("error", (err): void => {
-  //           console.error("on sync error", err);
-  //         });
-  //       resolve(true);
-  //     } catch (err) {
-  //       console.error(err);
-  //       resolve(false);
-  //     }
-  //   });
-  // }
-
-  // async compactDb(): Promise<void> {
-  //   await this.main.compact();
-  // }
-}
 
 abstract class FoodbRepository<T> {
   Foodb db;
 
-  Connection connection = Connection();
-  bool atomicConnection = false;
-  List<String> privateKey = [];
-  List<String> protectedKey = [];
   List<String> uniqueKey = [];
   List<String> indexKey = [];
 
@@ -157,16 +30,6 @@ abstract class FoodbRepository<T> {
   String getRandomString(int length) => String.fromCharCodes(Iterable.generate(
       length, (_) => _chars.codeUnitAt(_rnd.nextInt(_chars.length))));
 
-  generateId() {
-    String isoString = DateTime.now().toIso8601String();
-    return '${type}_${isoString}';
-  }
-
-  void performIndex() {
-    this.uniqueKey.forEach((element) {});
-    this.indexKey.forEach((element) {});
-  }
-
   String getIdPrefix() {
     return "${this.type}_";
   }
@@ -183,6 +46,31 @@ abstract class FoodbRepository<T> {
     return 'type_${type ?? this.type}';
   }
 
+  Future<void> createIndex(field) async {
+    List<String> fields = [this.getTypeKey()];
+    if (field != this.getTypeKey()) {
+      fields = [...fields, field];
+    }
+    var ddoc = fields.join("_");
+    await db.adapter.createIndex(indexFields: fields, ddoc: ddoc);
+  }
+
+  Future<void> performIndex() async {
+    for (String key in indexKey) {
+      await createIndex(key);
+    }
+    for (String key in uniqueKey) {
+      await createIndex(key);
+    }
+  }
+
+  Future<void> verifyUnique(T model) async {
+    for (String key in uniqueKey) {
+      // TODO after find complete
+      // throw error is already exist
+    }
+  }
+
   Map<String, dynamic> getDefaultAttributes() {
     return {this.getTypeKey(): true};
   }
@@ -191,49 +79,46 @@ abstract class FoodbRepository<T> {
     return "repo/${this.type}";
   }
 
-  bool shouldWaitWrite() {
-    return (!this.atomicConnection &&
-        this.connection.mainChangeHandler == null &&
-        this.connection.write == null);
-  }
-
-  Foodb mainConnection() {
-    return (this.atomicConnection && this.connection.write != null)
-        ? this.connection.write!
-        : this.connection.main!;
-  }
-
-  constructor(Connection connection) {
-    this.connection = connection;
-    this.privateKey = ["_rev", "_id", this.getTypeKey(), "fmDefaultVersion"];
-  }
-
   Future<List<Doc<T>>> all() async {
     GetAllDocs<T> getAllDocs = await db.adapter.allDocs<T>(
         GetAllDocsRequest(
             includeDocs: true,
-            startKeyDocId: "$type",
-            endKeyDocId: "$type\uffff"),
+            startKeyDocId: "${getIdPrefix()}",
+            endKeyDocId: "${getIdPrefix()}\uffff"),
         (value) => fromJsonT(value));
     List<Row<T>?> rows = getAllDocs.rows;
     return rows.map<Doc<T>>((e) => e!.doc!).toList();
   }
 
-  Future<Doc<T>?> create(
-    T model,
-  ) async {
-    String id = generateId();
+  Future<List<Doc<T>>> readBetween(DateTime from, DateTime to) async {
+    GetAllDocs<T> getAllDocs = await db.adapter.allDocs<T>(
+        GetAllDocsRequest(
+            includeDocs: true,
+            startKeyDocId: "${getIdPrefix()}${from.toIso8601String()}",
+            endKeyDocId: "${getIdPrefix}\uffff${to.toIso8601String()}"),
+        (value) => fromJsonT(value as Map<String, dynamic>));
+    List<Row<T>?> rows = getAllDocs.rows;
+    return rows.map<Doc<T>>((e) => e!.doc!).toList();
+  }
+
+  Future<Doc<T>?> create(T model, {String? id}) async {
+    await this.verifyUnique(model);
+    String newId = generateNewId(id: id);
     // Doc<T> newDoc =
     //     new Doc(id: "$type-${jsonEncode(toJsonT(model))}", model: model);
-    Doc<Map<String, dynamic>> newDoc2 = new Doc(id: id, model: toJsonT(model));
-    PutResponse putResponse = await db.adapter.put(doc: newDoc2);
+    Doc<Map<String, dynamic>> newDoc =
+        new Doc(id: newId, model: toJsonT(model));
+    newDoc.model.addAll(getDefaultAttributes());
+    PutResponse putResponse = await db.adapter.put(doc: newDoc);
 
-    return putResponse.ok == true ? await read(id) : null;
+    return putResponse.ok == true ? await read(newId) : null;
   }
 
   Future<Doc<T>?> update(Doc<T> doc) async {
+    await this.verifyUnique(doc.model);
     Doc<Map<String, dynamic>> newDoc =
         Doc(model: toJsonT(doc.model), id: doc.id, rev: doc.rev);
+    newDoc.model.addAll(getDefaultAttributes());
     PutResponse putResponse = await db.adapter.put(doc: newDoc);
 
     return putResponse.ok == true ? await read(newDoc.id) : null;
@@ -250,15 +135,25 @@ abstract class FoodbRepository<T> {
     );
   }
 
+  //TODO
+  Future<List<Doc<T>>?> find() async {
+    var resp =
+        await db.adapter.find<T>(FindRequest(selector: {'no': 1}), fromJsonT);
+    // return resp.docs;
+  }
+
   Future<BulkDocResponse> bulkDocs(List<Doc<T>> docs) async {
     List<Doc<Map<String, dynamic>>> mappedDocs = [];
     for (Doc<T> doc in docs) {
+      var json = toJsonT(doc.model);
+      json.addAll(getDefaultAttributes());
+      // TODO: test bulk doc has default attribute
       Doc<Map<String, dynamic>> newDoc = new Doc(
           id: doc.id,
           deleted: doc.deleted,
           rev: doc.rev,
           revisions: doc.revisions,
-          model: toJsonT(doc.model));
+          model: json);
       mappedDocs.add(newDoc);
     }
     return await db.adapter.bulkDocs(body: mappedDocs);

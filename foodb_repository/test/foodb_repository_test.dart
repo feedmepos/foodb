@@ -40,6 +40,12 @@ class UserRepo extends FoodbRepository<UserModel> {
   UserRepo(Foodb db) : super(db: db);
 
   @override
+  List<String> uniqueKey = ['name'];
+
+  @override
+  List<String> indexKey = ['no'];
+
+  @override
   UserModel Function(Map<String, dynamic> json) fromJsonT = UserModelFromJson;
 
   @override
@@ -77,10 +83,39 @@ void main() async {
     await db.adapter.init();
   });
 
+  getUserRepo() {
+    return UserRepo(Foodb(
+        adapter: CouchdbAdapter(baseUri: Uri.parse(baseUri), dbName: dbName)));
+  }
+
   test('new repo instance', () {
     var repo = UserRepo(Foodb(
         adapter: CouchdbAdapter(baseUri: Uri.parse(baseUri), dbName: dbName)));
     expect(repo, isNotNull);
+  });
+
+  test('create index', () async {
+    var repo = getUserRepo();
+    await repo.performIndex();
+    var nameDDoc = await repo.db.adapter
+        .get(id: '_design/type_user_name', fromJsonT: (e) => e);
+    expect(nameDDoc, isNotNull);
+    var noDDoc = await repo.db.adapter
+        .get(id: '_design/type_user_no', fromJsonT: (e) => e);
+    expect(noDDoc, isNotNull);
+    // use explain to check whether index being used
+  });
+
+  test('check every repo has own default attribute', () async {
+    // Create
+    // Update
+    // BulkDoc
+  });
+
+  test('read between', () async {
+    // create multiple doc with custom id (custom date)
+    // read between cover partial date
+    // check length
   });
 
   test('CRUD', () async {
