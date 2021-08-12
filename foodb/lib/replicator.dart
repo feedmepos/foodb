@@ -357,17 +357,18 @@ class Replicator {
     List<Doc<Map<String, dynamic>>> bulkDocs = [];
 
     for (final key in revsDiff.keys) {
-      List<Doc<Map<String, dynamic>>> docs = await source.fetchChanges(
-          id: key,
-          openRevs: changes[key]!,
-          revs: true,
-          latest: true,
-          fromJsonT: (value) {
-            value.remove("_id");
-            value.remove("_revisions");
-            value.remove("_rev");
-            return value;
-          });
+      List<Doc<Map<String, dynamic>>> docs =
+          await source.fetchChanges<Map<String, dynamic>>(
+              id: key,
+              openRevs: changes[key]!,
+              revs: true,
+              latest: true,
+              fromJsonT: (value) {
+                value.remove("_id");
+                value.remove("_revisions");
+                value.remove("_rev");
+                return value;
+              });
 
       bulkDocs.addAll(docs);
     }
@@ -400,11 +401,8 @@ class Replicator {
             sessionId: uuidGenerator.v4(),
             sourceLastSeq: this.sourceSequence!));
 
-    Doc<Map<String, dynamic>> newReplicationLog =
-        Doc<Map<String, dynamic>>.fromJson(
-            replicationLog!.toJson((value) => value.toJson()),
-            (value) => (value as Map<String, dynamic>)["model"]);
-
+    Doc<Map<String, dynamic>> newReplicationLog = new Doc<Map<String, dynamic>>(
+        id: replicationLog!.id, model: replicationLog!.model.toJson());
     PutResponse putResponse = await target.put(doc: newReplicationLog);
 
     return putResponse;
