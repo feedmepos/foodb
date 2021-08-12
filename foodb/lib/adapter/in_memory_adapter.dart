@@ -292,4 +292,10 @@ class MemoryAdapter extends AbstractAdapter {
     // TODO: implement allDocs
     throw UnimplementedError();
   }
+
+  @override
+  Future<List<Doc<DesignDoc>?>> fetchAllDesignDocs() {
+    // TODO: implement fetchAllDesignDocs
+    throw UnimplementedError();
+  }
 }
