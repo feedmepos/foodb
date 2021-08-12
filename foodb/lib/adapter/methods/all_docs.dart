@@ -1,6 +1,5 @@
-import 'package:json_annotation/json_annotation.dart';
-
 import 'package:foodb/common/doc.dart';
+import 'package:json_annotation/json_annotation.dart';
 
 part 'all_docs.g.dart';
 

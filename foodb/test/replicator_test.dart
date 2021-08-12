@@ -61,6 +61,7 @@ void main() async {
         newRev: "1-asdfg");
     expect(putResponse.ok, isTrue);
   });
+
   test('replicator', () async {
     PutResponse putResponse = await getCouchDbAdapter(dbName: "adish").put(
         doc: Doc(id: "feedme", model: {"name": "feedmefood", "no": 300}),
@@ -105,17 +106,21 @@ void main() async {
         newEdits: false,
         newRev: "2-zzzzz");
 
-    var fn3 = expectAsync1((result) {
-      print(result);
-      expect(result, isInstanceOf<Exception>());
-    });
+    // var fn3 = expectAsync1((result) {
+    //   print(result);
+    //   expect(result, isInstanceOf<Exception>());
+    // });
 
-    var fn2 = expectAsync1((result) {
-      // print("in fn2");
-      print(result == "One Cycle Completed");
-      replicator.cancelStream();
+    // var fn2 = expectAsync1((result) {
+    //   // print("in fn2");
+    //   print(result == "One Cycle Completed");
+    //   replicator.cancelStream();
 
-      expect(result, equals("One Cycle Completed"));
+    //   expect(result, equals("One Cycle Completed"));
+    // });
+
+    var fn4 = expectAsync1((result) {
+      expect(result, "Completed");
     });
 
     var fn = expectAsync1((result) {
@@ -123,43 +128,40 @@ void main() async {
       print(result == "Completed");
       expect(result, equals("Completed"));
 
-      // replicator2.replicate(
-      //     live: false,
-      //     timeout: Duration(milliseconds: 500),
-      //     onData: (data) {
-      //       print(data);
-      //     },
-      //     onError: (error, retry) {
-      //       print(error);
-      //       retry();
-      //     },
-      //     onComplete: (result) {
-      //       print(result);
-      //       fn2(result);
-      //     });
+      replicator2.replicate(
+          live: false,
+          timeout: Duration(milliseconds: 500),
+          onData: (data) {
+            print(data);
+          },
+          onError: (error, retry) {
+            print(error);
+            retry();
+          },
+          onComplete: (result) {
+            print(result);
+            fn4(result);
+          });
     });
-
-    // var fn = expectAsync1((result) {
-    //   expect(result, "One Cycle Completed");
-    // });
 
     int count = 0;
 
     replicator.replicate(
-        live: true,
+        live: false,
         limit: 5,
         timeout: Duration(milliseconds: 500),
         onData: (data) {
           print(data);
           if (data == "One Cycle Completed") ++count;
-          if (count == 2) {
-            fn2(data);
-          }
+          // if (count == 2) {
+          //   // fn2(data);
+          // }
         },
         onError: (error, retry) {
           print(error);
           print("error ${error.runtimeType}");
-          fn3(error);
+          //if (count == 2)
+          //fn3(error);
 
           //retry();
         },
@@ -171,7 +173,7 @@ void main() async {
     Future.delayed(Duration(seconds: 10)).then((value) => {
           getCouchDbAdapter(dbName: "adish").put(
               doc: Doc(
-                  id: "fn2 last last last",
+                  id: "fn2 ultimately last last",
                   model: {"name": "fueffd", "no": 999}))
         });
   });

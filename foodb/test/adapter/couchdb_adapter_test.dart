@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/couchdb_adapter.dart';
@@ -28,12 +29,23 @@ void main() async {
         dbName: dbName ?? envDbName, baseUri: Uri.parse(baseUri));
   }
 
-  // test('allDocs()', () async {
-  //   final CouchdbAdapter couchDb = getCouchDbAdapter();
-  //   var result = await couchDb.allDocs(GetAllDocsRequest(includeDocs: true));
-  //   print(result.totalRows);
-  //   expect(result.totalRows, isNotNull);
-  // });
+  test('bulkdocs()', () async {
+    final CouchdbAdapter couchDb = getCouchDbAdapter();
+    var bulkdocResponse = await couchDb.bulkDocs(body: [
+      new Doc<Map<String, dynamic>>(
+          id: "test 1", model: {"name": "beefy", "no": 999}),
+      new Doc<Map<String, dynamic>>(
+          id: "test 2", model: {"name": "soda", "no": 999}),
+    ], newEdits: true);
+    expect(bulkdocResponse.error, isNull);
+  });
+
+  test('allDocs()', () async {
+    final CouchdbAdapter couchDb = getCouchDbAdapter();
+    var result = await couchDb.allDocs<Map<String, dynamic>>(
+        GetAllDocsRequest(includeDocs: true), (value) => value);
+    expect(result.totalRows, isNotNull);
+  });
 
   test('info()', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();
@@ -116,14 +128,17 @@ void main() async {
     expect(indexResponse.result, isNotNull);
   });
 
-  // test('find()', () async {
-  //   final CouchdbAdapter couchDb = getCouchDbAdapter();
-  //   FindResponse findResponse = await couchDb.find(FindRequest(selector: {
-  //     '_id': {'\$regex': '^test'}
-  //   }));
-  //   print(findResponse.docs);
-  //   expect(findResponse.docs.length > 0, isTrue);
-  // });
+  test('find()', () async {
+    final CouchdbAdapter couchDb = getCouchDbAdapter();
+    FindResponse<Map<String, dynamic>> findResponse =
+        await couchDb.find<Map<String, dynamic>>(
+            FindRequest(selector: {
+              '_id': {'\$regex': '^user'}
+            }),
+            (json) => json);
+    print(findResponse.docs);
+    expect(findResponse.docs.length > 0, isTrue);
+  });
 
   test('EnsureFullCommit In CouchDB adish', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();

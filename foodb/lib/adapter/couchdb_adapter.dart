@@ -8,6 +8,7 @@ import 'package:foodb/adapter/methods/bulk_docs.dart';
 import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/adapter/methods/delete.dart';
 import 'package:foodb/adapter/methods/ensure_full_commit.dart';
+import 'package:foodb/adapter/methods/explain.dart';
 import 'package:foodb/adapter/methods/find.dart';
 import 'package:foodb/adapter/methods/index.dart';
 import 'package:foodb/adapter/methods/info.dart';
@@ -54,8 +55,6 @@ class CouchdbAdapter extends AbstractAdapter {
               'docs': body.map((e) {
                 Map<String, dynamic> map = e.toJson((value) => value);
                 map.removeWhere((key, value) => value == null);
-                map.addAll(map["model"]);
-                map.remove("model");
                 return map;
               }).toList()
             })))
@@ -322,7 +321,8 @@ class CouchdbAdapter extends AbstractAdapter {
       T Function(Map<String, dynamic> json) fromJsonT) async {
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_all_docs')));
     uriBuilder.queryParameters = convertToParams(getAllDocsRequest.toJson());
-
+    print(uriBuilder.build());
+    print(jsonDecode((await this.client.get(uriBuilder.build())).body));
     return GetAllDocs<T>.fromJson(
         jsonDecode((await this.client.get(uriBuilder.build())).body),
         (a) => fromJsonT(a as Map<String, dynamic>));
@@ -366,10 +366,20 @@ class CouchdbAdapter extends AbstractAdapter {
             body: jsonEncode(body)))
         .body);
 
-    print(response);
-
     return FindResponse.fromJson(
         response, (e) => fromJsonT(e as Map<String, dynamic>));
+  }
+
+  @override
+  Future<ExplainResponse> explain(FindRequest findRequest) async {
+    Map<String, dynamic> body = findRequest.toJson();
+    body.removeWhere((key, value) => value == null);
+    var response = jsonDecode((await this.client.post(this.getUri('_explain'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(body)))
+        .body);
+    print(response);
+    return ExplainResponse.fromJson(response);
   }
 
   @override

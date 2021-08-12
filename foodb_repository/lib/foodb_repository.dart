@@ -64,10 +64,18 @@ abstract class FoodbRepository<T> {
     }
   }
 
-  Future<void> verifyUnique(T model) async {
+  Future<void> verifyUnique({required T model, String? update}) async {
     for (String key in uniqueKey) {
-      // TODO after find complete
-      // throw error is already exist
+      Map query = {key: toJsonT(model)[key]};
+      if (update != null) {
+        query.addAll({
+          "_id": {"\$ne": update}
+        });
+      }
+      List<Doc<T>?> result = await this.find(FindRequest(selector: query));
+      if (result.length > 0) {
+        throw new Exception("$key has constraint");
+      }
     }
   }
 
@@ -84,8 +92,8 @@ abstract class FoodbRepository<T> {
         GetAllDocsRequest(
             includeDocs: true,
             startKeyDocId: "${getIdPrefix()}",
-            endKeyDocId: "${getIdPrefix}\uffff"),
-        (value) => fromJsonT(value as Map<String, dynamic>));
+            endKeyDocId: "${getIdPrefix()}\uffff"),
+        (value) => fromJsonT(value));
     List<Row<T>?> rows = getAllDocs.rows;
     return rows.map<Doc<T>>((e) => e!.doc!).toList();
   }
@@ -95,17 +103,15 @@ abstract class FoodbRepository<T> {
         GetAllDocsRequest(
             includeDocs: true,
             startKeyDocId: "${getIdPrefix()}${from.toIso8601String()}",
-            endKeyDocId: "${getIdPrefix}\uffff${to.toIso8601String()}"),
-        (value) => fromJsonT(value as Map<String, dynamic>));
+            endKeyDocId: "${getIdPrefix()}${to.toIso8601String()}\ufff0"),
+        (value) => fromJsonT(value));
     List<Row<T>?> rows = getAllDocs.rows;
     return rows.map<Doc<T>>((e) => e!.doc!).toList();
   }
 
   Future<Doc<T>?> create(T model, {String? id}) async {
-    await this.verifyUnique(model);
+    await this.verifyUnique(model: model);
     String newId = generateNewId(id: id);
-    // Doc<T> newDoc =
-    //     new Doc(id: "$type-${jsonEncode(toJsonT(model))}", model: model);
     Doc<Map<String, dynamic>> newDoc =
         new Doc(id: newId, model: toJsonT(model));
     newDoc.model.addAll(getDefaultAttributes());
@@ -115,7 +121,7 @@ abstract class FoodbRepository<T> {
   }
 
   Future<Doc<T>?> update(Doc<T> doc) async {
-    await this.verifyUnique(doc.model);
+    await this.verifyUnique(model: doc.model, update: doc.id);
     Doc<Map<String, dynamic>> newDoc =
         Doc(model: toJsonT(doc.model), id: doc.id, rev: doc.rev);
     newDoc.model.addAll(getDefaultAttributes());
@@ -131,15 +137,17 @@ abstract class FoodbRepository<T> {
   Future<Doc<T>?> read(String id) async {
     return await db.adapter.get<T>(
       id: id,
-      fromJsonT: (value) => fromJsonT(value as Map<String, dynamic>),
+      fromJsonT: (value) => fromJsonT(value),
     );
   }
 
-  //TODO
-  Future<List<Doc<T>>?> find() async {
-    var resp =
-        await db.adapter.find<T>(FindRequest(selector: {'no': 1}), fromJsonT);
-    // return resp.docs;
+  Future<List<Doc<T>?>> find(FindRequest findRequest) async {
+    findRequest.selector.addAll({
+      this.getTypeKey(): true,
+    });
+    List<Doc<T>?> resp =
+        (await db.adapter.find<T>(findRequest, fromJsonT)).docs;
+    return resp;
   }
 
   Future<BulkDocResponse> bulkDocs(List<Doc<T>> docs) async {
@@ -147,7 +155,6 @@ abstract class FoodbRepository<T> {
     for (Doc<T> doc in docs) {
       var json = toJsonT(doc.model);
       json.addAll(getDefaultAttributes());
-      // TODO: test bulk doc has default attribute
       Doc<Map<String, dynamic>> newDoc = new Doc(
           id: doc.id,
           deleted: doc.deleted,
@@ -156,6 +163,6 @@ abstract class FoodbRepository<T> {
           model: json);
       mappedDocs.add(newDoc);
     }
-    return await db.adapter.bulkDocs(body: mappedDocs);
+    return await db.adapter.bulkDocs(body: mappedDocs, newEdits: true);
   }
 }

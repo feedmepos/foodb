@@ -52,6 +52,30 @@ class Doc<T> {
       _$DocFromJson(json, fromJsonT);
   Map<String, dynamic> toJson(Object? Function(T value) toJsonT) =>
       _$DocToJson(this, toJsonT);
+
+  Doc<T> copyWith(
+      {String? id,
+      String? rev,
+      bool? deleted,
+      Revisions? revisions,
+      T? model,
+      Object? attachments,
+      List<String>? conflicts,
+      List<String>? deletedConflicts,
+      List<Map<String, Object>>? revsInfo,
+      String? localSeq}) {
+    return Doc<T>(
+        id: id ?? this.id,
+        rev: rev ?? this.rev,
+        model: model ?? this.model,
+        deleted: deleted ?? this.deleted,
+        revisions: revisions ?? this.revisions,
+        attachments: attachments ?? this.attachments,
+        conflicts: conflicts ?? this.conflicts,
+        deletedConflicts: deletedConflicts ?? this.deletedConflicts,
+        revsInfo: revsInfo ?? this.revsInfo,
+        localSeq: localSeq ?? this.localSeq);
+  }
 }
 
 Doc<T> _$DocFromJson<T>(
@@ -85,19 +109,22 @@ Doc<T> _$DocFromJson<T>(
 Map<String, dynamic> _$DocToJson<T>(
   Doc<T> instance,
   Object? Function(T value) toJsonT,
-) =>
-    <String, dynamic>{
-      '_id': instance.id,
-      '_rev': instance.rev,
-      '_deleted': instance.deleted,
-      '_revisions': instance.revisions,
-      'model': toJsonT(instance.model),
-      '_attachments': instance.attachments,
-      '_conflicts': instance.conflicts,
-      '_deleted_conflicts': instance.deletedConflicts,
-      '_revs_info': instance.revsInfo,
-      '_local_seq': instance.localSeq,
-    };
+) {
+  Map<String, dynamic> map = <String, dynamic>{
+    '_id': instance.id,
+    '_rev': instance.rev,
+    '_deleted': instance.deleted,
+    '_revisions': instance.revisions,
+    '_attachments': instance.attachments,
+    '_conflicts': instance.conflicts,
+    '_deleted_conflicts': instance.deletedConflicts,
+    '_revs_info': instance.revsInfo,
+    '_local_seq': instance.localSeq,
+  };
+
+  map.addAll(toJsonT(instance.model) as Map<String, dynamic>);
+  return map;
+}
 
 @JsonSerializable()
 @immutable

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:foodb/adapter/adapter.dart';
+import 'package:foodb/adapter/methods/all_docs.dart';
 import 'package:foodb/adapter/methods/bulk_docs.dart';
 import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/adapter/methods/ensure_full_commit.dart';
@@ -124,13 +125,13 @@ class Replicator {
         }
       } catch (err) {
         this.running = false;
-        // this.cancel(since);
-        // this.onError(Exception(err), () {
-        //   live
-        //       ? listenToContinuousChanges(since: since)
-        //       : listenToNormalChanges(since: since, upperbound: upperbound!);
-        // });
-        throw err;
+        this.cancel(since);
+        this.onError(Exception(err), () {
+          live
+              ? listenToContinuousChanges(since: since)
+              : listenToNormalChanges(since: since, upperbound: upperbound!);
+        });
+        //throw err;
       } finally {
         this.running = false;
       }
@@ -356,19 +357,18 @@ class Replicator {
     List<Doc<Map<String, dynamic>>> bulkDocs = [];
 
     for (final key in revsDiff.keys) {
-      List<Doc<Map<String, dynamic>>> docs = await source.fetchChanges(
-          id: key,
-          openRevs: changes[key]!,
-          revs: true,
-          latest: true,
-          fromJsonT: (value) {
-            print("check $value");
-            Map<String, dynamic> map = value as Map<String, dynamic>;
-            map.remove("_id");
-            map.remove("_revisions");
-            map.remove("_rev");
-            return map;
-          });
+      List<Doc<Map<String, dynamic>>> docs =
+          await source.fetchChanges<Map<String, dynamic>>(
+              id: key,
+              openRevs: changes[key]!,
+              revs: true,
+              latest: true,
+              fromJsonT: (value) {
+                value.remove("_id");
+                value.remove("_revisions");
+                value.remove("_rev");
+                return value;
+              });
 
       bulkDocs.addAll(docs);
     }
@@ -386,7 +386,7 @@ class Replicator {
   Future<PutResponse> recordReplicationCheckpoint() async {
     replicationLog = new Doc(
         id: "_local/$replicationID",
-        // rev: "1-0",
+        //rev: "1-0",
         model: ReplicationLog(
             history: [
               History(
@@ -401,11 +401,8 @@ class Replicator {
             sessionId: uuidGenerator.v4(),
             sourceLastSeq: this.sourceSequence!));
 
-    Doc<Map<String, dynamic>> newReplicationLog =
-        Doc<Map<String, dynamic>>.fromJson(
-            replicationLog!.toJson((value) => value.toJson()),
-            (value) => (value as Map<String, dynamic>)["model"]);
-
+    Doc<Map<String, dynamic>> newReplicationLog = new Doc<Map<String, dynamic>>(
+        id: replicationLog!.id, model: replicationLog!.model.toJson());
     PutResponse putResponse = await target.put(doc: newReplicationLog);
 
     return putResponse;
