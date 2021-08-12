@@ -162,6 +162,17 @@ class CouchdbAdapter extends AbstractAdapter {
   }
 
   @override
+  Future<List<Doc<DesignDoc>?>> fetchAllDesignDocs() async {
+    GetAllDocs<DesignDoc> docs = await allDocs<DesignDoc>(
+        GetAllDocsRequest(
+            includeDocs: true,
+            startKey: "\"_design\"",
+            endKey: "\"_design\uffff\""),
+        (json) => DesignDoc.fromJson(json));
+    return docs.rows.map<Doc<DesignDoc>>((e) => e!.doc!).toList();
+  }
+
+  @override
   Future<GetInfoResponse> info() async {
     return GetInfoResponse.fromJson(
         jsonDecode((await this.client.get(this.getUri(''))).body));
@@ -232,6 +243,7 @@ class CouchdbAdapter extends AbstractAdapter {
       T Function(Map<String, dynamic> json) fromJsonT) async {
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_all_docs')));
     uriBuilder.queryParameters = convertToParams(getAllDocsRequest.toJson());
+    print(uriBuilder.build());
     return GetAllDocs<T>.fromJson(
         jsonDecode((await this.client.get(uriBuilder.build())).body),
         (a) => fromJsonT(a as Map<String, dynamic>));

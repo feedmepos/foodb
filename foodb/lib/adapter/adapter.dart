@@ -47,6 +47,8 @@ abstract class AbstractAdapter {
 
   Future<Doc<DesignDoc>?> fetchDesignDoc({required String id});
 
+  Future<List<Doc<DesignDoc>?>> fetchAllDesignDocs();
+
   Future<List<Doc<T>>> fetchChanges<T>(
       {required String id,
       bool attachments = false,
