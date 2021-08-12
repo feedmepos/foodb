@@ -253,6 +253,15 @@ void main() async {
 
     expect(newDocs1.length == 1, isTrue);
     expect(newDocs2.length == 1, isTrue);
+    newDocs1[0].model.name = "no no no";
+    BulkDocResponse bulkDocResponse = await repo1.bulkDocs(newDocs1);
+    Doc<SaleModel> docLast = newDocs2[0].copyWith(deleted: true);
+    Doc<SaleModel> docNew =
+        Doc(id: "sales_null", model: SaleModel(name: "new model", no: 11111));
+    BulkDocResponse bulkDocResponse2 = await repo2.bulkDocs([docLast, docNew]);
+
+    expect(bulkDocResponse2.error, isNull);
+    expect(bulkDocResponse.error, isNull);
   });
 
   test('read doc ', () async {
@@ -269,7 +278,7 @@ void main() async {
     UserRepo userRepo = UserRepo(Foodb(
         adapter: CouchdbAdapter(baseUri: Uri.parse(baseUri), dbName: dbName)));
     Doc<UserModel>? doc = await userRepo.read(
-      'sales_2021-08-10T13:50:09.658409',
+      'sales_2021-08-12T12:17:50.252578',
     );
     Doc<UserModel> newDoc = new Doc(
         id: doc!.id,
