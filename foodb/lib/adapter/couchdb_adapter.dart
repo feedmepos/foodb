@@ -8,11 +8,13 @@ import 'package:foodb/adapter/methods/bulk_docs.dart';
 import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/adapter/methods/delete.dart';
 import 'package:foodb/adapter/methods/ensure_full_commit.dart';
+import 'package:foodb/adapter/methods/explain.dart';
 import 'package:foodb/adapter/methods/find.dart';
 import 'package:foodb/adapter/methods/index.dart';
 import 'package:foodb/adapter/methods/info.dart';
 import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/adapter/methods/revs_diff.dart';
+import 'package:foodb/common/design_doc.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:http/http.dart';
 import 'package:foodb/adapter/params_converter.dart';
@@ -54,8 +56,6 @@ class CouchdbAdapter extends AbstractAdapter {
               'docs': body.map((e) {
                 Map<String, dynamic> map = e.toJson((value) => value);
                 map.removeWhere((key, value) => value == null);
-                map.addAll(map["model"]);
-                map.remove("model");
                 return map;
               }).toList()
             })))
@@ -77,103 +77,28 @@ class CouchdbAdapter extends AbstractAdapter {
   @override
   Future<ChangesStream> changesStream(ChangeRequest request) async {
     var client = getClient();
-    final path =
-        '_changes?${includeNonNullParam('doc_ids', request.body?.docIds)}&'
-        'conflicts=${request.conflicts}&descending=${request.descending}&'
-        'feed=${request.feed}&${includeNonNullParam('filter', request.filter)}&heartbeat='
-        '${request.heartbeat}&include_docs=${request.includeDocs}&attachments=${request.attachments}&'
-        'att_encoding_info=${request.attEncodingInfo}&${includeNonNullParam('last-event-id', request.lastEventId)}'
-        '&${includeNonNullParam('limit', request.limit)}&since=${request.since}&style=${request.style}&'
-        'timeout=${request.timeout}&${includeNonNullParam('view', request.view)}&'
-        '${includeNonNullParam('seq_interval', request.seqInterval)}';
-    var res = await client.send(Request('get', this.getUri(path)));
+    // final path =
+    //     '_changes?${includeNonNullParam('doc_ids', request.body?.docIds)}&'
+    //     'conflicts=${request.conflicts}&descending=${request.descending}&'
+    //     'feed=${request.feed}&${includeNonNullParam('filter', request.filter)}&heartbeat='
+    //     '${request.heartbeat}&include_docs=${request.includeDocs}&attachments=${request.attachments}&'
+    //     'att_encoding_info=${request.attEncodingInfo}&${includeNonNullParam('last-event-id', request.lastEventId)}'
+    //     '&${includeNonNullParam('limit', request.limit)}&since=${request.since}&style=${request.style}&'
+    //     'timeout=${request.timeout}&${includeNonNullParam('view', request.view)}&'
+    //     '${includeNonNullParam('seq_interval', request.seqInterval)}';
 
-    print(this.getUri(path));
+    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_changes')));
+    uriBuilder.queryParameters = convertToParams(request.toJson());
+
+    var res = await client.send(Request('get', uriBuilder.build()));
+
+    //print(this.getUri(path));
 
     var streamedRes = res.stream.asBroadcastStream().transform(utf8.decoder);
     var streamedResponse =
         ChangesStream(stream: streamedRes, client: client, feed: request.feed);
     return streamedResponse;
-
-    // switch (request.feed) {
-    //   case 'continuous':
-    //     final mappedRes = streamedRes.map((v) => v.replaceAll('}\n{', '},\n{'));
-    //     return  mappedRes.map((results) => ChangeResponse(
-    //         results: jsonDecode('[$results]')
-    //             .map<ChangeResult>((result) => ChangeResult.fromJson(result))
-    //             .toList()));
-
-    //   //***Need adjust
-    //   // case 'eventsource':
-    //   //   final mappedRes = streamedRes
-    //   //       .map((v) => v.replaceAll(RegExp('\n+data'), '},\n{data'))
-    //   //       .map((v) => v.replaceAll('data', '"data"'))
-    //   //       .map((v) => v.replaceAll('\nid', ',\n"id"'));
-    //   //   return mappedRes.map<ChangeResponse>((results) {
-    //   //     return jsonDecode('[{$results}]')
-    //   //         .map((result) => ChangeResult.fromJson(result))
-    //   //         .toList();
-    //   //   });
-
-    //   case 'normal':
-    //   case 'longpoll':
-    //   default:
-    //     String? res = await streamedRes.join();
-    //     print(res);
-    //     return Stream<ChangeResponse>.fromFuture(Future<ChangeResponse>.value(
-    //         ChangeResponse.fromJson(jsonDecode(res))));
-    // }
   }
-
-  // @override
-  // Future<Stream<String>> changesStreamString(ChangeRequest request) async {
-  //   final path =
-  //       '_changes?${includeNonNullParam('doc_ids', request.body?.docIds)}&'
-  //       'conflicts=${request.conflicts}&descending=${request.descending}&'
-  //       'feed=${request.feed}&${includeNonNullParam('filter', request.filter)}&heartbeat='
-  //       '${request.heartbeat}&include_docs=${request.includeDocs}&attachments=${request.attachments}&'
-  //       'att_encoding_info=${request.attEncodingInfo}&${includeNonNullParam('last-event-id', request.lastEventId)}'
-  //       '&${includeNonNullParam('limit', request.limit)}&since=${request.since}&style=${request.style}&'
-  //       'timeout=${request.timeout}&${includeNonNullParam('view', request.view)}&'
-  //       '${includeNonNullParam('seq_interval', request.seqInterval)}';
-
-  //   var req = Request('get', this.getUri(path));
-  //   var res = (await this.client.send(req));
-  //   //res.
-
-  //   var streamedRes = res.stream.toStringStream();
-
-  //   return streamedRes;
-
-  // switch (request.feed) {
-  //   case 'continuous':
-  //     final mappedRes = streamedRes.map((v) => v.replaceAll('}\n{', '},\n{'));
-  //     return mappedRes.map((results) => ChangeResponse(
-  //         results: jsonDecode('[$results]')
-  //             .map<ChangeResult>((result) => ChangeResult.fromJson(result))
-  //             .toList()));
-
-  //   //***Need adjust
-  //   // case 'eventsource':
-  //   //   final mappedRes = streamedRes
-  //   //       .map((v) => v.replaceAll(RegExp('\n+data'), '},\n{data'))
-  //   //       .map((v) => v.replaceAll('data', '"data"'))
-  //   //       .map((v) => v.replaceAll('\nid', ',\n"id"'));
-  //   //   return mappedRes.map<ChangeResponse>((results) {
-  //   //     return jsonDecode('[{$results}]')
-  //   //         .map((result) => ChangeResult.fromJson(result))
-  //   //         .toList();
-  //   //   });
-
-  //   case 'normal':
-  //   case 'longpoll':
-  //   default:
-  //     String? res = await streamedRes.join();
-  //     print(res);
-  //     return Stream<ChangeResponse>.fromFuture(Future<ChangeResponse>.value(
-  //         ChangeResponse.fromJson(jsonDecode(res))));
-  // }
-  // }
 
   @override
   Future<EnsureFullCommitResponse> ensureFullCommit() async {
@@ -223,6 +148,20 @@ class CouchdbAdapter extends AbstractAdapter {
   }
 
   @override
+  Future<Doc<DesignDoc>?> fetchDesignDoc({
+    required String id,
+  }) async {
+    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri(id)));
+    var response = (await this.client.get(uriBuilder.build())).body;
+    Map<String, dynamic> result = jsonDecode(response);
+    print(result);
+    return result.containsKey('_id')
+        ? Doc<DesignDoc>.fromJson(
+            result, (json) => DesignDoc.fromJson(json as Map<String, dynamic>))
+        : null;
+  }
+
+  @override
   Future<GetInfoResponse> info() async {
     return GetInfoResponse.fromJson(
         jsonDecode((await this.client.get(this.getUri(''))).body));
@@ -256,10 +195,6 @@ class CouchdbAdapter extends AbstractAdapter {
         throw new AdapterException(
             error: 'newRev is required when newEdits is false');
       }
-      // if(body['_revisions'] == null) {
-      //   throw new AdapterException(
-      //       error: '_revisions is required when newEdits is false');
-      // }
       newBody['_revisions'] = {
         "ids": doc.rev == null
             ? [newRev.split('-')[1]]
@@ -271,28 +206,6 @@ class CouchdbAdapter extends AbstractAdapter {
         (await this.client.put(uriBuilder.build(), body: jsonEncode(newBody)))
             .body));
   }
-
-  // @override
-  // Future<PutResponse> put(
-  //     {required Map<String, dynamic> body, bool newEdits = false}) async {
-  //   String newRev = generateNewRev(body['_rev']);
-  //   UriBuilder uriBuilder = new UriBuilder.fromUri(this.getUri(body['_id']));
-  //   uriBuilder.queryParameters =
-  //       convertToParams({'new_edits': newEdits, '_rev': newRev});
-
-  //   Map<String, dynamic> newBody = {};
-  //   newBody['_revisions'] = {
-  //     "ids": body['_rev'] == null
-  //         ? [newRev.split('-')[1]]
-  //         : [newRev.split('-')[1], body['_rev'].split('-')[1]],
-  //     "start": int.parse(newRev.split('-')[0])
-  //   };
-  //   newBody.addAll(body['model']);
-
-  //   return PutResponse.fromJson(jsonDecode(
-  //       (await this.client.put(uriBuilder.build(), body: jsonEncode(newBody)))
-  //           .body));
-  // }
 
   @override
   Future<DeleteResponse> delete(
@@ -309,10 +222,7 @@ class CouchdbAdapter extends AbstractAdapter {
     print(jsonEncode(body));
     Response response = await this.client.post(this.getUri("_revs_diff"),
         headers: {'Content-Type': 'application/json'}, body: jsonEncode(body));
-    print(response.body);
     return (jsonDecode(response.body).map<String, RevsDiff>((k, v) {
-      print("$k, ${k.runtimeType}");
-      print("$v, ${v.runtimeType}");
       return MapEntry<String, RevsDiff>(k, RevsDiff.fromJson(v));
     }));
   }
@@ -322,7 +232,6 @@ class CouchdbAdapter extends AbstractAdapter {
       T Function(Map<String, dynamic> json) fromJsonT) async {
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_all_docs')));
     uriBuilder.queryParameters = convertToParams(getAllDocsRequest.toJson());
-
     return GetAllDocs<T>.fromJson(
         jsonDecode((await this.client.get(uriBuilder.build())).body),
         (a) => fromJsonT(a as Map<String, dynamic>));
@@ -357,7 +266,8 @@ class CouchdbAdapter extends AbstractAdapter {
   }
 
   @override
-  Future<FindResponse> find(FindRequest findRequest) async {
+  Future<FindResponse<T>> find<T>(FindRequest findRequest,
+      T Function(Map<String, dynamic>) fromJsonT) async {
     Map<String, dynamic> body = findRequest.toJson();
     body.removeWhere((key, value) => value == null);
     var response = jsonDecode((await this.client.post(this.getUri('_find'),
@@ -365,9 +275,20 @@ class CouchdbAdapter extends AbstractAdapter {
             body: jsonEncode(body)))
         .body);
 
-    print(response);
+    return FindResponse.fromJson(
+        response, (e) => fromJsonT(e as Map<String, dynamic>));
+  }
 
-    return FindResponse.fromJson(response);
+  @override
+  Future<ExplainResponse> explain(FindRequest findRequest) async {
+    Map<String, dynamic> body = findRequest.toJson();
+    body.removeWhere((key, value) => value == null);
+    var response = jsonDecode((await this.client.post(this.getUri('_explain'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(body)))
+        .body);
+    print(response);
+    return ExplainResponse.fromJson(response);
   }
 
   @override

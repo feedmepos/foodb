@@ -3,11 +3,13 @@ import 'package:foodb/adapter/methods/bulk_docs.dart';
 import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/adapter/methods/delete.dart';
 import 'package:foodb/adapter/methods/ensure_full_commit.dart';
+import 'package:foodb/adapter/methods/explain.dart';
 import 'package:foodb/adapter/methods/find.dart';
 import 'package:foodb/adapter/methods/index.dart';
 import 'package:foodb/adapter/methods/info.dart';
 import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/adapter/methods/revs_diff.dart';
+import 'package:foodb/common/design_doc.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/replication.dart';
 import 'package:synchronized/synchronized.dart';
@@ -42,6 +44,8 @@ abstract class AbstractAdapter {
       bool revs = false,
       bool revsInfo = false,
       required T Function(Map<String, dynamic> json) fromJsonT});
+
+  Future<Doc<DesignDoc>?> fetchDesignDoc({required String id});
 
   Future<List<Doc<T>>> fetchChanges<T>(
       {required String id,
@@ -87,7 +91,10 @@ abstract class AbstractAdapter {
       String type = 'json',
       Map<String, Object>? partialFilterSelector});
 
-  Future<FindResponse> find(FindRequest findRequest);
+  Future<FindResponse<T>> find<T>(
+      FindRequest findRequest, T Function(Map<String, dynamic>) toJsonT);
+
+  Future<ExplainResponse> explain(FindRequest findRequest);
 
   Future<bool> init();
   Future<bool> destroy();

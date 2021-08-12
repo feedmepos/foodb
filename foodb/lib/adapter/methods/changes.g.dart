@@ -34,13 +34,44 @@ Map<String, dynamic> _$ChangeResponseToJson(ChangeResponse instance) =>
       'results': instance.results,
     };
 
-ChangeRequestBody _$ChangeRequestBodyFromJson(Map<String, dynamic> json) {
-  return ChangeRequestBody(
-    docIds: (json['doc_ids'] as List<dynamic>).map((e) => e as String).toList(),
+ChangeRequest _$ChangeRequestFromJson(Map<String, dynamic> json) {
+  return ChangeRequest(
+    docIds:
+        (json['doc_ids'] as List<dynamic>?)?.map((e) => e as String).toList(),
+    conflicts: json['conflicts'] as bool,
+    descending: json['descending'] as bool,
+    feed: json['feed'] as String,
+    filter: json['filter'] as String?,
+    heartbeat: json['heartbeat'] as int,
+    includeDocs: json['includeDocs'] as bool,
+    attachments: json['attachments'] as bool,
+    attEncodingInfo: json['attEncodingInfo'] as bool,
+    lastEventId: json['lastEventId'] as int?,
+    limit: json['limit'] as int?,
+    since: json['since'] as String,
+    style: json['style'] as String,
+    timeout: json['timeout'] as int,
+    view: json['view'] as String?,
+    seqInterval: json['seqInterval'] as int?,
   );
 }
 
-Map<String, dynamic> _$ChangeRequestBodyToJson(ChangeRequestBody instance) =>
+Map<String, dynamic> _$ChangeRequestToJson(ChangeRequest instance) =>
     <String, dynamic>{
       'doc_ids': instance.docIds,
+      'conflicts': instance.conflicts,
+      'descending': instance.descending,
+      'feed': instance.feed,
+      'filter': instance.filter,
+      'heartbeat': instance.heartbeat,
+      'includeDocs': instance.includeDocs,
+      'attachments': instance.attachments,
+      'attEncodingInfo': instance.attEncodingInfo,
+      'lastEventId': instance.lastEventId,
+      'limit': instance.limit,
+      'since': instance.since,
+      'style': instance.style,
+      'timeout': instance.timeout,
+      'view': instance.view,
+      'seqInterval': instance.seqInterval,
     };

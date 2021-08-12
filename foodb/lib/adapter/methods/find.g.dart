@@ -8,7 +8,7 @@ part of 'find.dart';
 
 FindRequest _$FindRequestFromJson(Map<String, dynamic> json) {
   return FindRequest(
-    selector: json['selector'] as Object,
+    selector: json['selector'] as Map<String, dynamic>,
     limit: json['limit'] as int,
     skip: json['skip'] as int?,
     sort: (json['sort'] as List<dynamic>?)?.map((e) => e as Object).toList(),
@@ -42,12 +42,16 @@ Map<String, dynamic> _$FindRequestToJson(FindRequest instance) =>
       'execution_stats': instance.executionStats,
     };
 
-FindResponse _$FindResponseFromJson(Map<String, dynamic> json) {
-  return FindResponse(
+FindResponse<T> _$FindResponseFromJson<T>(
+  Map<String, dynamic> json,
+  T Function(Object? json) fromJsonT,
+) {
+  return FindResponse<T>(
     docs: (json['docs'] as List<dynamic>)
         .map((e) => e == null
             ? null
-            : Doc.fromJson(e as Map<String, dynamic>, (value) => value))
+            : Doc.fromJson(
+                e as Map<String, dynamic>, (value) => fromJsonT(value)))
         .toList(),
     executionStats: json['execution_stats'] == null
         ? null
@@ -58,11 +62,14 @@ FindResponse _$FindResponseFromJson(Map<String, dynamic> json) {
   );
 }
 
-Map<String, dynamic> _$FindResponseToJson(FindResponse instance) =>
+Map<String, dynamic> _$FindResponseToJson<T>(
+  FindResponse<T> instance,
+  Object? Function(T value) toJsonT,
+) =>
     <String, dynamic>{
       'docs': instance.docs
           .map((e) => e?.toJson(
-                (value) => value,
+                (value) => toJsonT(value),
               ))
           .toList(),
       'execution_stats': instance.executionStats,

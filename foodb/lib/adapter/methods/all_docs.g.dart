@@ -80,7 +80,7 @@ GetAllDocsRequest _$GetAllDocsRequestFromJson(Map<String, dynamic> json) {
   return GetAllDocsRequest(
     conflicts: json['conflicts'] as bool,
     descending: json['descending'] as bool,
-    endKey: json['endkey'],
+    endKey: json['endkey'] as String?,
     endKeyDocId: json['endkey_docid'] as String?,
     group: json['group'] as bool,
     groupLevel: json['group_level'] as int?,
@@ -96,7 +96,7 @@ GetAllDocsRequest _$GetAllDocsRequestFromJson(Map<String, dynamic> json) {
     sorted: json['sorted'] as bool,
     stable: json['stable'] as bool,
     stale: json['stale'] as String?,
-    startKey: json['startkey'],
+    startKey: json['startkey'] as String?,
     startKeyDocId: json['startkey_docid'] as String?,
     update: json['update'] as String?,
     updateSeq: json['update_seq'] as bool,

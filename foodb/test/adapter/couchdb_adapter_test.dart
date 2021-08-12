@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/couchdb_adapter.dart';
@@ -11,6 +12,7 @@ import 'package:foodb/adapter/methods/find.dart';
 import 'package:foodb/adapter/methods/index.dart';
 import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/adapter/methods/ensure_full_commit.dart';
+import 'package:foodb/common/design_doc.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:uuid/uuid.dart';
@@ -28,12 +30,23 @@ void main() async {
         dbName: dbName ?? envDbName, baseUri: Uri.parse(baseUri));
   }
 
-  // test('allDocs()', () async {
-  //   final CouchdbAdapter couchDb = getCouchDbAdapter();
-  //   var result = await couchDb.allDocs(GetAllDocsRequest(includeDocs: true));
-  //   print(result.totalRows);
-  //   expect(result.totalRows, isNotNull);
-  // });
+  test('bulkdocs()', () async {
+    final CouchdbAdapter couchDb = getCouchDbAdapter();
+    var bulkdocResponse = await couchDb.bulkDocs(body: [
+      new Doc<Map<String, dynamic>>(
+          id: "test 1", model: {"name": "beefy", "no": 999}),
+      new Doc<Map<String, dynamic>>(
+          id: "test 2", model: {"name": "soda", "no": 999}),
+    ], newEdits: true);
+    expect(bulkdocResponse.error, isNull);
+  });
+
+  test('allDocs()', () async {
+    final CouchdbAdapter couchDb = getCouchDbAdapter();
+    var result = await couchDb.allDocs<Map<String, dynamic>>(
+        GetAllDocsRequest(includeDocs: true), (value) => value);
+    expect(result.totalRows, isNotNull);
+  });
 
   test('info()', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();
@@ -65,6 +78,15 @@ void main() async {
     expect(doc2 != null, isFalse);
   });
 
+  test('fetchDesignDoc()', () async {
+    final CouchdbAdapter couchdb = getCouchDbAdapter();
+    Doc<DesignDoc>? designDoc =
+        await couchdb.fetchDesignDoc(id: "_design/type_user_name");
+    print(designDoc?.toJson((value) => value.toJson()));
+    print(designDoc?.model.views.values.first.toJson());
+    expect(designDoc, isNotNull);
+  });
+
   test('delete()', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();
     Doc? doc = await couchDb.get(
@@ -74,39 +96,39 @@ void main() async {
     expect(deleteResponse.ok, true);
   });
 
-  // test('bulkdocs()', () async {
-  //   final CouchdbAdapter couchDb = getCouchDbAdapter();
-  //   List<Doc> newDocs = [];
-  //   newDocs.add(Doc(
-  //       id: 'test2',
-  //       rev: '1-zu21xehvdaine5smjxy9htiegd4rptkm5',
-  //       json: {
-  //         'name': 'test test',
-  //         'no': 1111,
-  //       },
-  //       revisions: Revisions(start: 1, ids: [
-  //         'zu21xehvdaine5smjxy9htiegd4rptkm5',
-  //         'zu21xehvdaine5smjxy9htiegd4rptkm5'
-  //       ])));
-  //   newDocs.add(Doc(
-  //       id: 'test7',
-  //       rev: '0-sasddsdsdfdfdsfdffdd',
-  //       json: {
-  //         'name': 'test test asdfgh',
-  //         'no': 2212,
-  //       },
-  //       revisions: Revisions(start: 0, ids: ['sasddsdsdfdfdsfdffdd'])));
-  //   newDocs.add(Doc(
-  //       id: 'test5',
-  //       rev: '0-sasddsdsdfdfdsfdffdd',
-  //       json: {
-  //         'name': 'test test 5',
-  //         'no': 222,
-  //       },
-  //       revisions: Revisions(start: 0, ids: ['sasddsdsdfdfdsfdffdd'])));
-  //   BulkDocResponse bulkDocResponse = await couchDb.bulkDocs(body: newDocs);
-  //   expect(bulkDocResponse.error, isNull);
-  // });
+  test('bulkdocs()', () async {
+    final CouchdbAdapter couchDb = getCouchDbAdapter();
+    List<Doc<Map<String, dynamic>>> newDocs = [];
+    newDocs.add(Doc(
+        id: 'test2',
+        rev: '1-zu21xehvdaine5smjxy9htiegd4rptkm5',
+        model: {
+          'name': 'test test',
+          'no': 1111,
+        },
+        revisions: Revisions(start: 1, ids: [
+          'zu21xehvdaine5smjxy9htiegd4rptkm5',
+          'zu21xehvdaine5smjxy9htiegd4rptkm5'
+        ])));
+    newDocs.add(Doc(
+        id: 'test7',
+        rev: '0-sasddsdsdfdfdsfdffdd',
+        model: {
+          'name': 'test test asdfgh',
+          'no': 2212,
+        },
+        revisions: Revisions(start: 0, ids: ['sasddsdsdfdfdsfdffdd'])));
+    newDocs.add(Doc(
+        id: 'test5',
+        rev: '0-sasddsdsdfdfdsfdffdd',
+        model: {
+          'name': 'test test 5',
+          'no': 222,
+        },
+        revisions: Revisions(start: 0, ids: ['sasddsdsdfdfdsfdffdd'])));
+    BulkDocResponse bulkDocResponse = await couchDb.bulkDocs(body: newDocs);
+    expect(bulkDocResponse.error, isNull);
+  });
 
   test('createIndex()', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();
@@ -118,9 +140,12 @@ void main() async {
 
   test('find()', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();
-    FindResponse findResponse = await couchDb.find(FindRequest(selector: {
-      '_id': {'\$regex': '^test'}
-    }));
+    FindResponse<Map<String, dynamic>> findResponse =
+        await couchDb.find<Map<String, dynamic>>(
+            FindRequest(selector: {
+              '_id': {'\$regex': '^user'}
+            }),
+            (json) => json);
     print(findResponse.docs);
     expect(findResponse.docs.length > 0, isTrue);
   });

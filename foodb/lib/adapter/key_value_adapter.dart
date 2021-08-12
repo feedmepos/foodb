@@ -1,4 +1,5 @@
 import 'package:foodb/adapter/adapter.dart';
+import 'package:foodb/common/design_doc.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/adapter/methods/revs_diff.dart';
 import 'package:foodb/adapter/methods/put.dart';
@@ -84,6 +85,12 @@ abstract class KeyValueAdapter extends AbstractAdapter {
   }
 
   @override
+  Future<Doc<DesignDoc>?> fetchDesignDoc({required String id}) {
+    // TODO: implement ensureFullCommit
+    throw UnimplementedError();
+  }
+
+  @override
   Future<List<Doc<T>>> fetchChanges<T>(
       {required String id,
       bool attachments = false,
@@ -104,7 +111,7 @@ abstract class KeyValueAdapter extends AbstractAdapter {
   }
 
   @override
-  Future<FindResponse> find(FindRequest findRequest) {
+  Future<FindResponse<T>> find<T>(FindRequest findRequest) {
     // TODO: implement find
     throw UnimplementedError();
   }

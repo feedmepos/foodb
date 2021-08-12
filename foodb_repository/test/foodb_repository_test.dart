@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodb/adapter/couchdb_adapter.dart';
 import 'package:foodb/adapter/methods/bulk_docs.dart';
 import 'package:foodb/adapter/methods/delete.dart';
+import 'package:foodb/adapter/methods/explain.dart';
+import 'package:foodb/adapter/methods/find.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/foodb.dart';
 import 'package:foodb_repository/foodb_repository.dart';
@@ -38,6 +40,12 @@ class SaleModel {
 
 class UserRepo extends FoodbRepository<UserModel> {
   UserRepo(Foodb db) : super(db: db);
+
+  @override
+  List<String> uniqueKey = ['name'];
+
+  @override
+  List<String> indexKey = ['no'];
 
   @override
   UserModel Function(Map<String, dynamic> json) fromJsonT = UserModelFromJson;
@@ -77,10 +85,101 @@ void main() async {
     await db.adapter.init();
   });
 
+  getUserRepo() {
+    return UserRepo(Foodb(
+        adapter: CouchdbAdapter(baseUri: Uri.parse(baseUri), dbName: dbName)));
+  }
+
+  test("find()", () async {
+    var repo = getUserRepo();
+    await repo.create(UserModel(name: "user 1", no: 900));
+    await repo.create(UserModel(name: "user 2", no: 1001));
+    List<Doc<UserModel>?> list = await repo.find(FindRequest(selector: {
+      "no": {"\$gt": 1000}
+    }));
+    expect(list.length, 1);
+  });
+
+  test("verify unique", () async {
+    var repo = getUserRepo();
+    Doc<UserModel>? doc = await repo.create(UserModel(name: "User 1", no: 999));
+    Doc<UserModel>? otherDoc =
+        await repo.create(UserModel(name: "user 2", no: 1001));
+
+    doc?.model.no = 1111;
+    Doc<UserModel>? doc2 = await repo.update(doc!);
+    expect(doc2, isNotNull);
+  });
+
   test('new repo instance', () {
     var repo = UserRepo(Foodb(
         adapter: CouchdbAdapter(baseUri: Uri.parse(baseUri), dbName: dbName)));
     expect(repo, isNotNull);
+  });
+
+  test('create index', () async {
+    var repo = getUserRepo();
+    await repo.performIndex();
+    var nameDDoc = await repo.db.adapter
+        .get(id: '_design/type_user_name', fromJsonT: (e) => e);
+    expect(nameDDoc, isNotNull);
+    var noDDoc = await repo.db.adapter
+        .get(id: '_design/type_user_no', fromJsonT: (e) => e);
+    expect(noDDoc, isNotNull);
+
+    ExplainResponse explainResponse =
+        await repo.db.adapter.explain(FindRequest(selector: {
+      "type_user": true,
+      "no": {"\$gt": 1}
+    }));
+    print(explainResponse.index.ddoc);
+    expect(explainResponse, isNotNull);
+  });
+
+  test('check every repo has own default attribute', () async {
+    // Create
+    var repo = getUserRepo();
+    Doc<UserModel>? doc = await repo.create(UserModel(name: "user 4", no: 999));
+    print(doc?.toJson((value) => repo.toJsonT(value)));
+    expect(doc, isNotNull);
+
+    // Update
+    doc?.model.name = "user 5";
+    Doc<UserModel>? doc2 = await repo.update(doc!);
+    expect(doc2, isNotNull);
+
+    // BulkDoc
+    doc2?.model.name = "user 6";
+    doc2?.model.no = 888;
+    BulkDocResponse bulkDocResponse = await repo.bulkDocs([doc2!]);
+
+    Doc<UserModel>? updatedDoc = await repo.read(doc2.id);
+    print(updatedDoc?.toJson((value) => repo.toJsonT(value)));
+    expect(bulkDocResponse.error, isNull);
+  });
+
+  test('read between', () async {
+    // create multiple doc with custom id (custom date)
+    var repo = getUserRepo();
+
+    await repo.db.adapter.put(
+        doc: Doc(
+            id: "user_${DateTime.parse("2012-02-27 13:27:00").toIso8601String()}",
+            model: {"name": "User", "no": 1000}));
+    await repo.db.adapter.put(
+        doc: Doc(
+            id: "user_${DateTime.parse("2015-02-27 13:27:00").toIso8601String()}",
+            model: {"name": "User 2", "no": 2000}));
+    await repo.db.adapter.put(
+        doc: Doc(
+            id: "user_${DateTime.now().toIso8601String()}",
+            model: {"name": "User 3", "no": 3000}));
+    // read between cover partial date
+    List<Doc<UserModel>> list = await repo.readBetween(
+        DateTime.parse("2015-02-27 11:27:00"), DateTime.now());
+
+    // check length
+    expect(list.length, 2);
   });
 
   test('CRUD', () async {
@@ -154,6 +253,15 @@ void main() async {
 
     expect(newDocs1.length == 1, isTrue);
     expect(newDocs2.length == 1, isTrue);
+    newDocs1[0].model.name = "no no no";
+    BulkDocResponse bulkDocResponse = await repo1.bulkDocs(newDocs1);
+    Doc<SaleModel> docLast = newDocs2[0].copyWith(deleted: true);
+    Doc<SaleModel> docNew =
+        Doc(id: "sales_null", model: SaleModel(name: "new model", no: 11111));
+    BulkDocResponse bulkDocResponse2 = await repo2.bulkDocs([docLast, docNew]);
+
+    expect(bulkDocResponse2.error, isNull);
+    expect(bulkDocResponse.error, isNull);
   });
 
   test('read doc ', () async {
@@ -164,16 +272,13 @@ void main() async {
         await userRepo.read('sales_2021-08-10T13:50:09.658409');
     print(doc?.toJson((value) => userRepo.toJsonT(value)));
     expect(doc?.model.name, isNotNull);
-    // doc!.model.name = "wth";
-    // Doc? updatedDoc = await userRepo.update(doc);
-    // expect(updatedDoc?.model.name, equals('wth'));
   });
 
   test('bulkdocs', () async {
     UserRepo userRepo = UserRepo(Foodb(
         adapter: CouchdbAdapter(baseUri: Uri.parse(baseUri), dbName: dbName)));
     Doc<UserModel>? doc = await userRepo.read(
-      'sales_2021-08-10T13:50:09.658409',
+      'sales_2021-08-12T12:17:50.252578',
     );
     Doc<UserModel> newDoc = new Doc(
         id: doc!.id,

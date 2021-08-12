@@ -6,7 +6,7 @@ part 'find.g.dart';
 
 @JsonSerializable()
 class FindRequest {
-  Object selector;
+  Map<dynamic, dynamic> selector;
   int limit;
   int? skip;
   List<Object>? sort;
@@ -45,9 +45,9 @@ class FindRequest {
   Map<String, dynamic> toJson() => _$FindRequestToJson(this);
 }
 
-@JsonSerializable()
-class FindResponse {
-  List<Doc?> docs;
+@JsonSerializable(genericArgumentFactories: true)
+class FindResponse<T> {
+  List<Doc<T>?> docs;
 
   @JsonKey(name: 'execution_stats')
   ExecutionStats? executionStats;
@@ -58,9 +58,11 @@ class FindResponse {
   FindResponse(
       {required this.docs, this.executionStats, this.warning, this.bookmark});
 
-  factory FindResponse.fromJson(Map<String, dynamic> json) =>
-      _$FindResponseFromJson(json);
-  Map<String, dynamic> toJson() => _$FindResponseToJson(this);
+  factory FindResponse.fromJson(
+          Map<String, dynamic> json, T Function(Object? json) fromJsonT) =>
+      _$FindResponseFromJson(json, fromJsonT);
+  Map<String, dynamic> toJson(Object? Function(T value) toJsonT) =>
+      _$FindResponseToJson(this, toJsonT);
 }
 
 @JsonSerializable()

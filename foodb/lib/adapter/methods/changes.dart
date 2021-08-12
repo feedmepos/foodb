@@ -160,8 +160,11 @@ class ChangeResponse {
   Map<String, dynamic> toJson() => _$ChangeResponseToJson(this);
 }
 
+@JsonSerializable()
 class ChangeRequest {
-  ChangeRequestBody? body;
+  @JsonKey(name: 'doc_ids')
+  List<String>? docIds;
+
   bool conflicts;
   bool descending;
   String feed;
@@ -179,7 +182,7 @@ class ChangeRequest {
   int? seqInterval;
 
   ChangeRequest({
-    this.body,
+    this.docIds,
     this.conflicts = false,
     this.descending = false,
     this.feed = 'normal',
@@ -196,16 +199,8 @@ class ChangeRequest {
     this.view,
     this.seqInterval,
   });
-}
 
-@JsonSerializable()
-class ChangeRequestBody {
-  @JsonKey(name: 'doc_ids')
-  List<String> docIds;
-
-  ChangeRequestBody({required this.docIds});
-
-  factory ChangeRequestBody.fromJson(Map<String, dynamic> json) =>
-      _$ChangeRequestBodyFromJson(json);
-  Map<String, dynamic> toJson() => _$ChangeRequestBodyToJson(this);
+  factory ChangeRequest.fromJson(Map<String, dynamic> json) =>
+      _$ChangeRequestFromJson(json);
+  Map<String, dynamic> toJson() => _$ChangeRequestToJson(this);
 }
