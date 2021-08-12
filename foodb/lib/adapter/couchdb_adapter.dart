@@ -14,6 +14,7 @@ import 'package:foodb/adapter/methods/index.dart';
 import 'package:foodb/adapter/methods/info.dart';
 import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/adapter/methods/revs_diff.dart';
+import 'package:foodb/common/design_doc.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:http/http.dart';
 import 'package:foodb/adapter/params_converter.dart';
@@ -76,18 +77,22 @@ class CouchdbAdapter extends AbstractAdapter {
   @override
   Future<ChangesStream> changesStream(ChangeRequest request) async {
     var client = getClient();
-    final path =
-        '_changes?${includeNonNullParam('doc_ids', request.body?.docIds)}&'
-        'conflicts=${request.conflicts}&descending=${request.descending}&'
-        'feed=${request.feed}&${includeNonNullParam('filter', request.filter)}&heartbeat='
-        '${request.heartbeat}&include_docs=${request.includeDocs}&attachments=${request.attachments}&'
-        'att_encoding_info=${request.attEncodingInfo}&${includeNonNullParam('last-event-id', request.lastEventId)}'
-        '&${includeNonNullParam('limit', request.limit)}&since=${request.since}&style=${request.style}&'
-        'timeout=${request.timeout}&${includeNonNullParam('view', request.view)}&'
-        '${includeNonNullParam('seq_interval', request.seqInterval)}';
-    var res = await client.send(Request('get', this.getUri(path)));
+    // final path =
+    //     '_changes?${includeNonNullParam('doc_ids', request.body?.docIds)}&'
+    //     'conflicts=${request.conflicts}&descending=${request.descending}&'
+    //     'feed=${request.feed}&${includeNonNullParam('filter', request.filter)}&heartbeat='
+    //     '${request.heartbeat}&include_docs=${request.includeDocs}&attachments=${request.attachments}&'
+    //     'att_encoding_info=${request.attEncodingInfo}&${includeNonNullParam('last-event-id', request.lastEventId)}'
+    //     '&${includeNonNullParam('limit', request.limit)}&since=${request.since}&style=${request.style}&'
+    //     'timeout=${request.timeout}&${includeNonNullParam('view', request.view)}&'
+    //     '${includeNonNullParam('seq_interval', request.seqInterval)}';
 
-    print(this.getUri(path));
+    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_changes')));
+    uriBuilder.queryParameters = convertToParams(request.toJson());
+
+    var res = await client.send(Request('get', uriBuilder.build()));
+
+    //print(this.getUri(path));
 
     var streamedRes = res.stream.asBroadcastStream().transform(utf8.decoder);
     var streamedResponse =
@@ -139,6 +144,20 @@ class CouchdbAdapter extends AbstractAdapter {
     return result.containsKey('_id')
         ? Doc<T>.fromJson(
             result, (json) => fromJsonT(json as Map<String, dynamic>))
+        : null;
+  }
+
+  @override
+  Future<Doc<DesignDoc>?> fetchDesignDoc({
+    required String id,
+  }) async {
+    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri(id)));
+    var response = (await this.client.get(uriBuilder.build())).body;
+    Map<String, dynamic> result = jsonDecode(response);
+    print(result);
+    return result.containsKey('_id')
+        ? Doc<DesignDoc>.fromJson(
+            result, (json) => DesignDoc.fromJson(json as Map<String, dynamic>))
         : null;
   }
 
@@ -203,10 +222,7 @@ class CouchdbAdapter extends AbstractAdapter {
     print(jsonEncode(body));
     Response response = await this.client.post(this.getUri("_revs_diff"),
         headers: {'Content-Type': 'application/json'}, body: jsonEncode(body));
-    print(response.body);
     return (jsonDecode(response.body).map<String, RevsDiff>((k, v) {
-      print("$k, ${k.runtimeType}");
-      print("$v, ${v.runtimeType}");
       return MapEntry<String, RevsDiff>(k, RevsDiff.fromJson(v));
     }));
   }
@@ -216,8 +232,6 @@ class CouchdbAdapter extends AbstractAdapter {
       T Function(Map<String, dynamic> json) fromJsonT) async {
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_all_docs')));
     uriBuilder.queryParameters = convertToParams(getAllDocsRequest.toJson());
-    print(uriBuilder.build());
-    print(jsonDecode((await this.client.get(uriBuilder.build())).body));
     return GetAllDocs<T>.fromJson(
         jsonDecode((await this.client.get(uriBuilder.build())).body),
         (a) => fromJsonT(a as Map<String, dynamic>));

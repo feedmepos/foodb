@@ -9,6 +9,7 @@ import 'package:foodb/adapter/methods/index.dart';
 import 'package:foodb/adapter/methods/info.dart';
 import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/adapter/methods/revs_diff.dart';
+import 'package:foodb/common/design_doc.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/replication.dart';
 import 'package:synchronized/synchronized.dart';
@@ -43,6 +44,8 @@ abstract class AbstractAdapter {
       bool revs = false,
       bool revsInfo = false,
       required T Function(Map<String, dynamic> json) fromJsonT});
+
+  Future<Doc<DesignDoc>?> fetchDesignDoc({required String id});
 
   Future<List<Doc<T>>> fetchChanges<T>(
       {required String id,

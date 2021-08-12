@@ -12,6 +12,7 @@ import 'package:foodb/adapter/methods/find.dart';
 import 'package:foodb/adapter/methods/index.dart';
 import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/adapter/methods/ensure_full_commit.dart';
+import 'package:foodb/common/design_doc.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:uuid/uuid.dart';
@@ -75,6 +76,15 @@ void main() async {
     Doc? doc2 =
         await couchDb.get(id: 'test3', revs: true, fromJsonT: (v) => {});
     expect(doc2 != null, isFalse);
+  });
+
+  test('fetchDesignDoc()', () async {
+    final CouchdbAdapter couchdb = getCouchDbAdapter();
+    Doc<DesignDoc>? designDoc =
+        await couchdb.fetchDesignDoc(id: "_design/type_user_name");
+    print(designDoc?.toJson((value) => value.toJson()));
+    print(designDoc?.model.views.values.first.toJson());
+    expect(designDoc, isNotNull);
   });
 
   test('delete()', () async {
