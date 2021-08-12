@@ -71,10 +71,18 @@ class MemoryAdapter extends AbstractAdapter {
     }
   }
 
-  bool _delete(Store store, {required String id}) {
+  bool _delete(Store store, {required String id, String? rev}) {
     var result = _find(store, id: id);
     if (result != null) {
-      _stores[store]?.remove(id);
+      if (store == docDbName) {
+        if (rev == null)
+          throw AdapterException(
+              error: 'rev is required for deleting document');
+        var list = result as List<dynamic>;
+        list.removeWhere((element) => element['_rev'] == rev);
+      } else {
+        _stores[store]?.remove(id);
+      }
       return true;
     } else {
       return false;
@@ -166,7 +174,7 @@ class MemoryAdapter extends AbstractAdapter {
   Future<DeleteResponse> delete(
       {required String id, required String rev}) async {
     return DeleteResponse.fromJson(
-        DeleteResponse(ok: _delete(docDbName, id: id), id: id, rev: rev)
+        DeleteResponse(ok: _delete(docDbName, id: id, rev: rev), id: id, rev: rev)
             .toJson());
   }
 
@@ -219,16 +227,15 @@ class MemoryAdapter extends AbstractAdapter {
       bool revsInfo = false,
       required T Function(Map<String, dynamic> json) fromJsonT}) async {
     var result = _find(docDbName, id: id) as List<dynamic>?;
-    if (result == null) return null;
     var resultJson =
-        List.from(result.map((e) => Doc<T>.fromJson(e, (json) => json as T)));
+        result?.map((e) => Doc<T>.fromJson(e, (json) => json as T)).toList();
     var highestRev = -1;
     var highestRevIndex = 0;
-    resultJson.asMap().forEach((key, value) {
+    resultJson?.asMap().forEach((key, value) {
       var rev = RevisionTool(value.rev!).index;
       if (rev > highestRev) highestRevIndex = key;
     });
-    return resultJson[highestRevIndex];
+    return resultJson?[highestRevIndex] ?? null;
   }
 
   @override

@@ -26,8 +26,14 @@ void main() async {
   test('delete', () async {
     final MemoryAdapter memoryDb = getMemoryAdapter();
     await memoryDb.put(doc: new Doc(id: 'foo', model: {'bar': 'foo'}));
-    await memoryDb.delete(id: 'foo', rev: '');
-    expect(memoryDb.docCount, 0);
+    await memoryDb.put(
+        doc: new Doc(id: 'foo', model: {'a': 'b'}),
+        newEdits: false,
+        newRev: '3-abc');
+    await memoryDb.delete(id: 'foo', rev: '3-abc');
+    var result = await memoryDb.get<Map<String, dynamic>>(
+        id: 'foo', fromJsonT: (v) => v);
+    expect(result?.rev != '3-abc' && memoryDb.docCount == 1, true);
   });
 
   test('bulk docs()', () async {
