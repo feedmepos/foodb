@@ -125,13 +125,13 @@ class Replicator {
         }
       } catch (err) {
         this.running = false;
-        // this.cancel(since);
-        // this.onError(Exception(err), () {
-        //   live
-        //       ? listenToContinuousChanges(since: since)
-        //       : listenToNormalChanges(since: since, upperbound: upperbound!);
-        // });
-        throw err;
+        this.cancel(since);
+        this.onError(Exception(err), () {
+          live
+              ? listenToContinuousChanges(since: since)
+              : listenToNormalChanges(since: since, upperbound: upperbound!);
+        });
+        //throw err;
       } finally {
         this.running = false;
       }
@@ -385,7 +385,7 @@ class Replicator {
   Future<PutResponse> recordReplicationCheckpoint() async {
     replicationLog = new Doc(
         id: "_local/$replicationID",
-        // rev: "1-0",
+        //rev: "1-0",
         model: ReplicationLog(
             history: [
               History(

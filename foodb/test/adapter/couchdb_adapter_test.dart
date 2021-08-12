@@ -29,6 +29,17 @@ void main() async {
         dbName: dbName ?? envDbName, baseUri: Uri.parse(baseUri));
   }
 
+  test('bulkdocs()', () async {
+    final CouchdbAdapter couchDb = getCouchDbAdapter();
+    var bulkdocResponse = await couchDb.bulkDocs(body: [
+      new Doc<Map<String, dynamic>>(
+          id: "test 1", model: {"name": "beefy", "no": 999}),
+      new Doc<Map<String, dynamic>>(
+          id: "test 2", model: {"name": "soda", "no": 999}),
+    ], newEdits: true);
+    expect(bulkdocResponse.error, isNull);
+  });
+
   test('allDocs()', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();
     var result = await couchDb.allDocs<Map<String, dynamic>>(
