@@ -87,6 +87,12 @@ void main() async {
     expect(designDoc, isNotNull);
   });
 
+  test('fetchAllDesignDocs()', () async {
+    final CouchdbAdapter couchdb = getCouchDbAdapter();
+    List<Doc<DesignDoc>?> designDoc = await couchdb.fetchAllDesignDocs();
+    expect(designDoc.length, equals(2));
+  });
+
   test('delete()', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();
     Doc? doc = await couchDb.get(
