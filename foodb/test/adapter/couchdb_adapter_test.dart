@@ -74,39 +74,39 @@ void main() async {
     expect(deleteResponse.ok, true);
   });
 
-  // test('bulkdocs()', () async {
-  //   final CouchdbAdapter couchDb = getCouchDbAdapter();
-  //   List<Doc> newDocs = [];
-  //   newDocs.add(Doc(
-  //       id: 'test2',
-  //       rev: '1-zu21xehvdaine5smjxy9htiegd4rptkm5',
-  //       json: {
-  //         'name': 'test test',
-  //         'no': 1111,
-  //       },
-  //       revisions: Revisions(start: 1, ids: [
-  //         'zu21xehvdaine5smjxy9htiegd4rptkm5',
-  //         'zu21xehvdaine5smjxy9htiegd4rptkm5'
-  //       ])));
-  //   newDocs.add(Doc(
-  //       id: 'test7',
-  //       rev: '0-sasddsdsdfdfdsfdffdd',
-  //       json: {
-  //         'name': 'test test asdfgh',
-  //         'no': 2212,
-  //       },
-  //       revisions: Revisions(start: 0, ids: ['sasddsdsdfdfdsfdffdd'])));
-  //   newDocs.add(Doc(
-  //       id: 'test5',
-  //       rev: '0-sasddsdsdfdfdsfdffdd',
-  //       json: {
-  //         'name': 'test test 5',
-  //         'no': 222,
-  //       },
-  //       revisions: Revisions(start: 0, ids: ['sasddsdsdfdfdsfdffdd'])));
-  //   BulkDocResponse bulkDocResponse = await couchDb.bulkDocs(body: newDocs);
-  //   expect(bulkDocResponse.error, isNull);
-  // });
+  test('bulkdocs()', () async {
+    final CouchdbAdapter couchDb = getCouchDbAdapter();
+    List<Doc<Map<String, dynamic>>> newDocs = [];
+    newDocs.add(Doc(
+        id: 'test2',
+        rev: '1-zu21xehvdaine5smjxy9htiegd4rptkm5',
+        model: {
+          'name': 'test test',
+          'no': 1111,
+        },
+        revisions: Revisions(start: 1, ids: [
+          'zu21xehvdaine5smjxy9htiegd4rptkm5',
+          'zu21xehvdaine5smjxy9htiegd4rptkm5'
+        ])));
+    newDocs.add(Doc(
+        id: 'test7',
+        rev: '0-sasddsdsdfdfdsfdffdd',
+        model: {
+          'name': 'test test asdfgh',
+          'no': 2212,
+        },
+        revisions: Revisions(start: 0, ids: ['sasddsdsdfdfdsfdffdd'])));
+    newDocs.add(Doc(
+        id: 'test5',
+        rev: '0-sasddsdsdfdfdsfdffdd',
+        model: {
+          'name': 'test test 5',
+          'no': 222,
+        },
+        revisions: Revisions(start: 0, ids: ['sasddsdsdfdfdsfdffdd'])));
+    BulkDocResponse bulkDocResponse = await couchDb.bulkDocs(body: newDocs);
+    expect(bulkDocResponse.error, isNull);
+  });
 
   test('createIndex()', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();
@@ -116,14 +116,14 @@ void main() async {
     expect(indexResponse.result, isNotNull);
   });
 
-  test('find()', () async {
-    final CouchdbAdapter couchDb = getCouchDbAdapter();
-    FindResponse findResponse = await couchDb.find(FindRequest(selector: {
-      '_id': {'\$regex': '^test'}
-    }));
-    print(findResponse.docs);
-    expect(findResponse.docs.length > 0, isTrue);
-  });
+  // test('find()', () async {
+  //   final CouchdbAdapter couchDb = getCouchDbAdapter();
+  //   FindResponse findResponse = await couchDb.find(FindRequest(selector: {
+  //     '_id': {'\$regex': '^test'}
+  //   }));
+  //   print(findResponse.docs);
+  //   expect(findResponse.docs.length > 0, isTrue);
+  // });
 
   test('EnsureFullCommit In CouchDB adish', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();

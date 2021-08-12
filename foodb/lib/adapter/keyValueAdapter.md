@@ -8,6 +8,10 @@ doc history
 - key: id
 - value: List<doc + seq>
 
+view_meta
+- key: view name
+- value: view current seq
+
 view(all_doc) non delete winner doc
 - key: id
 - value: doc + seq
