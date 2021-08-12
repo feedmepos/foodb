@@ -4,7 +4,7 @@ seq
 - key: auto increment
 - value: id
 
-doc history
+doc
 - key: id
 - value: List<doc + seq>
 
@@ -12,12 +12,9 @@ view_meta
 - key: view name
 - value: view current seq
 
-view(all_doc) non delete winner doc
+for each view
 - key: id
-- value: doc + seq
-
-other_view()
-- TODO
+- value: {id,data}
 
 [] PUT /db/doc
 1. add new seq
