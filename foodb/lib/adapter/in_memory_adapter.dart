@@ -50,10 +50,24 @@ class MemoryAdapter extends AbstractAdapter {
     if (object == null)
       throw AdapterException(error: 'object is required for put method');
     var storeRecords = _stores[store];
+    // docs db is a List of docs
+    // a single doc id can have multiple revisions
     if (storeRecords == null) {
-      _stores.putIfAbsent(store, () => StoreObject.from({id: object}));
+      store == docDbName
+          ? _stores.putIfAbsent(
+              store,
+              () => StoreObject.from({
+                    id: [object]
+                  }))
+          : _stores.putIfAbsent(store, () => StoreObject.from({id: object}));
     } else {
-      storeRecords.update(id, (value) => object, ifAbsent: () => object);
+      store == docDbName
+          ? storeRecords.update(id, (value) {
+              var list = value as List<dynamic>;
+              list.add(object);
+              return list;
+            }, ifAbsent: () => object)
+          : storeRecords.update(id, (value) => value, ifAbsent: () => object);
     }
   }
 
@@ -89,9 +103,10 @@ class MemoryAdapter extends AbstractAdapter {
       /// to do changes list toJson fix
       changesDb?.update(
           id,
-          (value) => ChangeResult(id: id, seq: lastSeq, changes: [
-                ChangeResultRev(rev: rev)
-              ]).toJson(),
+          (value) => ChangeResult(
+              id: id,
+              seq: lastSeq,
+              changes: [ChangeResultRev(rev: rev)]).toJson(),
           ifAbsent: () => ChangeResult(
               id: id,
               seq: lastSeq,
@@ -187,6 +202,7 @@ class MemoryAdapter extends AbstractAdapter {
     throw UnimplementedError();
   }
 
+  /// [revs] Give the revisions history
   @override
   Future<Doc<T>?> get<T>(
       {required String id,
@@ -202,11 +218,17 @@ class MemoryAdapter extends AbstractAdapter {
       bool revs = false,
       bool revsInfo = false,
       required T Function(Map<String, dynamic> json) fromJsonT}) async {
-    var result = _find(docDbName, id: id);
-    return result != null
-        ? Doc<T>.fromJson(
-            result, (json) => fromJsonT(json as Map<String, dynamic>))
-        : null;
+    var result = _find(docDbName, id: id) as List<dynamic>?;
+    if (result == null) return null;
+    var resultJson =
+        List.from(result.map((e) => Doc<T>.fromJson(e, (json) => json as T)));
+    var highestRev = -1;
+    var highestRevIndex = 0;
+    resultJson.asMap().forEach((key, value) {
+      var rev = RevisionTool(value.rev!).index;
+      if (rev > highestRev) highestRevIndex = key;
+    });
+    return resultJson[highestRevIndex];
   }
 
   @override
@@ -234,7 +256,14 @@ class MemoryAdapter extends AbstractAdapter {
       newDoc['_rev'] = newEdits ? RevisionTool.generate() : newRev;
       _put(docDbName, id: doc.id, object: newDoc);
     } else {
-      var resultObject = Doc.fromJson(result, (json) => json);
+      var docList = result as List<dynamic>;
+      var highestRev = -1;
+      var highestRevIndex = 0;
+      docList.asMap().forEach((key, value) {
+        var rev = RevisionTool(value['_rev']).index;
+        if (rev > highestRev) highestRevIndex = key;
+      });
+      var resultObject = Doc.fromJson(docList[highestRevIndex], (json) => json);
       if (!newEdits) {
         var body = doc.model;
 
