@@ -18,9 +18,22 @@ void main() async {
   test('update', () async {
     final MemoryAdapter memoryDb = getMemoryAdapter();
     await memoryDb.put(doc: new Doc(id: 'foo', model: {'bar': 'foo'}));
-    await memoryDb.put(doc: new Doc(id: 'foo', model: {'a': 'b'}));
+    await memoryDb.put(doc: new Doc(id: 'foo', model: {'bar': 'foo'}));
+    await memoryDb.put(doc: new Doc(id: 'foo1', model: {'a': 'b'}));
+    await memoryDb.put(
+        doc: new Doc(id: 'foo2', model: {'bar': 'foo'}),
+        newEdits: false,
+        newRev: '2-dadadada');
+    memoryDb.docsDb?.forEach((key, value) {
+      print(key);
+      print(value);
+    });
+    memoryDb.changesDb?.forEach((key, value) {
+      print(key);
+      print(value);
+    });
     var doc = await memoryDb.get(id: 'foo', fromJsonT: (v) => v);
-    expect(doc?.model['model']['a'] != null && memoryDb.docCount == 1, true);
+    expect(doc?.model['a'] != null && memoryDb.docCount == 2, true);
   });
 
   test('delete', () async {

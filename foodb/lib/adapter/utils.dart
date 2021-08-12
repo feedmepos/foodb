@@ -9,14 +9,26 @@ class Utils {
   }
 }
 
-class SequenceTool {
-  SequenceTool(this._seq);
+abstract class Incrementer {
+  Incrementer(this.value);
 
-  String _seq;
+  String value;
 
-  int get seqCount => int.parse(_seq.split('-')[0]);
+  int get index => int.parse(value.split('-')[0]);
 
-  String get seqValue => _seq.split('-')[1];
+  String get content => value.split('-')[1];
 
-  String increment() => '${seqCount + 1}-$seqValue';
+  String increment() => '${index + 1}-$content';
+}
+
+class SequenceTool extends Incrementer {
+  SequenceTool(String value) : super(value);
+
+  static String generate() => '1-${Utils.randomString(100)}';
+}
+
+class RevisionTool extends Incrementer {
+  RevisionTool(String revision) : super(revision);
+
+  static String generate() => '1-${Utils.randomString(20)}';
 }
