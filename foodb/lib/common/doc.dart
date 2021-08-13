@@ -110,7 +110,8 @@ Map<String, dynamic> _$DocToJson<T>(
   Doc<T> instance,
   Object? Function(T value) toJsonT,
 ) {
-  Map<String, dynamic> map = <String, dynamic>{
+  Map<String, dynamic> map = toJsonT(instance.model) as Map<String, dynamic>;
+  map.addAll(<String, dynamic>{
     '_id': instance.id,
     '_rev': instance.rev,
     '_deleted': instance.deleted,
@@ -120,9 +121,7 @@ Map<String, dynamic> _$DocToJson<T>(
     '_deleted_conflicts': instance.deletedConflicts,
     '_revs_info': instance.revsInfo,
     '_local_seq': instance.localSeq,
-  };
-
-  map.addAll(toJsonT(instance.model) as Map<String, dynamic>);
+  });
   return map;
 }
 

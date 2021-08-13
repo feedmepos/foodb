@@ -50,3 +50,9 @@ for each view
     2. depends on stlye and conflict, return doc or compute leaf node from doc (see GET /db/doc)
   4. else
     1. ignore
+
+
+doc history
+1. leaf node
+2. remove delete
+3. winner algo
