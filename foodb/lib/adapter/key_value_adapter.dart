@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/exception.dart';
 import 'package:foodb/adapter/methods/all_docs.dart';
@@ -15,6 +17,7 @@ import 'package:foodb/adapter/utils.dart';
 import 'package:foodb/common/design_doc.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/doc_history.dart';
+import 'package:foodb/common/view_meta.dart';
 
 abstract class KeyValueDatabase {
   Future<bool> put(String tableName,
@@ -26,21 +29,29 @@ abstract class KeyValueDatabase {
   Future<int> tableSize(String tableName);
 }
 
+abstract class JSRuntime {
+  evaluate(String script);
+}
+
 class KeyValueAdapter extends AbstractAdapter {
   KeyValueDatabase db;
-  KeyValueAdapter({
-    required dbName,
-    required this.db,
-  }) : super(dbName: dbName);
+  JSRuntime? jsRuntime;
+  KeyValueAdapter({required dbName, required this.db, this.jsRuntime})
+      : super(dbName: dbName);
 
   String get docTableName => '${dbName}_docs';
   String get sequenceTableName => '${dbName}_sequences';
+  String get viewMetaTableName => '${dbName}_viewmeta';
   String viewTableName(String viewName) => '${dbName}_view_${viewName}';
 
   @override
   Future<GetAllDocs<T>> allDocs<T>(GetAllDocsRequest allDocsRequest,
       T Function(Map<String, dynamic> json) fromJsonT) async {
-    throw UnimplementedError();
+    var viewName = _getViewName(designDocId: '_all_docs', viewId: '_all_docs');
+    await _generateView(Doc<DesignDoc>(
+        id: '_all_docs',
+        model: DesignDoc(views: {'_all_docs': AllDocDesignDocView()})));
+    return _findByView(viewName);
   }
 
   @override
@@ -243,5 +254,64 @@ class KeyValueAdapter extends AbstractAdapter {
             id: id,
             seq: newSeqString,
             changes: [ChangeResultRev(rev: rev)]).toJson());
+  }
+
+  Future<void> _generateView(Doc<DesignDoc> designDoc) async {
+    for (var e in designDoc.model.views.entries) {
+      var view = e.value;
+      var viewName = _getViewName(designDocId: designDoc.id, viewId: e.key);
+      var json = await db.get(viewMetaTableName, id: viewName);
+      ViewMeta meta;
+      if (json == null) {
+        meta = ViewMeta(lastSeq: '0');
+      } else {
+        meta = ViewMeta.fromJson(json);
+      }
+      var stream = await changesStream(
+          ChangeRequest(since: meta.lastSeq, feed: 'normal'));
+      Completer<String> c = new Completer();
+      stream.onComplete((resp) async {
+        for (var result in resp.results) {
+          var history = DocHistory<Map<String, dynamic>>.fromJson(
+              (await db.get(docTableName, id: result.id))!,
+              (json) => json as Map<String, dynamic>);
+          var entries = _runMapper(view, history);
+          for (var entry in entries) {
+            await db.put(viewTableName(viewName),
+                id: entry.key, object: entry.value);
+          }
+        }
+        c.complete(resp.lastSeq);
+      });
+      var lastSeq = await c.future;
+      await db.put(viewMetaTableName,
+          id: viewName, object: ViewMeta(lastSeq: lastSeq).toJson());
+    }
+  }
+
+  List<MapEntry<String, dynamic>> _runMapper(
+      AbstracDesignDocView view, DocHistory<Map<String, dynamic>> history) {
+    if (view is JSDesignDocView) {
+      if (jsRuntime == null) {
+        throw AdapterException(error: 'no js runtime found');
+      }
+      jsRuntime?.evaluate(view.map);
+      // TODO use runtime to run mapper
+    } else if (view is QueryDesignDocView) {
+      // TODO create dart mapper using query field
+    } else if (view is AllDocDesignDocView) {
+      return [MapEntry(history.winner.id, history.winner.model)];
+    } else {
+      throw new UnimplementedError('Unknown Design Doc View');
+    }
+    return [];
+  }
+
+  _findByView(String viewName) {
+    return db.read(viewTableName(viewName));
+  }
+
+  _getViewName({required String designDocId, required String viewId}) {
+    return '${designDocId}_${viewId}';
   }
 }

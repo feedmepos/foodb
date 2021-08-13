@@ -1,63 +1,124 @@
 import 'package:json_annotation/json_annotation.dart';
 
-part 'design_doc.g.dart';
-
-@JsonSerializable()
 class DesignDoc {
-  String language;
-  Map<String, DesignDocView> views;
+  String? language;
+  Map<String, AbstracDesignDocView> views;
 
-  DesignDoc({required this.language, required this.views});
+  DesignDoc({this.language, required this.views});
 
-  factory DesignDoc.fromJson(Map<String, dynamic> json) =>
-      _$DesignDocFromJson(json);
-  Map<String, dynamic> toJson() => _$DesignDocToJson(this);
+  factory DesignDoc.fromJson(Map<String, dynamic> json) => DesignDoc(
+        language: json['language'] as String,
+        views: (json['views'] as Map<String, dynamic>).map(
+          (k, e) => MapEntry(
+              k,
+              json['language'] == 'query'
+                  ? AbstracDesignDocView.QueryDesignDocView(
+                      map: QueryViewMapper.fromJson(e['map']),
+                      reduce: e['reduce'],
+                      options: QueryViewOptions.fromJson(e['options']))
+                  : AbstracDesignDocView.JSDesignDocView(map: e['map'])),
+        ),
+      );
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'language': language,
+        'views': views.entries.map((e) => {"${e.key}": e.value.toJson()}),
+      };
 }
 
-@JsonSerializable()
-class DesignDocView {
-  ViewMapper map;
-  String reduce;
-  ViewOptions options;
+abstract class AbstracDesignDocView {
+  AbstracDesignDocView();
 
-  DesignDocView(
+  factory AbstracDesignDocView.JSDesignDocView(
+      {required String map, String reduce}) = JSDesignDocView;
+
+  factory AbstracDesignDocView.QueryDesignDocView(
+      {required QueryViewMapper map,
+      required String reduce,
+      required QueryViewOptions options}) = QueryDesignDocView;
+
+  factory AbstracDesignDocView.AllDocDesignDocView() = AllDocDesignDocView;
+
+  Map<String, dynamic> toJson();
+}
+
+class JSDesignDocView extends AbstracDesignDocView {
+  String map;
+  String? reduce;
+  JSDesignDocView({required this.map, this.reduce});
+
+  Map<String, dynamic> toJson() => {
+        "map": map,
+        "reduce": reduce,
+      };
+}
+
+class QueryDesignDocView extends AbstracDesignDocView {
+  QueryViewMapper map;
+  String reduce;
+  QueryViewOptions options;
+
+  QueryDesignDocView(
       {required this.map, required this.reduce, required this.options});
 
-  factory DesignDocView.fromJson(Map<String, dynamic> json) =>
-      _$DesignDocViewFromJson(json);
-  Map<String, dynamic> toJson() => _$DesignDocViewToJson(this);
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'map': map.toJson(),
+        'reduce': reduce,
+        'options': options.toJson(),
+      };
 }
 
-@JsonSerializable()
-class ViewMapper {
+class AllDocDesignDocView extends AbstracDesignDocView {
+  AllDocDesignDocView();
+
+  Map<String, dynamic> toJson() => {};
+}
+
+class QueryViewMapper {
   Map<String, String> fields;
 
   @JsonKey(name: "partial_filter_sector")
   Map<String, String>? partialFilterSelector;
 
-  ViewMapper({required this.fields, this.partialFilterSelector});
+  QueryViewMapper({required this.fields, this.partialFilterSelector});
 
-  factory ViewMapper.fromJson(Map<String, dynamic> json) =>
-      _$ViewMapperFromJson(json);
-  Map<String, dynamic> toJson() => _$ViewMapperToJson(this);
+  factory QueryViewMapper.fromJson(Map<String, dynamic> json) =>
+      QueryViewMapper(
+        fields: Map<String, String>.from(json['fields'] as Map),
+        partialFilterSelector:
+            (json['partial_filter_sector'] as Map<String, dynamic>?)?.map(
+          (k, e) => MapEntry(k, e as String),
+        ),
+      );
+  @override
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'fields': fields,
+        'partial_filter_sector': partialFilterSelector,
+      };
 }
 
-@JsonSerializable()
-class ViewOptions {
-  ViewOptionsDef def;
-  ViewOptions({required this.def});
+class QueryViewOptions {
+  QueryViewOptionsDef def;
+  QueryViewOptions({required this.def});
 
-  factory ViewOptions.fromJson(Map<String, dynamic> json) =>
-      _$ViewOptionsFromJson(json);
-  Map<String, dynamic> toJson() => _$ViewOptionsToJson(this);
+  factory QueryViewOptions.fromJson(Map<String, dynamic> json) =>
+      QueryViewOptions(
+        def: QueryViewOptionsDef.fromJson(json['def'] as Map<String, dynamic>),
+      );
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'def': def.toJson(),
+      };
 }
 
-@JsonSerializable()
-class ViewOptionsDef {
+class QueryViewOptionsDef {
   List<String> fields;
-  ViewOptionsDef({required this.fields});
+  QueryViewOptionsDef({required this.fields});
 
-  factory ViewOptionsDef.fromJson(Map<String, dynamic> json) =>
-      _$ViewOptionsDefFromJson(json);
-  Map<String, dynamic> toJson() => _$ViewOptionsDefToJson(this);
+  factory QueryViewOptionsDef.fromJson(Map<String, dynamic> json) =>
+      QueryViewOptionsDef(
+        fields:
+            (json['fields'] as List<dynamic>).map((e) => e as String).toList(),
+      );
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'fields': fields,
+      };
 }

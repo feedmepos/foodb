@@ -85,6 +85,7 @@ void main() async {
     print(designDoc?.toJson((value) => value.toJson()));
     print(designDoc?.model.views.values.first.toJson());
     expect(designDoc, isNotNull);
+    // TODO: test can fetch query and js
   });
 
   test('fetchAllDesignDocs()', () async {
