@@ -358,7 +358,7 @@ class Replicator {
 
     for (final key in revsDiff.keys) {
       List<Doc<Map<String, dynamic>>> docs =
-          await source.fetchChanges<Map<String, dynamic>>(
+          await source.getWithOpenRev<Map<String, dynamic>>(
               id: key,
               openRevs: changes[key]!,
               revs: true,

@@ -16,6 +16,7 @@ dependencies:
   uri: ^1.0.0
   uuid: ^3.0.4
   eventify: ^1.0.0
+  crypto: ^3.0.1
 
 dev_dependencies:
   flutter_dotenv: ^5.0.0

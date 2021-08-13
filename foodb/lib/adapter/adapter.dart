@@ -11,7 +11,6 @@ import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/adapter/methods/revs_diff.dart';
 import 'package:foodb/common/design_doc.dart';
 import 'package:foodb/common/doc.dart';
-import 'package:foodb/common/replication.dart';
 import 'package:synchronized/synchronized.dart';
 
 class ChangeFeed {
@@ -45,11 +44,7 @@ abstract class AbstractAdapter {
       bool revsInfo = false,
       required T Function(Map<String, dynamic> json) fromJsonT});
 
-  Future<Doc<DesignDoc>?> fetchDesignDoc({required String id});
-
-  Future<List<Doc<DesignDoc>>> fetchAllDesignDocs();
-
-  Future<List<Doc<T>>> fetchChanges<T>(
+  Future<List<Doc<T>>> getWithOpenRev<T>(
       {required String id,
       bool attachments = false,
       bool attEncodingInfo = false,
@@ -64,6 +59,24 @@ abstract class AbstractAdapter {
       bool revs = false,
       bool revsInfo = false,
       required T Function(Map<String, dynamic> json) fromJsonT});
+
+  Future<Doc<DesignDoc>?> fetchDesignDoc({
+    required String id,
+  }) async {
+    return get<DesignDoc>(
+        id: id,
+        fromJsonT: (json) => DesignDoc.fromJson(json as Map<String, dynamic>));
+  }
+
+  Future<List<Doc<DesignDoc>>> fetchAllDesignDocs() async {
+    GetAllDocs<DesignDoc> docs = await allDocs<DesignDoc>(
+        GetAllDocsRequest(
+            includeDocs: true,
+            startKey: "\"_design\"",
+            endKey: "\"_design\uffff\""),
+        (json) => DesignDoc.fromJson(json));
+    return docs.rows.map<Doc<DesignDoc>>((e) => e.doc!).toList();
+  }
 
   Future<PutResponse> put(
       {required Doc<Map<String, dynamic>> doc,

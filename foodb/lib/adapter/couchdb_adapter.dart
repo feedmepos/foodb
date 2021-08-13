@@ -14,7 +14,6 @@ import 'package:foodb/adapter/methods/index.dart';
 import 'package:foodb/adapter/methods/info.dart';
 import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/adapter/methods/revs_diff.dart';
-import 'package:foodb/common/design_doc.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:http/http.dart';
 import 'package:foodb/adapter/params_converter.dart';
@@ -145,31 +144,6 @@ class CouchdbAdapter extends AbstractAdapter {
         ? Doc<T>.fromJson(
             result, (json) => fromJsonT(json as Map<String, dynamic>))
         : null;
-  }
-
-  @override
-  Future<Doc<DesignDoc>?> fetchDesignDoc({
-    required String id,
-  }) async {
-    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri(id)));
-    var response = (await this.client.get(uriBuilder.build())).body;
-    Map<String, dynamic> result = jsonDecode(response);
-    print(result);
-    return result.containsKey('_id')
-        ? Doc<DesignDoc>.fromJson(
-            result, (json) => DesignDoc.fromJson(json as Map<String, dynamic>))
-        : null;
-  }
-
-  @override
-  Future<List<Doc<DesignDoc>>> fetchAllDesignDocs() async {
-    GetAllDocs<DesignDoc> docs = await allDocs<DesignDoc>(
-        GetAllDocsRequest(
-            includeDocs: true,
-            startKey: "\"_design\"",
-            endKey: "\"_design\uffff\""),
-        (json) => DesignDoc.fromJson(json));
-    return docs.rows.map<Doc<DesignDoc>>((e) => e.doc!).toList();
   }
 
   @override
@@ -320,7 +294,7 @@ class CouchdbAdapter extends AbstractAdapter {
   }
 
   @override
-  Future<List<Doc<T>>> fetchChanges<T>(
+  Future<List<Doc<T>>> getWithOpenRev<T>(
       {required String id,
       bool attachments = false,
       bool attEncodingInfo = false,
