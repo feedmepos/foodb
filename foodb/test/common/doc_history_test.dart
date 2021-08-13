@@ -21,5 +21,14 @@ void main() {
         revisions: Revisions(start: 2, ids: ["2", "1"])));
     expect(history.leafDocs.length, 1);
     expect(history.leafDocs[0].rev, '2-2');
+    // TEST different sacnario
+  });
+
+  test('winner', () {
+    // TODO, remove winner index, make it computed
+    // get all leave nodes
+    // remove deleted
+    // sort by ids[0]
+    // sort by rivision start
   });
 }
