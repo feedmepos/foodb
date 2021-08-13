@@ -38,39 +38,8 @@ class ChangeResult {
   Map<String, dynamic> toJson() => _$ChangeResultToJson(this);
 }
 
-// ChangeResult _$ChangeResultFromJson(Map<String, dynamic> json) {
-//   return ChangeResult(
-//     id: json['id'] as String,
-//     seq: json['seq'] as String,
-//     deleted: json['deleted'].runtimeType == String
-//         ? json.containsKey('deleted')
-//             ? true
-//             : false
-//         : json['deleted'] as bool?,
-//     changes: (json['changes'].runtimeType == String
-//             ? jsonDecode(json['changes'])
-//             : json['changes'] as List<dynamic>)
-//         .map<ChangeResultRev>(
-//             (e) => ChangeResultRev.fromJson(e as Map<String, dynamic>))
-//         .toList(),
-//     doc: json['doc'].runtimeType == String
-//         ? jsonDecode(json['doc'])
-//         : json['doc'] as Map<String, dynamic>?,
-//   );
-// }
-
-// Map<String, dynamic> _$ChangeResultToJson(ChangeResult instance) =>
-//     <String, dynamic>{
-//       'id': instance.id,
-//       'seq': instance.seq,
-//       'deleted': instance.deleted,
-//       'changes': instance.changes,
-//       'doc': instance.doc,
-//     };
-
 class ChangesStream {
   Stream<String> _stream;
-  // Stream<String> get stream => _stream;
   Client _client;
   String _feed;
   List<ChangeResult> _results = [];
