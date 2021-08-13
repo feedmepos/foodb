@@ -84,6 +84,7 @@ void main() async {
         await couchdb.fetchDesignDoc(id: "_design/type_user_name");
     print(designDoc?.toJson((value) => value.toJson()));
     expect(designDoc, isNotNull);
+    // TODO: test can fetch query and js
   });
 
   test('fetchAllDesignDocs()', () async {

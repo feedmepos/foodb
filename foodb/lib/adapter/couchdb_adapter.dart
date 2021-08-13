@@ -14,7 +14,6 @@ import 'package:foodb/adapter/methods/index.dart';
 import 'package:foodb/adapter/methods/info.dart';
 import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/adapter/methods/revs_diff.dart';
-import 'package:foodb/common/design_doc.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:http/http.dart';
 import 'package:foodb/adapter/params_converter.dart';
@@ -295,7 +294,7 @@ class CouchdbAdapter extends AbstractAdapter {
   }
 
   @override
-  Future<List<Doc<T>>> fetchChanges<T>(
+  Future<List<Doc<T>>> getWithOpenRev<T>(
       {required String id,
       bool attachments = false,
       bool attEncodingInfo = false,
