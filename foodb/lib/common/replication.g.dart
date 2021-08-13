@@ -19,7 +19,7 @@ ReplicationLog _$ReplicationLogFromJson(Map<String, dynamic> json) {
 
 Map<String, dynamic> _$ReplicationLogToJson(ReplicationLog instance) =>
     <String, dynamic>{
-      'history': instance.history,
+      'history': instance.history.map((e) => e.toJson()).toList(),
       'replication_id_version': instance.replicationIdVersion,
       'session_id': instance.sessionId,
       'source_last_seq': instance.sourceLastSeq,

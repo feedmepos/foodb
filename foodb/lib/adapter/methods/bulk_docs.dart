@@ -3,7 +3,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'bulk_docs.g.dart';
 
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true)
 class BulkDocResponse {
   List<PutResponse>? putResponses;
   String? error;

@@ -83,7 +83,6 @@ void main() async {
     Doc<DesignDoc>? designDoc =
         await couchdb.fetchDesignDoc(id: "_design/type_user_name");
     print(designDoc?.toJson((value) => value.toJson()));
-    print(designDoc?.model.views.values.first.toJson());
     expect(designDoc, isNotNull);
     // TODO: test can fetch query and js
   });

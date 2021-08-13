@@ -3,7 +3,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'all_docs.g.dart';
 
-@JsonSerializable(genericArgumentFactories: true)
+@JsonSerializable(genericArgumentFactories: true, explicitToJson: true)
 class GetAllDocs<T> {
   int offset;
 
@@ -28,7 +28,7 @@ class GetAllDocs<T> {
       _$GetAllDocsToJson(this, toJsonT);
 }
 
-@JsonSerializable(genericArgumentFactories: true)
+@JsonSerializable(genericArgumentFactories: true, explicitToJson: true)
 class Row<T> {
   String id;
   String key;

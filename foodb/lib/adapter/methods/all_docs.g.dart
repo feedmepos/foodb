@@ -58,7 +58,7 @@ Map<String, dynamic> _$RowToJson<T>(
     <String, dynamic>{
       'id': instance.id,
       'key': instance.key,
-      'value': instance.value,
+      'value': instance.value.toJson(),
       'doc': instance.doc?.toJson(
         (value) => toJsonT(value),
       ),

@@ -17,6 +17,7 @@ import 'package:foodb/adapter/methods/revs_diff.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:http/http.dart';
 import 'package:foodb/adapter/params_converter.dart';
+import 'package:json_annotation/json_annotation.dart';
 import 'package:uri/uri.dart';
 
 class CouchdbAdapter extends AbstractAdapter {
@@ -217,7 +218,6 @@ class CouchdbAdapter extends AbstractAdapter {
       T Function(Map<String, dynamic> json) fromJsonT) async {
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_all_docs')));
     uriBuilder.queryParameters = convertToParams(getAllDocsRequest.toJson());
-    print(uriBuilder.build());
     return GetAllDocs<T>.fromJson(
         jsonDecode((await this.client.get(uriBuilder.build())).body),
         (a) => fromJsonT(a as Map<String, dynamic>));

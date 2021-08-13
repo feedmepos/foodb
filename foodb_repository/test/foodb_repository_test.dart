@@ -81,8 +81,8 @@ void main() async {
   setUp(() async {
     var db = Foodb(
         adapter: CouchdbAdapter(baseUri: Uri.parse(baseUri), dbName: dbName));
-    await db.adapter.destroy();
-    await db.adapter.init();
+    // await db.adapter.destroy();
+    // await db.adapter.init();
   });
 
   getUserRepo() {
