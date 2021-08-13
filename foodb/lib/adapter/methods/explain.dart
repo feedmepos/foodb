@@ -3,7 +3,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'explain.g.dart';
 
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true)
 class ExplainResponse {
   @JsonKey(name: "dbname")
   String? dbName;

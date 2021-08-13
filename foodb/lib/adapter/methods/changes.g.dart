@@ -17,6 +17,27 @@ Map<String, dynamic> _$ChangeResultRevToJson(ChangeResultRev instance) =>
       'rev': instance.rev,
     };
 
+ChangeResult _$ChangeResultFromJson(Map<String, dynamic> json) {
+  return ChangeResult(
+    id: json['id'] as String,
+    seq: json['seq'] as String,
+    deleted: json['deleted'] as bool?,
+    changes: (json['changes'] as List<dynamic>)
+        .map((e) => ChangeResultRev.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    doc: json['doc'] as Map<String, dynamic>?,
+  );
+}
+
+Map<String, dynamic> _$ChangeResultToJson(ChangeResult instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'seq': instance.seq,
+      'deleted': instance.deleted,
+      'changes': instance.changes.map((e) => e.toJson()).toList(),
+      'doc': instance.doc,
+    };
+
 ChangeResponse _$ChangeResponseFromJson(Map<String, dynamic> json) {
   return ChangeResponse(
     lastSeq: json['last_seq'] as String?,
@@ -31,7 +52,7 @@ Map<String, dynamic> _$ChangeResponseToJson(ChangeResponse instance) =>
     <String, dynamic>{
       'last_seq': instance.lastSeq,
       'pending': instance.pending,
-      'results': instance.results,
+      'results': instance.results.map((e) => e.toJson()).toList(),
     };
 
 ChangeRequest _$ChangeRequestFromJson(Map<String, dynamic> json) {

@@ -18,6 +18,7 @@ import 'package:foodb/common/design_doc.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:http/http.dart';
 import 'package:foodb/adapter/params_converter.dart';
+import 'package:json_annotation/json_annotation.dart';
 import 'package:uri/uri.dart';
 
 class CouchdbAdapter extends AbstractAdapter {
@@ -148,31 +149,6 @@ class CouchdbAdapter extends AbstractAdapter {
   }
 
   @override
-  Future<Doc<DesignDoc>?> fetchDesignDoc({
-    required String id,
-  }) async {
-    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri(id)));
-    var response = (await this.client.get(uriBuilder.build())).body;
-    Map<String, dynamic> result = jsonDecode(response);
-    print(result);
-    return result.containsKey('_id')
-        ? Doc<DesignDoc>.fromJson(
-            result, (json) => DesignDoc.fromJson(json as Map<String, dynamic>))
-        : null;
-  }
-
-  @override
-  Future<List<Doc<DesignDoc>?>> fetchAllDesignDocs() async {
-    GetAllDocs<DesignDoc> docs = await allDocs<DesignDoc>(
-        GetAllDocsRequest(
-            includeDocs: true,
-            startKey: "\"_design\"",
-            endKey: "\"_design\uffff\""),
-        (json) => DesignDoc.fromJson(json));
-    return docs.rows.map<Doc<DesignDoc>>((e) => e!.doc!).toList();
-  }
-
-  @override
   Future<GetInfoResponse> info() async {
     return GetInfoResponse.fromJson(
         jsonDecode((await this.client.get(this.getUri(''))).body));
@@ -243,7 +219,6 @@ class CouchdbAdapter extends AbstractAdapter {
       T Function(Map<String, dynamic> json) fromJsonT) async {
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_all_docs')));
     uriBuilder.queryParameters = convertToParams(getAllDocsRequest.toJson());
-    print(uriBuilder.build());
     return GetAllDocs<T>.fromJson(
         jsonDecode((await this.client.get(uriBuilder.build())).body),
         (a) => fromJsonT(a as Map<String, dynamic>));

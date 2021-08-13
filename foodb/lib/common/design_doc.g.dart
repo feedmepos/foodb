@@ -17,22 +17,22 @@ DesignDoc _$DesignDocFromJson(Map<String, dynamic> json) {
 
 Map<String, dynamic> _$DesignDocToJson(DesignDoc instance) => <String, dynamic>{
       'language': instance.language,
-      'views': instance.views,
+      'views': instance.views.map((k, e) => MapEntry(k, e.toJson())),
     };
 
 DesignDocView _$DesignDocViewFromJson(Map<String, dynamic> json) {
   return DesignDocView(
     map: ViewMapper.fromJson(json['map'] as Map<String, dynamic>),
-    reduce: json['reduce'] as String,
+    reduce: json['reduce'] as String?,
     options: ViewOptions.fromJson(json['options'] as Map<String, dynamic>),
   );
 }
 
 Map<String, dynamic> _$DesignDocViewToJson(DesignDocView instance) =>
     <String, dynamic>{
-      'map': instance.map,
+      'map': instance.map.toJson(),
       'reduce': instance.reduce,
-      'options': instance.options,
+      'options': instance.options.toJson(),
     };
 
 ViewMapper _$ViewMapperFromJson(Map<String, dynamic> json) {
@@ -59,7 +59,7 @@ ViewOptions _$ViewOptionsFromJson(Map<String, dynamic> json) {
 
 Map<String, dynamic> _$ViewOptionsToJson(ViewOptions instance) =>
     <String, dynamic>{
-      'def': instance.def,
+      'def': instance.def.toJson(),
     };
 
 ViewOptionsDef _$ViewOptionsDefFromJson(Map<String, dynamic> json) {

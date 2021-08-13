@@ -2,7 +2,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'design_doc.g.dart';
 
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true)
 class DesignDoc {
   String language;
   Map<String, DesignDocView> views;
@@ -14,21 +14,20 @@ class DesignDoc {
   Map<String, dynamic> toJson() => _$DesignDocToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true)
 class DesignDocView {
   ViewMapper map;
-  String reduce;
+  String? reduce;
   ViewOptions options;
 
-  DesignDocView(
-      {required this.map, required this.reduce, required this.options});
+  DesignDocView({required this.map, this.reduce, required this.options});
 
   factory DesignDocView.fromJson(Map<String, dynamic> json) =>
       _$DesignDocViewFromJson(json);
   Map<String, dynamic> toJson() => _$DesignDocViewToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true)
 class ViewMapper {
   Map<String, String> fields;
 
@@ -42,7 +41,7 @@ class ViewMapper {
   Map<String, dynamic> toJson() => _$ViewMapperToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true)
 class ViewOptions {
   ViewOptionsDef def;
   ViewOptions({required this.def});

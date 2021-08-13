@@ -18,7 +18,7 @@ BulkDocResponse _$BulkDocResponseFromJson(Map<String, dynamic> json) {
 
 Map<String, dynamic> _$BulkDocResponseToJson(BulkDocResponse instance) =>
     <String, dynamic>{
-      'putResponses': instance.putResponses,
+      'putResponses': instance.putResponses?.map((e) => e.toJson()).toList(),
       'error': instance.error,
       'reason': instance.reason,
     };

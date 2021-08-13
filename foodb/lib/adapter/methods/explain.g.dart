@@ -22,9 +22,9 @@ ExplainResponse _$ExplainResponseFromJson(Map<String, dynamic> json) {
 Map<String, dynamic> _$ExplainResponseToJson(ExplainResponse instance) =>
     <String, dynamic>{
       'dbname': instance.dbName,
-      'index': instance.index,
+      'index': instance.index.toJson(),
       'selector': instance.selector,
-      'opts': instance.opts,
+      'opts': instance.opts.toJson(),
       'limit': instance.limit,
       'skip': instance.skip,
       'fields': instance.fields,

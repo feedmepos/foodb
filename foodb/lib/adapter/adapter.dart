@@ -45,9 +45,22 @@ abstract class AbstractAdapter {
       bool revsInfo = false,
       required T Function(Map<String, dynamic> json) fromJsonT});
 
-  Future<Doc<DesignDoc>?> fetchDesignDoc({required String id});
+  Future<Doc<DesignDoc>?> fetchDesignDoc({
+    required String id,
+  }) async {
+    return await get<DesignDoc>(
+        id: id, fromJsonT: (json) => DesignDoc.fromJson(json));
+  }
 
-  Future<List<Doc<DesignDoc>?>> fetchAllDesignDocs();
+  Future<List<Doc<DesignDoc>>> fetchAllDesignDocs() async {
+    GetAllDocs<DesignDoc> docs = await allDocs<DesignDoc>(
+        GetAllDocsRequest(
+            includeDocs: true,
+            startKey: "\"_design\"",
+            endKey: "\"_design\uffff\""),
+        (json) => DesignDoc.fromJson(json));
+    return docs.rows.map<Doc<DesignDoc>>((e) => e!.doc!).toList();
+  }
 
   Future<List<Doc<T>>> fetchChanges<T>(
       {required String id,
