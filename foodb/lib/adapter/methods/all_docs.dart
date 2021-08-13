@@ -10,7 +10,7 @@ class GetAllDocs<T> {
   @JsonKey(name: 'total_rows')
   int totalRows;
 
-  List<Row<T>?> rows;
+  List<Row<T>> rows;
 
   @JsonKey(name: 'update_seq')
   String? updateSeq;

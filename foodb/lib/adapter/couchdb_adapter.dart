@@ -162,14 +162,14 @@ class CouchdbAdapter extends AbstractAdapter {
   }
 
   @override
-  Future<List<Doc<DesignDoc>?>> fetchAllDesignDocs() async {
+  Future<List<Doc<DesignDoc>>> fetchAllDesignDocs() async {
     GetAllDocs<DesignDoc> docs = await allDocs<DesignDoc>(
         GetAllDocsRequest(
             includeDocs: true,
             startKey: "\"_design\"",
             endKey: "\"_design\uffff\""),
         (json) => DesignDoc.fromJson(json));
-    return docs.rows.map<Doc<DesignDoc>>((e) => e!.doc!).toList();
+    return docs.rows.map<Doc<DesignDoc>>((e) => e.doc!).toList();
   }
 
   @override
