@@ -34,9 +34,20 @@ class InMemoryDatabase implements KeyValueDatabase {
 
   @override
   Future<Map<String, Map<String, dynamic>>> read(String tableName,
-      {String? startKey, String? endKey, bool? desc}) {
-    // TODO: implement read
-    throw UnimplementedError();
+      {String? startKey, String? endKey, bool? desc}) async {
+    var table = _stores[tableName];
+    Map<String, Map<String, dynamic>> result = {};
+    if (table != null) {
+      // TODO implement desc
+      // TODO read between
+      table.entries.forEach((element) {
+        if ((startKey == null || element.key.compareTo(startKey) > 0) &&
+            (endKey == null || element.key.compareTo(endKey) < 0)) {
+          result.putIfAbsent(element.key, () => element.value);
+        }
+      });
+    }
+    return result;
   }
 
   @override
