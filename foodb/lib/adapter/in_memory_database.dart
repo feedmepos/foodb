@@ -18,7 +18,11 @@ class InMemoryDatabase implements KeyValueDatabase {
     if (_stores[tableName] == null) {
       _stores[tableName] = SplayTreeMap();
     }
-    _stores[tableName]!.update(id, (value) => object);
+    if (_stores[tableName]!.containsKey(id)) {
+      _stores[tableName]!.update(id, (value) => object);
+    } else {
+      _stores[tableName]!.putIfAbsent(id, () => object);
+    }
     return true;
   }
 

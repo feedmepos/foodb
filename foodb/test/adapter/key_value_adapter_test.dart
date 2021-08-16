@@ -3,6 +3,7 @@ import 'package:foodb/adapter/in_memory_database.dart';
 import 'package:foodb/adapter/key_value_adapter.dart';
 import 'package:foodb/adapter/methods/all_docs.dart';
 import 'package:foodb/common/doc.dart';
+import 'package:foodb/common/doc_history.dart';
 
 void main() async {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -29,6 +30,26 @@ void main() async {
         .get(adapter.viewTableName("_all_docs__all_docs"), id: "id2");
     print(doc2.toString());
     expect(doc2, isNotNull);
+  });
+
+  test("_generateView2()", () async {
+    var db = InMemoryDatabase();
+    var adapter = KeyValueAdapter(dbName: 'test', db: db);
+    await adapter.put(
+        doc: Doc(id: 'id', model: {"name": "charlies", "no": 1}),
+        newEdits: false,
+        newRev: "1-aba");
+    await adapter.put(
+        doc: Doc(id: 'id', model: {"name": "ants", "no": 2}),
+        newEdits: false,
+        newRev: "1-bab");
+    DocHistory<Map<String, dynamic>> history =
+        DocHistory<Map<String, dynamic>>.fromJson(
+            (await adapter.db.get(adapter.docTableName, id: "id"))!,
+            (json) => json as Map<String, dynamic>);
+
+    print(history.winner);
+    expect(history.winner, isNotNull);
   });
 
   test('put & get', () async {

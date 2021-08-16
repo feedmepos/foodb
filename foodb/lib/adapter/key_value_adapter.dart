@@ -149,7 +149,7 @@ class KeyValueAdapter extends AbstractAdapter {
       {required Doc<Map<String, dynamic>> doc,
       bool newEdits = true,
       String? newRev}) async {
-    Map<String, dynamic>? result = await db.get(docTableName, id: doc.id);
+    var result = await db.get(docTableName, id: doc.id);
     var rev = newEdits ? doc.rev ?? RevisionTool.generate() : newRev;
     var newDoc = doc.toJson((value) => value);
     // first revision
