@@ -84,7 +84,7 @@ class KeyValueAdapter extends AbstractAdapter {
     var result = await db.get(docTableName, id: id);
     if (result != null) {
       var history = DocHistory.fromJson(result, (json) => json);
-      if (history.winner.rev != rev) {
+      if (history.winner?.rev != rev) {
         throw AdapterException(error: 'Invalid rev');
       } else {
         // TODO create a new rev as delete;
@@ -233,7 +233,7 @@ class KeyValueAdapter extends AbstractAdapter {
     }
     var result = DocHistory<T>.fromJson(
         json, (e) => fromJsonT(e as Map<String, dynamic>));
-    if (result.winner.deleted == true) {
+    if (result.winner?.deleted == true) {
       return null;
     }
     return result.winner;
@@ -300,7 +300,9 @@ class KeyValueAdapter extends AbstractAdapter {
     } else if (view is QueryDesignDocView) {
       // TODO create dart mapper using query field
     } else if (view is AllDocDesignDocView) {
-      return [MapEntry(history.winner.id, history.winner.model)];
+      return history.winner?.deleted != true
+          ? [MapEntry(history.winner!.id, history.winner?.model)]
+          : [];
     } else {
       throw new UnimplementedError('Unknown Design Doc View');
     }

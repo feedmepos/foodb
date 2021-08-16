@@ -1,7 +1,4 @@
-import 'dart:convert';
 import 'dart:math';
-
-import 'package:crypto/crypto.dart';
 
 class Utils {
   static String randomString(int length) {
@@ -11,19 +8,8 @@ class Utils {
         Iterable.generate(length, (_) => ch.codeUnitAt(r.nextInt(ch.length))));
   }
 
-  static String md5Json(Map<String, dynamic> json) {
-    return md5.convert(utf8.encode(jsonEncode(json))).toString();
-  }
-
   static generateSequence(int current) {
     return '$current-${Utils.randomString(30)}';
-  }
-
-  static increaseRev(String currentRev, Map<String, dynamic> json) {
-    int newRev = (int.parse(currentRev.split('-')[0])) + 1;
-    json.remove('_rev');
-    String newMd5 = md5.convert(utf8.encode(jsonEncode(json))).toString();
-    return '$newRev-$newMd5}';
   }
 }
 
