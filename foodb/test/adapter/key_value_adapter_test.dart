@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodb/adapter/in_memory_database.dart';
 import 'package:foodb/adapter/key_value_adapter.dart';
 import 'package:foodb/adapter/methods/all_docs.dart';
+import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/doc_history.dart';
 
@@ -69,5 +72,65 @@ void main() async {
     expect(doc1, isNotNull);
     expect(doc2, isNotNull);
     expect(doc3, isNull);
+  });
+
+  test("changeStream", () async {
+    var adapter = getMemeoryAdapter();
+    adapter.db.put(adapter.docTableName,
+        id: 'a',
+        object: DocHistory(winnerIndex: 0, docs: [
+          Doc(id: 'a', model: {}, rev: '1', localSeq: '1'),
+          Doc(id: 'a', model: {}, rev: '2', localSeq: '2'),
+          Doc(id: 'a', model: {}, rev: '3', localSeq: '3'),
+          Doc(id: 'a', model: {}, rev: '4', localSeq: '5')
+        ]).toJson((value) => value));
+    adapter.db.put(adapter.docTableName,
+        id: 'b',
+        object: DocHistory(
+                winnerIndex: 0,
+                docs: [Doc(id: 'b', model: {}, rev: '1', localSeq: '4')])
+            .toJson((value) => value));
+
+    adapter.db.put(adapter.sequenceTableName, id: '4', object: {"id": 'b'});
+    adapter.db.put(adapter.sequenceTableName, id: '5', object: {"id": 'a'});
+
+    var stream =
+        await adapter.changesStream(ChangeRequest(since: '0', feed: 'normal'));
+    Completer<ChangeResponse> c = new Completer();
+    stream.onComplete((resp) async {
+      c.complete(resp);
+    });
+    var response = await c.future;
+    expect(response.results[0].id, 'b');
+    expect(response.results[0].id, 'a');
+    // limit, since work
+  });
+
+  test("allDoc", () async {
+    var adapter = getMemeoryAdapter();
+    adapter.db.put(adapter.docTableName,
+        id: 'a',
+        object: DocHistory(winnerIndex: 3, docs: [
+          Doc(id: 'a', model: {}, rev: '1', localSeq: '1'),
+          Doc(id: 'a', model: {}, rev: '2', localSeq: '2'),
+          Doc(id: 'a', model: {}, rev: '3', localSeq: '3'),
+          Doc(id: 'a', model: {}, rev: '4', localSeq: '5')
+        ]).toJson((value) => value));
+    adapter.db.put(adapter.docTableName,
+        id: 'b',
+        object: DocHistory(
+                winnerIndex: 0,
+                docs: [Doc(id: 'b', model: {}, rev: '1', localSeq: '4')])
+            .toJson((value) => value));
+
+    adapter.db.put(adapter.sequenceTableName, id: '4', object: {"id": 'b'});
+    adapter.db.put(adapter.sequenceTableName, id: '5', object: {"id": 'a'});
+
+    var docs = await adapter.allDocs(GetAllDocsRequest(), (json) => json);
+    expect(docs.rows.length, 2);
+    expect(docs.rows[0].id, 'a');
+    expect(docs.rows[0].value.rev, '4');
+    expect(docs.rows[0].id, 'b');
+    expect(docs.rows[1].value.rev, '1');
   });
 }
