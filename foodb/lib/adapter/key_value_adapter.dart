@@ -353,21 +353,20 @@ class KeyValueAdapter extends AbstractAdapter {
 
       if (existDoc == -1) {
         docHistory = docHistory
-            .copyWith(winnerIndex: docHistory.docs.length, docs: [
+            .copyWith(docs: [
           doc.copyWith(rev: newDocRev.toString(), revisions: newDocRevisions)
         ]);
       } else {
         var newDocs = docHistory.docs.toList();
         newDocs[existDoc] = doc.copyWith(revisions: newDocRevisions);
-        docHistory = docHistory.copyWith(
-            winnerIndex: docHistory.docs.length, docs: newDocs);
+        docHistory = docHistory.copyWith(docs: newDocs);
       }
     }
 
     var finalDoc =
-        await _beforeUpdate(doc: docHistory.docs[docHistory.docs.length - 1]);
+        await _beforeUpdate(doc: docHistory.winner!);
     await _updateSequence(id: finalDoc.id, rev: finalDoc.rev!);
-    db.put(docTableName,
+    await db.put(docTableName,
         id: finalDoc.id, object: docHistory.toJson((value) => value));
 
     return PutResponse(ok: true, id: doc.id, rev: finalDoc.rev!);

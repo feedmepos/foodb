@@ -19,7 +19,6 @@ class DocHistory<T> {
     var sorted = docs.toList();
     sorted.sort((a, b) => b.revisions!.start - a.revisions!.start);
     while (sorted.length > 0) {
-      print(sorted.length);
       var leaf = sorted.first;
       sorted.removeAt(0);
       sorted.removeWhere((e) =>

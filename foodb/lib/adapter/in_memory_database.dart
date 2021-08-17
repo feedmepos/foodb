@@ -12,11 +12,10 @@ class InMemoryDatabase implements KeyValueDatabase {
   @override
   Future<bool> put(String tableName,
       {required String id, required Map<String, dynamic> object}) async {
-    var storeRecords = _stores[tableName];
-    if (storeRecords == null) {
-      storeRecords = SplayTreeMap();
+    if (_stores[tableName] == null) {
+      _stores[tableName] = SplayTreeMap();
     }
-    storeRecords!.update(id, (value) => object, ifAbsent: () => object);
+    _stores[tableName]!.update(id, (value) => object, ifAbsent: () => object);
     return true;
   }
 
