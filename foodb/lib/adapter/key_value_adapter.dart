@@ -85,15 +85,26 @@ class KeyValueAdapter extends AbstractAdapter {
     var result = await db.get(docTableName, id: id);
     if (result != null) {
       var history = DocHistory.fromJson(result, (json) => json);
-      if (history.winner.rev != rev) {
+      if (history.winner?.rev != rev)
         throw AdapterException(error: 'Invalid rev');
-      } else {
-        // TODO create a new rev as delete;
-      }
-      return DeleteResponse(ok: true);
+
+
+      return DeleteResponse(ok: true, id: id, rev: rev);
     } else {
-      return DeleteResponse(ok: false);
+      return DeleteResponse(
+          ok: false,
+          id: id,
+          rev: rev,
+          error: "Missing",
+          reason: "Could not find the doc by id $id");
     }
+  }
+
+  Future<DocHistory<Map<String, dynamic>>?> getHistory(String id) async {
+    var result = await db.get(docTableName, id: id);
+    return result != null
+        ? DocHistory.fromJson(result, (json) => json as Map<String, dynamic>)
+        : null;
   }
 
   @override
@@ -158,8 +169,8 @@ class KeyValueAdapter extends AbstractAdapter {
     DocHistory<Map<String, dynamic>> docHistory = history == null
         ? DocHistory(winnerIndex: 0, docs: [])
         : DocHistory.fromJson(history, (json) => json as Map<String, dynamic>);
-    var existDoc =
-        docHistory.docs.indexWhere((element) => element.rev == doc.rev);
+
+    Rev newDocRev;
 
     if (newEdits == true) {
       var winner = docHistory.winner;
@@ -168,7 +179,8 @@ class KeyValueAdapter extends AbstractAdapter {
           throw AdapterException(error: 'update conflict');
         }
       }
-      var newDocRev = Rev.parse(doc.rev ?? '0-0').increase(doc.model);
+
+      newDocRev = Rev.parse(doc.rev ?? '0-0').increase(doc.model);
       var newDocRevisions = Revisions(
           start: newDocRev.index,
           ids: winner != null
@@ -180,101 +192,41 @@ class KeyValueAdapter extends AbstractAdapter {
         doc.copyWith(rev: newDocRev.toString(), revisions: newDocRevisions)
       ]);
     } else {
-      // if revisions exist, use revisions to calculate rev
-      // else use rev to define new reivisions
       if (doc.rev == null) {
         throw AdapterException(
-            error: 'doc rev must be supplied when new_edits=false');
+            error: 'doc rev must be supplied when new_edits is false');
       }
 
-      var newDocRev = Rev.parse(doc.rev!);
+      var existDoc =
+          docHistory.docs.indexWhere((element) => element.rev == doc.rev);
+
       Doc<Map<String, dynamic>> newDoc =
           existDoc == -1 ? doc : docHistory.docs[existDoc];
 
+      newDocRev = Rev.parse(doc.rev!);
       var newDocRevisions = newDoc.revisions ??
           Revisions(start: newDocRev.index, ids: [newDocRev.md5]);
+
+      if (existDoc == -1) {
+        docHistory = docHistory
+            .copyWith(winnerIndex: docHistory.docs.length, docs: [
+          doc.copyWith(rev: newDocRev.toString(), revisions: newDocRevisions)
+        ]);
+      } else {
+        var newDocs = docHistory.docs.toList();
+        newDocs[existDoc] = doc.copyWith(revisions: newDocRevisions);
+        docHistory = docHistory.copyWith(
+            winnerIndex: docHistory.docs.length, docs: newDocs);
+      }
     }
 
-    if (existDoc == -1) {
-      docHistory.copyWith(winnerIndex: docHistory.docs.length, docs: [
-        ...docHistory.docs,
-        doc.copyWith(rev: newDocRev.toString(), revisions: newDocRevisions)
-      ]);
-    } else {
-      var newDocs = docHistory.docs.toList();
-      newDocs[existDoc] = doc.copyWith(revisions: newDocRevisions);
-      docHistory.copyWith(winnerIndex: docHistory.docs.length, docs: newDocs);
-    }
-
+    var finalDoc =
+        await _beforeUpdate(doc: docHistory.docs[docHistory.docs.length - 1]);
+    await _updateSequence(id: finalDoc.id, rev: finalDoc.rev!);
     db.put(docTableName,
-        id: doc.id, object: docHistory.toJson((value) => value!));
+        id: finalDoc.id, object: docHistory.toJson((value) => value));
 
-    // // check newRev and doc rev is same or not
-    // // if new edit = true
-    // // - check supplied rev
-    // // else
-    // // -
-    // // decide winner
-    // // propagate _revisions
-    // // set last sequence
-    // if(newEdits == true) {
-
-    // var rev = Rev.parse(doc.rev ?? '0-0');
-    // var newRevision = Revisions(start: start, ids: ids)
-    // } else {
-    //   var rev = Rev.parse(newRev);
-    //   if(doc.revisions != null) {
-
-    //   }
-    //   var newReivions = doc.revisions ? doc.revisions :
-    // }
-
-    // // var newRev = Utils.increaseRev(doc.rev ?? '0-0', doc.toJson((value) => value));
-    // var newRevision = Revisions(start: newRev, ids: ids)
-    // if(newEdits == false) {
-
-    // } else {
-
-    // }
-
-    // var rev = newEdits ? doc.rev ?? RevisionTool.generate() : newRev;
-
-    // var docToInsert =
-
-    // var newDoc = doc.toJson((value) => value);
-
-    // // first revision
-    // if (history == null) {
-    //   newDoc['_rev'] = rev;
-    //   docHistory.docs.add(Doc.fromJson(newDoc, (v) => v));
-    // } else {
-    //   if (!newEdits) {
-    //     var body = doc.model;
-
-    //     if (newRev == null)
-    //       throw new AdapterException(
-    //           error: 'newRev is required when newEdits is false');
-
-    //     body['_revisions'] = {
-    //       "ids": doc.rev == null
-    //           ? [RevisionTool(newRev).content]
-    //           : [RevisionTool(newRev).content, RevisionTool(doc.rev!).content],
-    //       "start": RevisionTool(newRev).index
-    //     };
-    //     newDoc['model'] = body;
-    //     newDoc['_rev'] = newRev;
-    //     docHistory.docs.add(Doc.fromJson(newDoc, (v) => v));
-    //   } else {
-    //     newDoc['_rev'] = RevisionTool(docHistory.winner.rev!).increment();
-    //     docHistory.docs.add(Doc.fromJson(newDoc, (json) => json));
-    //   }
-    // }
-    // var newDoc = _beforeUpdate(doc: newDoc);
-    // db.put(docTableName,
-    //     id: doc.id,
-    //     object: docHistory.toJson((v) => v as Map<String, dynamic>));
-    // _afterUpdate();
-    return PutResponse(ok: true);
+    return PutResponse(ok: true, id: doc.id, rev: finalDoc.rev!);
   }
 
   @override
@@ -320,7 +272,7 @@ class KeyValueAdapter extends AbstractAdapter {
     }
     var result = DocHistory<T>.fromJson(
         json, (e) => fromJsonT(e as Map<String, dynamic>));
-    if (result.winner.deleted == true) {
+    if (result.winner?.deleted == true) {
       return null;
     }
     return result.winner;
@@ -338,11 +290,6 @@ class KeyValueAdapter extends AbstractAdapter {
             changes: [ChangeResultRev(rev: doc.rev!)]).toJson());
 
     return doc.copyWith(localSeq: newSeqString);
-  }
-
-  Future<void> _afterUpdate() async {
-    // decide winner
-    // update sequence
   }
 
   Future<void> _updateSequence(
@@ -401,7 +348,7 @@ class KeyValueAdapter extends AbstractAdapter {
     } else if (view is QueryDesignDocView) {
       // TODO create dart mapper using query field
     } else if (view is AllDocDesignDocView) {
-      return [MapEntry(history.winner.id, history.winner.model)];
+      // return [MapEntry(history.winner.id, history.winner.model)];
     } else {
       throw new UnimplementedError('Unknown Design Doc View');
     }
