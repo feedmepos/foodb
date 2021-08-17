@@ -8,6 +8,7 @@ part 'doc_history.g.dart';
 class DocHistory<T> {
   int winnerIndex;
   List<Doc<T>> docs;
+
   DocHistory({
     required this.winnerIndex,
     required this.docs,

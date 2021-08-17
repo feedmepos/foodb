@@ -3,6 +3,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'doc.g.dart';
 
+//@JsonSerializable(explicitToJson: true, genericArgumentFactories: true)
 @immutable
 class Doc<T> {
   @JsonKey(name: '_id')
@@ -115,7 +116,7 @@ Map<String, dynamic> _$DocToJson<T>(
     '_id': instance.id,
     '_rev': instance.rev,
     '_deleted': instance.deleted,
-    '_revisions': instance.revisions,
+    '_revisions': instance.revisions?.toJson(),
     '_attachments': instance.attachments,
     '_conflicts': instance.conflicts,
     '_deleted_conflicts': instance.deletedConflicts,

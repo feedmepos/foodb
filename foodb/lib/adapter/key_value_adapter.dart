@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/exception.dart';
@@ -18,6 +19,7 @@ import 'package:foodb/common/design_doc.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/doc_history.dart';
 import 'package:foodb/common/view_meta.dart';
+import 'package:http/http.dart';
 
 abstract class KeyValueDatabase {
   Future<bool> put(String tableName,
@@ -44,6 +46,56 @@ class KeyValueAdapter extends AbstractAdapter {
   String get viewMetaTableName => '${dbName}_viewmeta';
   String viewTableName(String viewName) => '${dbName}_view_${viewName}';
 
+  List<StreamController<String>> _continuousStreamControllers = [];
+  List<StreamController<String>> _longPollStreamControllers = [];
+  List<ChangeRequest> _continuousChangeRequests = [];
+  List<ChangeRequest> _longPollChangeRequests = [];
+
+  void addChanges(
+      {required String seq,
+      required String id,
+      required DocHistory history}) async {
+    print(_longPollStreamControllers.length);
+    Map<String, dynamic> changeResult = {
+      "seq": seq,
+      "id": id,
+      "changes": history.leafDocs.map((e) => {"rev": e.rev}).toList()
+    };
+    Map<String, dynamic> changeResultWithDoc = changeResult;
+    Map<String, dynamic> winner = history.winner!.toJson((value) => value);
+    winner.removeWhere((key, value) => value == null);
+    changeResultWithDoc["doc"] = winner;
+
+    for (int x = 0; x < _continuousStreamControllers.length; x++) {
+      _continuousStreamControllers[x].sink.add(jsonEncode(
+          _continuousChangeRequests[x].includeDocs == true
+              ? changeResultWithDoc
+              : changeResult));
+      if (_continuousChangeRequests[x].limit != null) {
+        _continuousChangeRequests[x].limit =
+            _continuousChangeRequests[x].limit! - 1;
+        if (_continuousChangeRequests[x].limit == 0) {
+          _continuousStreamControllers[x].close();
+          _continuousStreamControllers.removeAt(x);
+          _continuousChangeRequests.removeAt(x);
+        }
+      }
+    }
+
+    for (int x = 0; x < _longPollStreamControllers.length; x++) {
+      _longPollStreamControllers[x].sink.add(jsonEncode(
+          _longPollChangeRequests[x].includeDocs == true
+              ? changeResultWithDoc
+              : changeResult));
+      _longPollStreamControllers[x]
+          .sink
+          .add("\"last_seq\":\"$seq\", \"pending\": 0}");
+      _longPollStreamControllers[x].close();
+      _longPollStreamControllers.removeAt(x);
+      _longPollChangeRequests.removeAt(x);
+    }
+  }
+
   @override
   Future<GetAllDocs<T>> allDocs<T>(GetAllDocsRequest allDocsRequest,
       T Function(Map<String, dynamic> json) fromJsonT) async {
@@ -61,10 +113,82 @@ class KeyValueAdapter extends AbstractAdapter {
     throw UnimplementedError();
   }
 
+  Future<void> iniChangesStream(
+      StreamController<String> streamController, ChangeRequest request) async {
+    String lastSeq = '';
+    if (request.since != 'now') {
+      Map<String, dynamic> result =
+          await db.read(sequenceTableName, startKey: request.since);
+      for (MapEntry entry in result.entries) {
+        lastSeq = entry.key;
+
+        DocHistory<Map<String, dynamic>> docs =
+            DocHistory<Map<String, dynamic>>.fromJson(
+                (await db.get(docTableName, id: entry.value['id']))!,
+                (json) => json as Map<String, dynamic>);
+
+        Map<String, dynamic> changeResult = {
+          "seq": entry.key,
+          "id": entry.value["id"],
+          "changes": docs.leafDocs.map((e) => {"rev": e.rev}).toList()
+        };
+        if (request.includeDocs) {
+          Map<String, dynamic> winner = docs.winner!.toJson((value) => value);
+          winner.removeWhere((key, value) => value == null);
+          changeResult["doc"] = winner;
+        }
+
+        streamController.sink.add(jsonEncode(changeResult));
+
+        if (request.limit != null) {
+          request.limit = request.limit! - 1;
+          if (request.limit == 0) {
+            streamController.close();
+            break;
+          }
+        }
+      }
+    }
+    if (!streamController.isClosed) {
+      if (request.feed == ChangeFeed.continuous) {
+        _continuousStreamControllers.add(streamController);
+        _continuousChangeRequests.add(request);
+      } else if (request.feed == ChangeFeed.longpoll) {
+        _longPollStreamControllers.add(streamController);
+        _longPollChangeRequests.add(request);
+      } else {
+        if (request.since == 'now') {
+          lastSeq = (await db.read(sequenceTableName)).keys.last;
+        }
+        streamController.sink
+            .add("\"last_seq\":\"${lastSeq}\", \"pending\": 0}");
+        streamController.close();
+      }
+    }
+  }
+
   @override
-  Future<ChangesStream> changesStream(ChangeRequest request) {
-    // TODO: implement changesStream
-    throw UnimplementedError();
+  Future<ChangesStream> changesStream(ChangeRequest request) async {
+    StreamController<String> streamController =
+        new StreamController<String>.broadcast();
+
+    iniChangesStream(streamController, request);
+
+    return ChangesStream(
+        feed: request.feed,
+        stream: streamController.stream,
+        cancel: () {
+          if (request.feed == ChangeFeed.longpoll) {
+            int index = _longPollStreamControllers.indexOf(streamController);
+            _longPollChangeRequests.remove(index);
+            _longPollStreamControllers.remove(streamController);
+          } else if (request.feed == ChangeFeed.normal) {
+            int index = _continuousStreamControllers.indexOf(streamController);
+            _continuousChangeRequests.remove(index);
+            _continuousStreamControllers.remove(streamController);
+          }
+          streamController.close();
+        });
   }
 
   @override

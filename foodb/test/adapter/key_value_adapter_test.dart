@@ -1,6 +1,7 @@
 import 'dart:async';
-
+import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/in_memory_database.dart';
 import 'package:foodb/adapter/key_value_adapter.dart';
 import 'package:foodb/adapter/methods/all_docs.dart';
@@ -76,37 +77,132 @@ void main() async {
 
   test("changeStream", () async {
     var adapter = getMemeoryAdapter();
-    adapter.db.put(adapter.docTableName,
+    await adapter.db.put(adapter.docTableName,
         id: 'a',
         object: DocHistory(winnerIndex: 0, docs: [
-          Doc(id: 'a', model: {}, rev: '1', localSeq: '1'),
-          Doc(id: 'a', model: {}, rev: '2', localSeq: '2'),
-          Doc(id: 'a', model: {}, rev: '3', localSeq: '3'),
-          Doc(id: 'a', model: {}, rev: '4', localSeq: '5')
-        ]).toJson((value) => value));
-    adapter.db.put(adapter.docTableName,
+          Doc(
+              id: 'a',
+              model: {},
+              revisions: Revisions(ids: ['a'], start: 1),
+              rev: '1-a',
+              localSeq: '1'),
+          Doc(
+              id: 'a',
+              model: {},
+              revisions: Revisions(ids: ['b', 'a'], start: 2),
+              rev: '2-b',
+              localSeq: '2'),
+          Doc(
+              id: 'a',
+              model: {},
+              revisions: Revisions(ids: ['c', 'b'], start: 3),
+              rev: '3-c',
+              localSeq: '3'),
+          Doc(
+              id: 'a',
+              model: {},
+              revisions: Revisions(ids: ['d', 'c'], start: 4),
+              rev: '4-d',
+              localSeq: '5')
+        ]).toJson((value) => jsonDecode(jsonEncode(value))));
+    await adapter.db.put(adapter.docTableName,
         id: 'b',
-        object: DocHistory(
-                winnerIndex: 0,
-                docs: [Doc(id: 'b', model: {}, rev: '1', localSeq: '4')])
-            .toJson((value) => value));
+        object: DocHistory(winnerIndex: 0, docs: [
+          Doc(
+              id: 'b',
+              model: {},
+              revisions: Revisions(ids: ['b'], start: 1),
+              rev: '1-b',
+              localSeq: '4')
+        ]).toJson((value) => jsonDecode(jsonEncode(value))));
 
-    adapter.db.put(adapter.sequenceTableName, id: '4', object: {"id": 'b'});
-    adapter.db.put(adapter.sequenceTableName, id: '5', object: {"id": 'a'});
+    await adapter.db
+        .put(adapter.sequenceTableName, id: '4', object: {"id": 'b'});
+    await adapter.db
+        .put(adapter.sequenceTableName, id: '5', object: {"id": 'a'});
 
-    var stream =
-        await adapter.changesStream(ChangeRequest(since: '0', feed: 'normal'));
-    Completer<ChangeResponse> c = new Completer();
-    stream.onComplete((resp) async {
-      c.complete(resp);
+    var fn = expectAsync1((ChangeResponse result) {
+      print(result);
+      expect(result.results.length, equals(0));
     });
-    var response = await c.future;
-    expect(response.results[0].id, 'b');
-    expect(response.results[0].id, 'a');
-    // limit, since work
+
+    // var fn = expectAsync2((int no, Function cancel) {
+    //   cancel();
+    //   expect(no, equals(3));
+    // });
+
+    adapter
+        .changesStream(ChangeRequest(since: 'now', feed: ChangeFeed.normal))
+        .then((value) {
+      int count = 0;
+
+      value.onResult((result) {
+        print(result);
+        ++count;
+        // if (count == 3) fn(count, value.cancel);
+      });
+
+      value.onComplete((response) {
+        print(response);
+        fn(response);
+      });
+    });
+
+    await adapter.db.put(adapter.docTableName,
+        id: 'c',
+        object: DocHistory(winnerIndex: 0, docs: [
+          Doc(
+              id: 'c',
+              model: {},
+              revisions: Revisions(ids: ['e'], start: 1),
+              rev: '1-e',
+              localSeq: '6')
+        ]).toJson((value) => jsonDecode(jsonEncode(value))));
+
+    await adapter.db
+        .put(adapter.sequenceTableName, id: '6', object: {"id": 'c'});
+
+    Future.delayed(Duration(seconds: 5)).then((value) async =>
+        adapter.addChanges(
+            seq: '6',
+            id: 'c',
+            history: DocHistory.fromJson(
+                (await adapter.db.get(adapter.docTableName, id: 'c'))!,
+                (json) => json)));
+
+    await adapter.db.put(adapter.docTableName,
+        id: 'd',
+        object: DocHistory(winnerIndex: 0, docs: [
+          Doc(
+              id: 'd',
+              model: {},
+              revisions: Revisions(ids: ['f'], start: 1),
+              rev: '1-f',
+              localSeq: '7')
+        ]).toJson((value) => jsonDecode(jsonEncode(value))));
+
+    await adapter.db
+        .put(adapter.sequenceTableName, id: '7', object: {"id": 'd'});
+
+    Future.delayed(Duration(seconds: 5)).then((value) async =>
+        adapter.addChanges(
+            seq: '7',
+            id: 'd',
+            history: DocHistory.fromJson(
+                (await adapter.db.get(adapter.docTableName, id: 'd'))!,
+                (json) => json)));
+
+    var fn2 = expectAsync0(() {
+      expect(10, 10);
+    });
+
+    Future.delayed(Duration(seconds: 10)).then((value) {
+      print('done');
+      fn2();
+    });
   });
 
-  test("allDoc", () async {
+  test("allDocs()", () async {
     var adapter = getMemeoryAdapter();
     adapter.db.put(adapter.docTableName,
         id: 'a',
@@ -115,13 +211,13 @@ void main() async {
           Doc(id: 'a', model: {}, rev: '2', localSeq: '2'),
           Doc(id: 'a', model: {}, rev: '3', localSeq: '3'),
           Doc(id: 'a', model: {}, rev: '4', localSeq: '5')
-        ]).toJson((value) => value));
+        ]).toJson((value) => jsonDecode(jsonEncode(value))));
     adapter.db.put(adapter.docTableName,
         id: 'b',
         object: DocHistory(
                 winnerIndex: 0,
                 docs: [Doc(id: 'b', model: {}, rev: '1', localSeq: '4')])
-            .toJson((value) => value));
+            .toJson((value) => jsonDecode(jsonEncode(value))));
 
     adapter.db.put(adapter.sequenceTableName, id: '4', object: {"id": 'b'});
     adapter.db.put(adapter.sequenceTableName, id: '5', object: {"id": 'a'});
@@ -132,5 +228,32 @@ void main() async {
     expect(docs.rows[0].value.rev, '4');
     expect(docs.rows[0].id, 'b');
     expect(docs.rows[1].value.rev, '1');
+  });
+
+  test('read', () async {
+    var adapter = getMemeoryAdapter();
+    await adapter.db.put(adapter.docTableName,
+        id: 'a',
+        object: DocHistory(winnerIndex: 3, docs: [
+          Doc(id: 'a', model: {}, rev: '1', localSeq: '1'),
+          Doc(id: 'a', model: {}, rev: '2', localSeq: '2'),
+          Doc(id: 'a', model: {}, rev: '3', localSeq: '3'),
+          Doc(id: 'a', model: {}, rev: '4', localSeq: '5')
+        ]).toJson((value) => jsonDecode(jsonEncode(value))));
+    await adapter.db.put(adapter.docTableName,
+        id: 'b',
+        object: DocHistory(
+                winnerIndex: 0,
+                docs: [Doc(id: 'b', model: {}, rev: '1', localSeq: '4')])
+            .toJson((value) => jsonDecode(jsonEncode(value))));
+
+    await adapter.db
+        .put(adapter.sequenceTableName, id: '4', object: {"id": 'b'});
+    await adapter.db
+        .put(adapter.sequenceTableName, id: '5', object: {"id": 'a'});
+
+    Map<String, dynamic> map = await adapter.db.read(adapter.docTableName);
+    print(map);
+    expect(map.length, equals(2));
   });
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:foodb/adapter/adapter.dart';
+import 'package:foodb/common/doc.dart';
 import 'package:http/http.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -40,15 +41,14 @@ class ChangeResult {
 
 class ChangesStream {
   Stream<String> _stream;
-  Client _client;
+  Client? _client;
   String _feed;
+  Function? _cancel;
   List<ChangeResult> _results = [];
-  ChangesStream({
-    required stream,
-    required client,
-    required feed,
-  })  : _stream = stream,
+  ChangesStream({required stream, client, required feed, cancel})
+      : _stream = stream,
         _client = client,
+        _cancel = cancel,
         _feed = feed;
   List<StreamSubscription> subscriptions = [];
 
@@ -56,7 +56,8 @@ class ChangesStream {
     subscriptions.forEach((element) {
       element.cancel();
     });
-    _client.close();
+    if (_cancel != null) _cancel!();
+    if (_client != null) _client!.close();
   }
 
   onHeartbeat(Function listener) {
@@ -72,7 +73,6 @@ class ChangesStream {
 
   onResult(Function(ChangeResult) listener) {
     var subscription = _stream.listen((event) {
-      print(event);
       var splitted = event.split('\n').map((e) => e.trim());
       var changeResults =
           splitted.where((element) => RegExp("^{.*},?\$").hasMatch(element));
@@ -139,15 +139,24 @@ class ChangeRequest {
   String feed;
   String? filter;
   int heartbeat;
+
+  @JsonKey(name: "include_docs")
   bool includeDocs;
   bool attachments;
+
+  @JsonKey(name: "att_encoding_info")
   bool attEncodingInfo;
+
+  @JsonKey(name: "last_event_id")
   int? lastEventId;
+
   int? limit;
   String since;
   String style;
   int timeout;
   String? view;
+
+  @JsonKey(name: "seq_interval")
   int? seqInterval;
 
   ChangeRequest({

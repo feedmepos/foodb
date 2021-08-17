@@ -202,9 +202,9 @@ void main() async {
     });
     couchDb
         .changesStream(ChangeRequest(
-            includeDocs: true,
+            includeDocs: false,
             feed: ChangeFeed.normal,
-            since: '0',
+            since: 'now',
             heartbeat: 1000))
         .then((changesStream) {
       var listener;
