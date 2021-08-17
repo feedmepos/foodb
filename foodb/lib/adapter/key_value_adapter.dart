@@ -153,8 +153,9 @@ class KeyValueAdapter extends AbstractAdapter {
           winner.removeWhere((key, value) => value == null);
           changeResult["doc"] = winner;
         }
-
-        streamController.sink.add(jsonEncode(changeResult));
+        streamController.onListen = () {
+          streamController.sink.add(jsonEncode(changeResult));
+        };
 
         if (request.limit != null) {
           request.limit = request.limit! - 1;
@@ -175,10 +176,17 @@ class KeyValueAdapter extends AbstractAdapter {
       } else {
         if (request.since == 'now') {
           //if dont want put future.delayed, what should I put at here???
+          //await Future.delayed(Duration(seconds: 1)).then((value) async =>
           lastSeq = (await db.read(sequenceTableName)).keys.last;
+          //);
         }
-        streamController.sink
-            .add("\"last_seq\":\"${lastSeq}\", \"pending\": 0}");
+
+        streamController.onListen = () {
+          streamController.sink
+              .add("\"last_seq\":\"${lastSeq}\", \"pending\": 0}");
+        };
+        // streamController.sink
+        //     .add("\"last_seq\":\"${lastSeq}\", \"pending\": 0}");
         streamController.close();
       }
     }
@@ -189,8 +197,10 @@ class KeyValueAdapter extends AbstractAdapter {
     StreamController<String> streamController =
         new StreamController<String>.broadcast();
 
-    iniChangesStream(streamController, request);
-
+    await iniChangesStream(streamController, request);
+    // streamController.onListen = () {
+    //   streamController.sink.add("\"last_seq\":\"0\", \"pending\": 0}");
+    // };
     return ChangesStream(
         feed: request.feed,
         stream: streamController.stream,

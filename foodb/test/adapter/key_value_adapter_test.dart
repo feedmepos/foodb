@@ -143,7 +143,7 @@ void main() async {
 
     var fn = expectAsync1((ChangeResponse result) {
       print(result);
-      expect(result.results.length, equals(0));
+      expect(result.results.length, equals(2));
     });
 
     // var fn = expectAsync2((int no, Function cancel) {
@@ -152,7 +152,7 @@ void main() async {
     // });
 
     adapter
-        .changesStream(ChangeRequest(since: 'now', feed: ChangeFeed.normal))
+        .changesStream(ChangeRequest(since: 'nows', feed: ChangeFeed.normal))
         .then((value) {
       int count = 0;
 
