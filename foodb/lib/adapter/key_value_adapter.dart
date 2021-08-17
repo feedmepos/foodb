@@ -311,7 +311,7 @@ class KeyValueAdapter extends AbstractAdapter {
 
     var history = await db.get(docTableName, id: doc.id);
     DocHistory<Map<String, dynamic>> docHistory = history == null
-        ? DocHistory(winnerIndex: 0, docs: [])
+        ? DocHistory(docs: [])
         : DocHistory.fromJson(history, (json) => json as Map<String, dynamic>);
 
     Rev newDocRev;
@@ -331,7 +331,7 @@ class KeyValueAdapter extends AbstractAdapter {
               ? [newDocRev.md5, ...winner.revisions!.ids]
               : [newDocRev.md5]);
       docHistory =
-          docHistory.copyWith(winnerIndex: docHistory.docs.length, docs: [
+          docHistory.copyWith(docs: [
         ...docHistory.docs,
         doc.copyWith(rev: newDocRev.toString(), revisions: newDocRevisions)
       ]);

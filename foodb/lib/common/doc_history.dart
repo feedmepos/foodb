@@ -7,15 +7,13 @@ part 'doc_history.g.dart';
 @JsonSerializable(genericArgumentFactories: true, explicitToJson: true)
 
 class DocHistory<T> {
-  int winnerIndex;
   List<Doc<T>> docs;
 
   DocHistory({
-    required this.winnerIndex,
     required this.docs,
   });
 
-  Doc<T>? get winner => docs.length > 0 ? docs[winnerIndex] : null;
+  Doc<T>? get winner => docs.length > 0 ? docs[docs.length-1] : null;
 
   Iterable<Doc<T>> get leafDocs sync* {
     var sorted = docs.toList();
@@ -24,6 +22,9 @@ class DocHistory<T> {
       print(sorted.length);
       var leaf = sorted.first;
       sorted.removeAt(0);
+      for (String md5 in leaf.revisions!.ids) {
+        sorted.removeWhere((e) => Rev.parse(e.rev!).md5 == md5);
+      }
       yield leaf;
     }
   }
@@ -35,11 +36,9 @@ class DocHistory<T> {
       _$DocHistoryToJson(this, toJsonT);
 
   DocHistory<T> copyWith({
-    int? winnerIndex,
     List<Doc<T>>? docs,
   }) {
     return DocHistory<T>(
-      winnerIndex: winnerIndex ?? this.winnerIndex,
       docs: docs ?? this.docs,
     );
   }
