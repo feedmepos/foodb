@@ -19,41 +19,60 @@ void main() async {
   test("_generateView", () async {
     var db = InMemoryDatabase();
     var adapter = KeyValueAdapter(dbName: 'test', db: db);
-    await adapter.put(doc: Doc(id: 'id', model: {"name": "charlies", "no": 1}));
-    await adapter.put(doc: Doc(id: 'id2', model: {"name": "ants", "no": 2}));
-    // adapter.db.put(adapter.viewMetaTableName,
-    //     id: "_all_docs__all_docs", object: {"lastSeq": 0});
-    await adapter.allDocs(GetAllDocsRequest(), (json) => json);
 
-    Map<String, dynamic>? doc = await adapter.db
-        .get(adapter.viewTableName("_all_docs__all_docs"), id: "id");
-    print(doc.toString());
-    expect(doc, isNotNull);
+    await adapter.db.put(adapter.docTableName,
+        id: 'a',
+        object: DocHistory(winnerIndex: 0, docs: [
+          Doc(
+              id: 'a',
+              model: {},
+              revisions: Revisions(ids: ['a'], start: 1),
+              rev: '1-a',
+              localSeq: '1'),
+          Doc(
+              id: 'a',
+              model: {},
+              revisions: Revisions(ids: ['b', 'a'], start: 2),
+              rev: '2-b',
+              localSeq: '2'),
+          Doc(
+              id: 'a',
+              model: {},
+              revisions: Revisions(ids: ['c', 'b'], start: 3),
+              rev: '3-c',
+              localSeq: '3'),
+          Doc(
+              id: 'a',
+              model: {},
+              revisions: Revisions(ids: ['d', 'c'], start: 4),
+              rev: '4-d',
+              localSeq: '5')
+        ]).toJson((value) => jsonDecode(jsonEncode(value))));
+    await adapter.db.put(adapter.docTableName,
+        id: 'b',
+        object: DocHistory(winnerIndex: 0, docs: [
+          Doc(
+              id: 'b',
+              model: {},
+              revisions: Revisions(ids: ['b'], start: 1),
+              rev: '1-b',
+              localSeq: '4')
+        ]).toJson((value) => jsonDecode(jsonEncode(value))));
 
-    Map<String, dynamic>? doc2 = await adapter.db
-        .get(adapter.viewTableName("_all_docs__all_docs"), id: "id2");
-    print(doc2.toString());
-    expect(doc2, isNotNull);
-  });
+    await adapter.db
+        .put(adapter.sequenceTableName, id: '4', object: {"id": 'b'});
+    await adapter.db
+        .put(adapter.sequenceTableName, id: '5', object: {"id": 'a'});
 
-  test("_generateView2()", () async {
-    var db = InMemoryDatabase();
-    var adapter = KeyValueAdapter(dbName: 'test', db: db);
-    await adapter.put(
-        doc: Doc(id: 'id', model: {"name": "charlies", "no": 1}),
-        newEdits: false,
-        newRev: "1-aba");
-    await adapter.put(
-        doc: Doc(id: 'id', model: {"name": "ants", "no": 2}),
-        newEdits: false,
-        newRev: "1-bab");
-    DocHistory<Map<String, dynamic>> history =
-        DocHistory<Map<String, dynamic>>.fromJson(
-            (await adapter.db.get(adapter.docTableName, id: "id"))!,
-            (json) => json as Map<String, dynamic>);
+    GetAllDocs<Map<String, dynamic>> docs =
+        await adapter.allDocs(GetAllDocsRequest(), (json) => json);
+    print(docs.toJson((value) => value));
+    expect(docs.rows.length, equals(2));
 
-    print(history.winner);
-    expect(history.winner, isNotNull);
+    Map<String, Map<String, dynamic>> map =
+        await adapter.db.read(adapter.viewTableName("_all_docs__all_docs"));
+    print(map);
+    expect(map.length, equals(2));
   });
 
   test('put & get', () async {
@@ -75,6 +94,7 @@ void main() async {
     expect(doc3, isNull);
   });
 
+  //winner doc invalid conflict tocheck with small victor
   test("changeStream", () async {
     var adapter = getMemeoryAdapter();
     await adapter.db.put(adapter.docTableName,

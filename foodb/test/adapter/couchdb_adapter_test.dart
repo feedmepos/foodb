@@ -45,6 +45,7 @@ void main() async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();
     var result = await couchDb.allDocs<Map<String, dynamic>>(
         GetAllDocsRequest(includeDocs: true), (value) => value);
+    print(result.toJson((value) => value));
     expect(result.totalRows, isNotNull);
   });
 

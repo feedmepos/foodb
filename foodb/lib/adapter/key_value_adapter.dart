@@ -19,7 +19,6 @@ import 'package:foodb/common/design_doc.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/doc_history.dart';
 import 'package:foodb/common/view_meta.dart';
-import 'package:http/http.dart';
 
 abstract class KeyValueDatabase {
   Future<bool> put(String tableName,
@@ -100,10 +99,27 @@ class KeyValueAdapter extends AbstractAdapter {
   Future<GetAllDocs<T>> allDocs<T>(GetAllDocsRequest allDocsRequest,
       T Function(Map<String, dynamic> json) fromJsonT) async {
     var viewName = _getViewName(designDocId: '_all_docs', viewId: '_all_docs');
+
     await _generateView(Doc<DesignDoc>(
         id: '_all_docs',
         model: DesignDoc(views: {'_all_docs': AllDocDesignDocView()})));
-    return _findByView(viewName);
+
+    Map<String, Map<String, dynamic>> map = await _findByView(viewName,
+        startKey: allDocsRequest.startKey,
+        endKey: allDocsRequest.endKey,
+        desc: allDocsRequest.descending);
+
+    return GetAllDocs(
+        offset: 0,
+        totalRows: await db.tableSize(viewTableName(viewName)),
+        rows: map.values
+            .map<Row<T>>((e) => Row<T>(
+                id: e["_id"],
+                key: e["_id"],
+                value: Value(rev: e["_rev"]),
+                doc: Doc<T>.fromJson(
+                    e, (json) => fromJsonT(json as Map<String, dynamic>))))
+            .toList());
   }
 
   @override
@@ -158,6 +174,7 @@ class KeyValueAdapter extends AbstractAdapter {
         _longPollChangeRequests.add(request);
       } else {
         if (request.since == 'now') {
+          //if dont want put future.delayed, what should I put at here???
           lastSeq = (await db.read(sequenceTableName)).keys.last;
         }
         streamController.sink
@@ -394,7 +411,9 @@ class KeyValueAdapter extends AbstractAdapter {
       var stream = await changesStream(
           ChangeRequest(since: meta.lastSeq, feed: 'normal'));
       Completer<String> c = new Completer();
+      stream.onResult((result) => print(result));
       stream.onComplete((resp) async {
+        print(resp.toJson());
         for (var result in resp.results) {
           var history = DocHistory<Map<String, dynamic>>.fromJson(
               (await db.get(docTableName, id: result.id))!,
@@ -433,8 +452,10 @@ class KeyValueAdapter extends AbstractAdapter {
     return [];
   }
 
-  _findByView(String viewName) {
-    return db.read(viewTableName(viewName));
+  _findByView(String viewName,
+      {String? startKey, String? endKey, required bool desc}) {
+    return db.read(viewTableName(viewName),
+        startKey: startKey, endKey: endKey, desc: desc);
   }
 
   _getViewName({required String designDocId, required String viewId}) {
