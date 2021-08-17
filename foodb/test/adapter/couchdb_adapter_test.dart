@@ -45,6 +45,7 @@ void main() async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();
     var result = await couchDb.allDocs<Map<String, dynamic>>(
         GetAllDocsRequest(includeDocs: true), (value) => value);
+    print(result.toJson((value) => value));
     expect(result.totalRows, isNotNull);
   });
 
@@ -202,9 +203,9 @@ void main() async {
     });
     couchDb
         .changesStream(ChangeRequest(
-            includeDocs: true,
+            includeDocs: false,
             feed: ChangeFeed.normal,
-            since: '0',
+            since: 'now',
             heartbeat: 1000))
         .then((changesStream) {
       var listener;

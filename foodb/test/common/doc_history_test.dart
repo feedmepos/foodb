@@ -20,7 +20,7 @@ void main() {
         model: {},
         revisions: Revisions(start: 2, ids: ["2", "1"])));
     expect(history.leafDocs.length, 1);
-    expect(history.leafDocs[0].rev, '2-2');
+    expect(history.leafDocs.first.rev, '2-2');
     // TEST different sacnario
   });
 
