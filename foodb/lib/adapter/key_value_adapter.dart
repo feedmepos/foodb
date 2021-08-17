@@ -361,13 +361,15 @@ class KeyValueAdapter extends AbstractAdapter {
           Revisions(start: newDocRev.index, ids: [newDocRev.md5]);
 
       if (existDoc == -1) {
-        docHistory = docHistory.copyWith(docs: [
+        docHistory = docHistory
+            .copyWith(winnerIndex: docHistory.docs.length, docs: [
           doc.copyWith(rev: newDocRev.toString(), revisions: newDocRevisions)
         ]);
       } else {
         var newDocs = docHistory.docs.toList();
         newDocs[existDoc] = doc.copyWith(revisions: newDocRevisions);
-        docHistory = docHistory.copyWith(docs: newDocs);
+        docHistory = docHistory.copyWith(
+            winnerIndex: docHistory.docs.length, docs: newDocs);
       }
     }
 
