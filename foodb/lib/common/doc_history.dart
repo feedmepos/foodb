@@ -4,31 +4,29 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'doc_history.g.dart';
 
-@JsonSerializable(genericArgumentFactories: true)
+@JsonSerializable(genericArgumentFactories: true, explicitToJson: true)
+
 class DocHistory<T> {
-  int winnerIndex;
   List<Doc<T>> docs;
 
   DocHistory({
-    required this.winnerIndex,
     required this.docs,
   });
 
-  Doc<T>? get winner => winnerIndex < docs.length ? docs[winnerIndex] : null;
+  Doc<T>? get winner => docs.length > 0 ? docs[docs.length-1] : null;
 
-  List<Doc<T>> get leafDocs {
+  Iterable<Doc<T>> get leafDocs sync* {
     var sorted = docs.toList();
-    List<Doc<T>> leave = [];
     sorted.sort((a, b) => b.revisions!.start - a.revisions!.start);
     while (sorted.length > 0) {
+      print(sorted.length);
       var leaf = sorted.first;
-      leave.add(leaf);
-      sorted.remove(0);
-      for (String md5 in leaf.revisions!.ids) {
-        sorted.removeWhere((element) => Rev.parse(element.rev!).md5 == md5);
-      }
+      sorted.removeAt(0);
+      sorted.removeWhere((e) =>
+          e.deleted == true ||
+          leaf.revisions!.ids.contains(Rev.parse(e.rev!).md5));
+      yield leaf;
     }
-    return leave;
   }
 
   factory DocHistory.fromJson(
@@ -38,11 +36,9 @@ class DocHistory<T> {
       _$DocHistoryToJson(this, toJsonT);
 
   DocHistory<T> copyWith({
-    int? winnerIndex,
     List<Doc<T>>? docs,
   }) {
     return DocHistory<T>(
-      winnerIndex: winnerIndex ?? this.winnerIndex,
       docs: docs ?? this.docs,
     );
   }

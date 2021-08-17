@@ -13,16 +13,10 @@ class InMemoryDatabase implements KeyValueDatabase {
   Future<bool> put(String tableName,
       {required String id, required Map<String, dynamic> object}) async {
     var storeRecords = _stores[tableName];
-    // docs db is a List of docs
-    // a single doc id can have multiple revisions
-    if (_stores[tableName] == null) {
-      _stores[tableName] = SplayTreeMap();
+    if (storeRecords == null) {
+      storeRecords = SplayTreeMap();
     }
-    if (_stores[tableName]!.containsKey(id)) {
-      _stores[tableName]!.update(id, (value) => object);
-    } else {
-      _stores[tableName]!.putIfAbsent(id, () => object);
-    }
+    storeRecords!.update(id, (value) => object, ifAbsent: () => object);
     return true;
   }
 

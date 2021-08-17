@@ -11,7 +11,6 @@ DocHistory<T> _$DocHistoryFromJson<T>(
   T Function(Object? json) fromJsonT,
 ) {
   return DocHistory<T>(
-    winnerIndex: json['winnerIndex'] as int,
     docs: (json['docs'] as List<dynamic>)
         .map((e) => Doc.fromJson(
             e as Map<String, dynamic>, (value) => fromJsonT(value)))
@@ -24,7 +23,6 @@ Map<String, dynamic> _$DocHistoryToJson<T>(
   Object? Function(T value) toJsonT,
 ) =>
     <String, dynamic>{
-      'winnerIndex': instance.winnerIndex,
       'docs': instance.docs
           .map((e) => e.toJson(
                 (value) => toJsonT(value),
