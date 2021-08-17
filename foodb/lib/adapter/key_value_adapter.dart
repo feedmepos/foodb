@@ -18,6 +18,7 @@ import 'package:foodb/adapter/utils.dart';
 import 'package:foodb/common/design_doc.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/doc_history.dart';
+import 'package:foodb/common/rev.dart';
 import 'package:foodb/common/view_meta.dart';
 
 abstract class KeyValueDatabase {
@@ -37,12 +38,16 @@ abstract class JSRuntime {
 class KeyValueAdapter extends AbstractAdapter {
   KeyValueDatabase db;
   JSRuntime? jsRuntime;
+
   KeyValueAdapter({required dbName, required this.db, this.jsRuntime})
       : super(dbName: dbName);
 
   String get docTableName => '${dbName}_docs';
+
   String get sequenceTableName => '${dbName}_sequences';
+
   String get viewMetaTableName => '${dbName}_viewmeta';
+
   String viewTableName(String viewName) => '${dbName}_view_${viewName}';
 
   List<StreamController<String>> _continuousStreamControllers = [];
@@ -197,10 +202,10 @@ class KeyValueAdapter extends AbstractAdapter {
     StreamController<String> streamController =
         new StreamController<String>.broadcast();
 
-    await iniChangesStream(streamController, request);
-    // streamController.onListen = () {
-    //   streamController.sink.add("\"last_seq\":\"0\", \"pending\": 0}");
-    // };
+    //await iniChangesStream(streamController, request);
+    streamController.onListen = () {
+      streamController.sink.add("\"last_seq\":\"0\", \"pending\": 0}");
+    };
     return ChangesStream(
         feed: request.feed,
         stream: streamController.stream,
@@ -235,15 +240,25 @@ class KeyValueAdapter extends AbstractAdapter {
     var result = await db.get(docTableName, id: id);
     if (result != null) {
       var history = DocHistory.fromJson(result, (json) => json);
-      if (history.winner?.rev != rev) {
+      if (history.winner?.rev != rev)
         throw AdapterException(error: 'Invalid rev');
-      } else {
-        // TODO create a new rev as delete;
-      }
-      return DeleteResponse(ok: true);
+
+      return DeleteResponse(ok: true, id: id, rev: rev);
     } else {
-      return DeleteResponse(ok: false);
+      return DeleteResponse(
+          ok: false,
+          id: id,
+          rev: rev,
+          error: "Missing",
+          reason: "Could not find the doc by id $id");
     }
+  }
+
+  Future<DocHistory<Map<String, dynamic>>?> getHistory(String id) async {
+    var result = await db.get(docTableName, id: id);
+    return result != null
+        ? DocHistory.fromJson(result, (json) => json as Map<String, dynamic>)
+        : null;
   }
 
   @override
@@ -300,45 +315,69 @@ class KeyValueAdapter extends AbstractAdapter {
       {required Doc<Map<String, dynamic>> doc,
       bool newEdits = true,
       String? newRev}) async {
-    var result = await db.get(docTableName, id: doc.id);
-    var rev = newEdits ? doc.rev ?? RevisionTool.generate() : newRev;
-    var newDoc = doc.toJson((value) => value);
-    // first revision
-    if (result == null) {
-      newDoc['_rev'] = newEdits ? RevisionTool.generate() : newRev;
-      db.put(docTableName, id: doc.id, object: newDoc);
-    } else {
-      var docList = result as List<dynamic>;
-      var highestRev = -1;
-      var highestRevIndex = 0;
-      docList.asMap().forEach((key, value) {
-        var rev = RevisionTool(value['_rev']).index;
-        if (rev > highestRev) highestRevIndex = key;
-      });
-      var resultObject = Doc.fromJson(docList[highestRevIndex], (json) => json);
-      if (!newEdits) {
-        var body = doc.model;
+    if (newRev != null && newRev != doc.rev) {
+      throw AdapterException(error: 'newRev must be same as doc _rev');
+    }
 
-        if (newRev == null) {
-          throw new AdapterException(
-              error: 'newRev is required when newEdits is false');
+    var history = await db.get(docTableName, id: doc.id);
+    DocHistory<Map<String, dynamic>> docHistory = history == null
+        ? DocHistory(docs: [])
+        : DocHistory.fromJson(history, (json) => json as Map<String, dynamic>);
+
+    Rev newDocRev;
+
+    if (newEdits == true) {
+      var winner = docHistory.winner;
+      if (winner != null) {
+        if (doc.rev != winner.rev) {
+          throw AdapterException(error: 'update conflict');
         }
-        body['_revisions'] = {
-          "ids": doc.rev == null
-              ? [RevisionTool(newRev).content]
-              : [RevisionTool(newRev).content, RevisionTool(doc.rev!).content],
-          "start": int.parse(newRev.split('-')[0])
-        };
-        newDoc['model'] = body;
-        newDoc['_rev'] = newRev;
-        db.put(docTableName, id: doc.id, object: newDoc);
+      }
+
+      newDocRev = Rev.parse(doc.rev ?? '0-0').increase(doc.model);
+      var newDocRevisions = Revisions(
+          start: newDocRev.index,
+          ids: winner != null
+              ? [newDocRev.md5, ...winner.revisions!.ids]
+              : [newDocRev.md5]);
+      docHistory = docHistory.copyWith(docs: [
+        ...docHistory.docs,
+        doc.copyWith(rev: newDocRev.toString(), revisions: newDocRevisions)
+      ]);
+    } else {
+      if (doc.rev == null) {
+        throw AdapterException(
+            error: 'doc rev must be supplied when new_edits is false');
+      }
+
+      var existDoc =
+          docHistory.docs.indexWhere((element) => element.rev == doc.rev);
+
+      Doc<Map<String, dynamic>> newDoc =
+          existDoc == -1 ? doc : docHistory.docs[existDoc];
+
+      newDocRev = Rev.parse(doc.rev!);
+      var newDocRevisions = newDoc.revisions ??
+          Revisions(start: newDocRev.index, ids: [newDocRev.md5]);
+
+      if (existDoc == -1) {
+        docHistory = docHistory.copyWith(docs: [
+          doc.copyWith(rev: newDocRev.toString(), revisions: newDocRevisions)
+        ]);
       } else {
-        newDoc['_rev'] = RevisionTool(resultObject.rev!).increment();
-        db.put(docTableName, id: doc.id, object: newDoc);
+        var newDocs = docHistory.docs.toList();
+        newDocs[existDoc] = doc.copyWith(revisions: newDocRevisions);
+        docHistory = docHistory.copyWith(docs: newDocs);
       }
     }
-    _updateSequence(id: doc.id, rev: rev!);
-    return PutResponse(ok: true);
+
+    var finalDoc =
+        await _beforeUpdate(doc: docHistory.docs[docHistory.docs.length - 1]);
+    await _updateSequence(id: finalDoc.id, rev: finalDoc.rev!);
+    db.put(docTableName,
+        id: finalDoc.id, object: docHistory.toJson((value) => value));
+
+    return PutResponse(ok: true, id: doc.id, rev: finalDoc.rev!);
   }
 
   @override
@@ -390,9 +429,18 @@ class KeyValueAdapter extends AbstractAdapter {
     return result.winner;
   }
 
-  Future<void> _postUpdate() async {
-    // decide winner
-    // update sequence
+  Future<Doc<Map<String, dynamic>>> _beforeUpdate(
+      {required Doc<Map<String, dynamic>> doc}) async {
+    int lastSeq = await db.tableSize(sequenceTableName);
+    String newSeqString = Utils.generateSequence(lastSeq + 1);
+    await db.put(sequenceTableName,
+        id: newSeqString,
+        object: ChangeResult(
+            id: doc.id,
+            seq: newSeqString,
+            changes: [ChangeResultRev(rev: doc.rev!)]).toJson());
+
+    return doc.copyWith(localSeq: newSeqString);
   }
 
   Future<void> _updateSequence(
@@ -462,13 +510,13 @@ class KeyValueAdapter extends AbstractAdapter {
     return [];
   }
 
-  _findByView(String viewName,
-      {String? startKey, String? endKey, required bool desc}) {
-    return db.read(viewTableName(viewName),
+  Future<Map<String, Map<String, dynamic>>> _findByView(String viewName,
+      {String? startKey, String? endKey, required bool desc}) async {
+    return await db.read(viewTableName(viewName),
         startKey: startKey, endKey: endKey, desc: desc);
   }
 
-  _getViewName({required String designDocId, required String viewId}) {
+  String _getViewName({required String designDocId, required String viewId}) {
     return '${designDocId}_${viewId}';
   }
 }

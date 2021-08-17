@@ -9,17 +9,19 @@ void main() {
   StreamController<String> streamController =
       StreamController<String>.broadcast();
   test('stream', () {
-    var fn = expectAsync1((result) {
-      print(result);
+    var fn = expectAsync1((ChangeResponse result) {
+      print(result.lastSeq);
       expect(result, isNotNull);
     });
 
     streamController.onListen = () {
-      streamController.sink.add('event');
+      streamController.sink.add('\"last_seq\":\"0\", \"pending\": 0}');
     };
-    streamController.stream.listen((event) {
-      fn(event);
-    });
+
+    ChangesStream changesStream = ChangesStream(
+        stream: streamController.stream, feed: ChangeFeed.continuous);
+    changesStream.onResult((result) => print(result));
+    changesStream.onComplete((result) => fn(result));
     //streamController.add("\"last_seq\":\"0\", \"pending\": 0}");
   });
 }

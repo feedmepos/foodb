@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/in_memory_database.dart';
@@ -12,7 +13,7 @@ import 'package:foodb/common/doc_history.dart';
 void main() async {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  getMemeoryAdapter() {
+  getMemoryAdapter() {
     return KeyValueAdapter(dbName: 'test', db: InMemoryDatabase());
   }
 
@@ -22,7 +23,7 @@ void main() async {
 
     await adapter.db.put(adapter.docTableName,
         id: 'a',
-        object: DocHistory(winnerIndex: 0, docs: [
+        object: DocHistory(docs: [
           Doc(
               id: 'a',
               model: {},
@@ -50,7 +51,7 @@ void main() async {
         ]).toJson((value) => jsonDecode(jsonEncode(value))));
     await adapter.db.put(adapter.docTableName,
         id: 'b',
-        object: DocHistory(winnerIndex: 0, docs: [
+        object: DocHistory(docs: [
           Doc(
               id: 'b',
               model: {},
@@ -76,19 +77,23 @@ void main() async {
   });
 
   test('put & get', () async {
-    final KeyValueAdapter memoryDb = getMemeoryAdapter();
+    final memoryDb = getMemoryAdapter();
     await memoryDb.put(doc: Doc(id: 'foo1', model: {'bar': 'foo'}));
     await memoryDb.put(doc: Doc(id: 'foo2', model: {'a': 'b'}));
     await memoryDb.put(
-        doc: new Doc(id: 'foo2', model: {'bar': 'foo'}),
-        newEdits: false,
-        newRev: '2-dadadada');
+        doc: Doc(
+            id: 'foo2',
+            model: {'bar': 'foo'},
+            rev: '1-92eff9dda44cb8003ee13990782580ff'));
     var doc1 = await memoryDb.get<Map<String, dynamic>>(
         id: 'foo1', fromJsonT: (v) => v);
     var doc2 = await memoryDb.get<Map<String, dynamic>>(
         id: 'foo2', fromJsonT: (v) => v);
     var doc3 = await memoryDb.get<Map<String, dynamic>>(
         id: 'foo3', fromJsonT: (v) => v);
+    print(doc1?.toJson((value) => value));
+    print(doc2?.toJson((value) => value));
+    print(doc3?.toJson((value) => value));
     expect(doc1, isNotNull);
     expect(doc2, isNotNull);
     expect(doc3, isNull);
@@ -96,10 +101,10 @@ void main() async {
 
   //winner doc invalid conflict tocheck with small victor
   test("changeStream", () async {
-    var adapter = getMemeoryAdapter();
+    var adapter = getMemoryAdapter();
     await adapter.db.put(adapter.docTableName,
         id: 'a',
-        object: DocHistory(winnerIndex: 0, docs: [
+        object: DocHistory(docs: [
           Doc(
               id: 'a',
               model: {},
@@ -127,7 +132,7 @@ void main() async {
         ]).toJson((value) => jsonDecode(jsonEncode(value))));
     await adapter.db.put(adapter.docTableName,
         id: 'b',
-        object: DocHistory(winnerIndex: 0, docs: [
+        object: DocHistory(docs: [
           Doc(
               id: 'b',
               model: {},
@@ -170,7 +175,7 @@ void main() async {
 
     await adapter.db.put(adapter.docTableName,
         id: 'c',
-        object: DocHistory(winnerIndex: 0, docs: [
+        object: DocHistory(docs: [
           Doc(
               id: 'c',
               model: {},
@@ -192,7 +197,7 @@ void main() async {
 
     await adapter.db.put(adapter.docTableName,
         id: 'd',
-        object: DocHistory(winnerIndex: 0, docs: [
+        object: DocHistory(docs: [
           Doc(
               id: 'd',
               model: {},
@@ -223,10 +228,10 @@ void main() async {
   });
 
   test("allDocs()", () async {
-    var adapter = getMemeoryAdapter();
+    var adapter = getMemoryAdapter();
     adapter.db.put(adapter.docTableName,
         id: 'a',
-        object: DocHistory(winnerIndex: 3, docs: [
+        object: DocHistory(docs: [
           Doc(id: 'a', model: {}, rev: '1', localSeq: '1'),
           Doc(id: 'a', model: {}, rev: '2', localSeq: '2'),
           Doc(id: 'a', model: {}, rev: '3', localSeq: '3'),
@@ -234,10 +239,9 @@ void main() async {
         ]).toJson((value) => jsonDecode(jsonEncode(value))));
     adapter.db.put(adapter.docTableName,
         id: 'b',
-        object: DocHistory(
-                winnerIndex: 0,
-                docs: [Doc(id: 'b', model: {}, rev: '1', localSeq: '4')])
-            .toJson((value) => jsonDecode(jsonEncode(value))));
+        object:
+            DocHistory(docs: [Doc(id: 'b', model: {}, rev: '1', localSeq: '4')])
+                .toJson((value) => jsonDecode(jsonEncode(value))));
 
     adapter.db.put(adapter.sequenceTableName, id: '4', object: {"id": 'b'});
     adapter.db.put(adapter.sequenceTableName, id: '5', object: {"id": 'a'});
@@ -251,10 +255,10 @@ void main() async {
   });
 
   test('read', () async {
-    var adapter = getMemeoryAdapter();
+    var adapter = getMemoryAdapter();
     await adapter.db.put(adapter.docTableName,
         id: 'a',
-        object: DocHistory(winnerIndex: 3, docs: [
+        object: DocHistory(docs: [
           Doc(id: 'a', model: {}, rev: '1', localSeq: '1'),
           Doc(id: 'a', model: {}, rev: '2', localSeq: '2'),
           Doc(id: 'a', model: {}, rev: '3', localSeq: '3'),
@@ -262,10 +266,9 @@ void main() async {
         ]).toJson((value) => jsonDecode(jsonEncode(value))));
     await adapter.db.put(adapter.docTableName,
         id: 'b',
-        object: DocHistory(
-                winnerIndex: 0,
-                docs: [Doc(id: 'b', model: {}, rev: '1', localSeq: '4')])
-            .toJson((value) => jsonDecode(jsonEncode(value))));
+        object:
+            DocHistory(docs: [Doc(id: 'b', model: {}, rev: '1', localSeq: '4')])
+                .toJson((value) => jsonDecode(jsonEncode(value))));
 
     await adapter.db
         .put(adapter.sequenceTableName, id: '4', object: {"id": 'b'});
