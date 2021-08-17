@@ -22,9 +22,9 @@ class DocHistory<T> {
       print(sorted.length);
       var leaf = sorted.first;
       sorted.removeAt(0);
-      for (String md5 in leaf.revisions!.ids) {
-        sorted.removeWhere((e) => Rev.parse(e.rev!).md5 == md5);
-      }
+      sorted.removeWhere((e) =>
+          e.deleted == true ||
+          leaf.revisions!.ids.contains(Rev.parse(e.rev!).md5));
       yield leaf;
     }
   }
