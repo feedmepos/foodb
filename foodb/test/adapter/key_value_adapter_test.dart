@@ -142,7 +142,7 @@ void main() async {
 
     var fn = expectAsync1((ChangeResponse result) {
       print(result);
-      expect(result.results.length, equals(0));
+      expect(result.results.length, equals(2));
     });
 
     // var fn = expectAsync2((int no, Function cancel) {
@@ -151,7 +151,7 @@ void main() async {
     // });
 
     adapter
-        .changesStream(ChangeRequest(since: 'now', feed: ChangeFeed.normal))
+        .changesStream(ChangeRequest(since: 'nows', feed: ChangeFeed.normal))
         .then((value) {
       int count = 0;
 
@@ -260,9 +260,9 @@ void main() async {
         ]).toJson((value) => jsonDecode(jsonEncode(value))));
     await adapter.db.put(adapter.docTableName,
         id: 'b',
-        object: DocHistory(
-                docs: [Doc(id: 'b', model: {}, rev: '1', localSeq: '4')])
-            .toJson((value) => jsonDecode(jsonEncode(value))));
+        object:
+            DocHistory(docs: [Doc(id: 'b', model: {}, rev: '1', localSeq: '4')])
+                .toJson((value) => jsonDecode(jsonEncode(value))));
 
     await adapter.db
         .put(adapter.sequenceTableName, id: '4', object: {"id": 'b'});
