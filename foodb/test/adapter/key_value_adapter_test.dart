@@ -79,18 +79,14 @@ void main() async {
   test('put & get', () async {
     final memoryDb = getMemoryAdapter();
     var res1 = await memoryDb.put(doc: Doc(id: 'foo1', model: {'a': 'b'}));
-    var res2 = await memoryDb.put(
-        doc: Doc(id: 'foo1', model: {'c': 'd'}, rev: res1.rev));
-    await memoryDb.put(doc: Doc(id: 'foo1', model: {'e': 'f'}, rev: res2.rev));
-    // await memoryDb.put(doc: Doc(id: 'foo1', model: {"hello": "world"}));
-    await memoryDb.put(doc: Doc(id: 'foo3', model: {'a': 'b'}));
-    await memoryDb.put(doc: Doc(id: 'foo4', model: {'a': 'b'}));
-    await memoryDb.put(doc: Doc(id: 'foo5', model: {'a': 'b'}));
-    print(await memoryDb.db.tableSize(memoryDb.docTableName));
-    var docHistory = await memoryDb.getHistory('foo1');
-    docHistory?.leafDocs.forEach((element) {
-      print(element.toJson((value) => value));
-    });
+    var res2 = await memoryDb.put(doc: Doc(id: 'foo2', model: {'c': 'd'}, rev: res1.rev));
+    var docsSize = await memoryDb.db.tableSize(memoryDb.docTableName);
+    var doc1 = await memoryDb.get(id: 'foo1', fromJsonT: (v) => v);
+    var doc2 = await memoryDb.get(id: 'foo2', fromJsonT: (v) => v);
+    expect(res2.ok, true);
+    expect(docsSize, 2);
+    expect(doc1?.model['a'], isNotNull);
+    expect(doc2?.model['c'], isNotNull);
   });
 
   //winner doc invalid conflict tocheck with small victor
