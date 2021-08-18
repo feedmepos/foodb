@@ -91,7 +91,7 @@ class CouchdbAdapter extends AbstractAdapter {
     uriBuilder.queryParameters = convertToParams(request.toJson());
 
     var res = await client.send(Request('get', uriBuilder.build()));
-    var streamedRes = res.stream.asBroadcastStream().transform(utf8.decoder);
+    var streamedRes = res.stream.transform(utf8.decoder);
     var streamedResponse =
         ChangesStream(stream: streamedRes, client: client, feed: request.feed);
     return streamedResponse;

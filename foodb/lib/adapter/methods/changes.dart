@@ -60,20 +60,18 @@ class ChangesStream {
     if (_client != null) _client!.close();
   }
 
-  onHeartbeat(Function listener) {
-    var subscription = _stream.listen((event) {
-      print(event);
+  StreamSubscription listen(
+      {Function(ChangeResponse)? onComplete,
+      Function(ChangeResult)? onResult,
+      Function? onHearbeat}) {
+    return _stream.listen((event) {
+      // is heartbeat
       if (event.trim() == '') {
-        listener();
+        if (onHearbeat != null) onHearbeat();
       }
-    });
-    subscriptions.add(subscription);
-    return subscription;
-  }
 
-  onResult(Function(ChangeResult) listener) {
-    var subscription = _stream.listen((event) {
       var splitted = event.split('\n').map((e) => e.trim());
+      // is result
       var changeResults =
           splitted.where((element) => RegExp("^{.*},?\$").hasMatch(element));
       changeResults.forEach((element) {
@@ -81,19 +79,10 @@ class ChangesStream {
             jsonDecode(element.replaceAll(RegExp(",\$"), "")));
 
         if (_feed != ChangeFeed.continuous) _results.add(result);
-        listener(result);
+        if (onResult != null) onResult(result);
       });
-      // if (event is ChangeResult) {
-      //   listener.call(event);
-      // }
-    });
-    subscriptions.add(subscription);
-    return subscription;
-  }
 
-  onComplete(Function(ChangeResponse) listener) {
-    var subscription = _stream.listen((event) {
-      var splitted = event.split('\n').map((e) => e.trim());
+      // is completed
       splitted.forEach((element) {
         if (element.startsWith("\"last_seq\"")) {
           element = "{" + element;
@@ -101,14 +90,10 @@ class ChangesStream {
           ChangeResponse changeResponse = new ChangeResponse(results: _results);
           changeResponse.lastSeq = map['last_seq'];
           changeResponse.pending = map['pending'];
-          listener(changeResponse);
-
-          cancel();
+          if (onComplete != null) onComplete(changeResponse);
         }
       });
     });
-    subscriptions.add(subscription);
-    return subscription;
   }
 }
 
