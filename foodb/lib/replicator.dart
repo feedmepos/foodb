@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:foodb/adapter/adapter.dart';
-import 'package:foodb/adapter/methods/all_docs.dart';
 import 'package:foodb/adapter/methods/bulk_docs.dart';
 import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/adapter/methods/ensure_full_commit.dart';
@@ -37,8 +36,6 @@ class Replicator {
   Duration timeout = Duration(seconds: 3);
   Timer? timer;
   String? sourceSequence;
-  Map<String, StreamSubscription> onResultSubscriptions = {};
-  Map<String, StreamSubscription> onCompleteSubscriptions = {};
   Map<String, Function> onCancels = {};
   Replicator({required this.source, required this.target});
 
@@ -142,41 +139,40 @@ class Replicator {
     try {
       int upperboundInt = int.parse(upperbound.split('-')[0]);
       listenToChangesFeed(feed: ChangeFeed.normal, since: since)
-          .then((value) async {
-        this.onCancels[since] = value.cancel;
-        StreamSubscription onResultSubscription =
-            value.onResult((changeResult) => dbChanges.add(changeResult));
-        StreamSubscription onCompleteSubscription =
-            value.onComplete((changeResponse) async {
-          try {
-            complete = false;
+          .then((changeStream) async {
+        var listener = changeStream.listen(
+            onResult: (changeResult) => dbChanges.add(changeResult),
+            onComplete: (changeResponse) async {
+              try {
+                complete = false;
 
-            if (int.parse(changeResponse.lastSeq!.split('-')[0]) >=
-                upperboundInt) {
-              complete = true;
-              dbChanges = dbChanges
-                  .where((element) =>
-                      int.parse(element.seq.split('-')[0]) <= upperboundInt)
-                  .toList();
-            }
-            await runReplicationCycle(since, upperbound);
+                if (int.parse(changeResponse.lastSeq!.split('-')[0]) >=
+                    upperboundInt) {
+                  complete = true;
+                  dbChanges = dbChanges
+                      .where((element) =>
+                          int.parse(element.seq.split('-')[0]) <= upperboundInt)
+                      .toList();
+                }
+                await runReplicationCycle(since, upperbound);
 
-            if (!complete!) {
-              sourceInfo = await getSourceInformation();
-              this.cancel(since);
-              listenToNormalChanges(
-                  since: changeResponse.lastSeq!, upperbound: upperbound);
-            }
-          } catch (error) {
-            this.cancel(since);
-            onError(Exception(error), () {
-              listenToNormalChanges(since: since, upperbound: upperbound);
+                if (!complete!) {
+                  sourceInfo = await getSourceInformation();
+                  this.cancel(since);
+                  listenToNormalChanges(
+                      since: changeResponse.lastSeq!, upperbound: upperbound);
+                }
+              } catch (error) {
+                this.cancel(since);
+                onError(Exception(error), () {
+                  listenToNormalChanges(since: since, upperbound: upperbound);
+                });
+              }
             });
-          }
-        });
-
-        onCompleteSubscriptions[since] = onCompleteSubscription;
-        onResultSubscriptions[since] = onResultSubscription;
+        this.onCancels[since] = () {
+          listener.cancel();
+          changeStream.cancel();
+        };
       });
     } catch (error) {
       this.cancel(since);
@@ -189,10 +185,9 @@ class Replicator {
   listenToContinuousChanges({required String since}) {
     try {
       listenToChangesFeed(feed: ChangeFeed.continuous, since: since)
-          .then((value) async {
-        this.onCancels[since] = value.cancel;
-        StreamSubscription onResultSubscription =
-            value.onResult((changeResult) {
+          .then((changeStream) async {
+        this.onCancels[since] = changeStream.cancel;
+        var listener = changeStream.listen(onResult: (changeResult) {
           try {
             dbChanges.add(changeResult);
             if (dbChanges.length == limit) {
@@ -204,7 +199,10 @@ class Replicator {
                 () => listenToContinuousChanges(since: since));
           }
         });
-        this.onResultSubscriptions[since] = onResultSubscription;
+        this.onCancels[since] = () {
+          listener.cancel();
+          changeStream.cancel();
+        };
       });
 
       this.timer = Timer.periodic(timeout, (timer) {
@@ -256,29 +254,15 @@ class Replicator {
   }
 
   cancel(String since) {
-    this.onResultSubscriptions[since]?.cancel();
-    this.onResultSubscriptions.remove(since);
-
-    this.onCompleteSubscriptions[since]?.cancel();
-    if (!live) this.onCompleteSubscriptions.remove(since);
-
     this.timer?.cancel();
     if (this.onCancels.containsKey(since)) this.onCancels[since]!();
     this.onCancels.remove(since);
   }
 
   cancelStream() {
-    this.onResultSubscriptions.forEach((key, value) {
-      value.cancel();
-    });
-    this.onResultSubscriptions.clear();
-    this.onCompleteSubscriptions.forEach((key, value) {
-      value.cancel();
-    });
-
     this.timer?.cancel();
-    this.onCancels.forEach((key, value) {
-      value();
+    this.onCancels.forEach((key, cancelFn) {
+      cancelFn();
     });
     this.onCancels.clear();
   }

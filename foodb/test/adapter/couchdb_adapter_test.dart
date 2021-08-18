@@ -208,19 +208,15 @@ void main() async {
             since: 'now',
             heartbeat: 1000))
         .then((changesStream) {
-      var listener;
-      changesStream.onHeartbeat(() {
+      var listener = changesStream.listen(onHearbeat: () {
         ++count;
         print('heartneat $count');
         // if (count == 5) {
         //   fn();
         // }
-      });
-      listener = changesStream.onResult((event) {
+      }, onResult: (event) {
         print('onResult: ${event.toJson()}');
-      });
-
-      listener = changesStream.onComplete((changeResponse) {
+      }, onComplete: (changeResponse) {
         print('onCompleted: ${changeResponse.toJson()}');
         fn(changeResponse);
       });
