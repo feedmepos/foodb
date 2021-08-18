@@ -5,7 +5,6 @@ import 'package:json_annotation/json_annotation.dart';
 part 'doc_history.g.dart';
 
 @JsonSerializable(genericArgumentFactories: true, explicitToJson: true)
-
 class DocHistory<T> {
   List<Doc<T>> docs;
 
@@ -13,7 +12,7 @@ class DocHistory<T> {
     required this.docs,
   });
 
-  Doc<T>? get winner => docs.length > 0 ? docs[docs.length-1] : null;
+  Doc<T>? get winner => docs.length > 0 ? docs[docs.length - 1] : null;
 
   Iterable<Doc<T>> get leafDocs sync* {
     var sorted = docs.toList();

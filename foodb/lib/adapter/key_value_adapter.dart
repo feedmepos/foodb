@@ -361,8 +361,7 @@ class KeyValueAdapter extends AbstractAdapter {
           Revisions(start: newDocRev.index, ids: [newDocRev.md5]);
 
       if (existDoc == -1) {
-        docHistory = docHistory
-            .copyWith(docs: [
+        docHistory = docHistory.copyWith(docs: [
           doc.copyWith(rev: newDocRev.toString(), revisions: newDocRevisions)
         ]);
       } else {
@@ -372,8 +371,7 @@ class KeyValueAdapter extends AbstractAdapter {
       }
     }
 
-    var finalDoc =
-        await _beforeUpdate(doc: docHistory.winner!);
+    var finalDoc = await _beforeUpdate(doc: docHistory.winner!);
     await _updateSequence(id: finalDoc.id, rev: finalDoc.rev!);
     await db.put(docTableName,
         id: finalDoc.id, object: docHistory.toJson((value) => value));
@@ -446,7 +444,13 @@ class KeyValueAdapter extends AbstractAdapter {
 
   Future<void> _updateSequence(
       {required String id, required String rev}) async {
-    int lastSeq = await db.tableSize(sequenceTableName);
+    // TODO
+    // 1 - get new seq
+    // 2 - add id to new seq
+    // 3 - update doc localSeq
+    // 4 - delete seq if doc has existing seq
+    int lastSeq = await db.tableSize(
+        sequenceTableName); // cannot use table size anymore, because will perform delete
     String newSeqString = Utils.generateSequence(lastSeq + 1);
     await db.put(sequenceTableName,
         id: newSeqString,
