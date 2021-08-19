@@ -9,7 +9,7 @@ class Utils {
   }
 
   static generateSequence(int current) {
-    return '$current-${Utils.randomString(30)}';
+    return '$current-1';
   }
 }
 

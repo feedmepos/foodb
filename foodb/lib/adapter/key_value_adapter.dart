@@ -22,6 +22,17 @@ import 'package:foodb/common/rev.dart';
 import 'package:foodb/common/update_sequence.dart';
 import 'package:foodb/common/view_meta.dart';
 
+class ReadResult {
+  int totalRows;
+  int offset;
+  Map<String, dynamic> docs;
+  ReadResult({
+    required this.totalRows,
+    required this.offset,
+    required this.docs,
+  });
+}
+
 abstract class KeyValueDatabase {
   Future<bool> put(String tableName,
       {required String id, required Map<String, dynamic> object});
@@ -30,7 +41,7 @@ abstract class KeyValueDatabase {
 
   Future<Map<String, dynamic>?> get(String tableName, {String? id});
 
-  Future<Map<String, dynamic>> read(String tableName,
+  Future<ReadResult> read(String tableName,
       {String? startKey, String? endKey, bool? desc});
 
   Future<int> tableSize(String tableName);
@@ -67,16 +78,15 @@ class KeyValueAdapter extends AbstractAdapter {
         id: '_all_docs',
         model: DesignDoc(views: {'_all_docs': AllDocDesignDocView()})));
 
-    Map<String, dynamic> map = await _findByView(viewName,
+    ReadResult result = await _findByView(viewName,
         startKey: allDocsRequest.startKeyDocId,
         endKey: allDocsRequest.endKeyDocId,
         desc: allDocsRequest.descending);
 
     return GetAllDocs(
-        offset: map['offset'],
-        totalRows: map['total_rows'],
-        rows: map['docs']
-            .values
+        offset: result.offset,
+        totalRows: result.totalRows,
+        rows: result.docs.values
             .map<Row<T>>((e) => Row<T>(
                 id: e["_id"],
                 key: e["_id"],
@@ -123,11 +133,11 @@ class KeyValueAdapter extends AbstractAdapter {
     StreamController<String> streamController = StreamController();
     var subscription;
     // now get new changes
-    String lastSeq = (await db.read(sequenceTableName)).keys.last;
+    String lastSeq = (await db.read(sequenceTableName)).docs.keys.last;
     if (request.since != 'now') {
-      Map<String, dynamic> result =
+      ReadResult result =
           await db.read(sequenceTableName, startKey: request.since);
-      for (MapEntry entry in result['docs'].entries) {
+      for (MapEntry entry in result.docs.entries) {
         UpdateSequence update = UpdateSequence.fromJson(entry.value);
         streamController.sink.add(await _encodeUpdateSequence(update,
             includeDocs: request.includeDocs, style: request.style));
@@ -382,7 +392,6 @@ class KeyValueAdapter extends AbstractAdapter {
   Future<Doc<Map<String, dynamic>>> _beforeUpdate(
       {required Doc<Map<String, dynamic>> winnerDoc,
       required DocHistory<Map<String, dynamic>> history}) async {
-    // TODO
     Map<String, dynamic>? changes = await db.get(sequenceTableName);
 
     String newSeqString;
@@ -483,7 +492,7 @@ class KeyValueAdapter extends AbstractAdapter {
     return [];
   }
 
-  Future<Map<String, dynamic>> _findByView(String viewName,
+  Future<ReadResult> _findByView(String viewName,
       {String? startKey, String? endKey, required bool desc}) async {
     return await db.read(viewTableName(viewName),
         startKey: startKey, endKey: endKey, desc: desc);

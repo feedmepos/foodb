@@ -21,7 +21,8 @@ class InMemoryDatabase implements KeyValueDatabase {
 
   @override
   Future<bool> delete(String tableName, {required String id}) async {
-    return true; //_stores[tableName]?.remove(id) ?? false;
+    _stores[tableName]?.remove(id);
+    return true;
   }
 
   @override
@@ -33,15 +34,13 @@ class InMemoryDatabase implements KeyValueDatabase {
   }
 
   @override
-  Future<Map<String, dynamic>> read(String tableName,
+  Future<ReadResult> read(String tableName,
       {String? startKey, String? endKey, bool? desc}) async {
     var table = _stores[tableName];
     Map<String, dynamic> result = {};
     int offSet = 0;
     bool detectedDoc = false;
     if (table != null) {
-      // TODO implement desc -done
-      // TODO read between
       if (desc == true) {
         if (startKey == null || endKey == null) {
           List<String> keys = table.keys.toList();
@@ -65,11 +64,8 @@ class InMemoryDatabase implements KeyValueDatabase {
         });
       }
     }
-    return {
-      "offset": offSet,
-      "total_rows": await tableSize(tableName),
-      "docs": result
-    };
+    return ReadResult(
+        docs: result, offset: offSet, totalRows: await tableSize(tableName));
   }
 
   @override

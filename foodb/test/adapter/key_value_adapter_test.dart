@@ -41,10 +41,10 @@ void main() async {
     expect(docs.rows.length, equals(1));
     expect(docs.offset, equals(0));
 
-    Map<String, dynamic> map =
+    ReadResult map =
         await adapter.db.read(adapter.viewTableName("_all_docs__all_docs"));
     print(map);
-    expect(map['docs'].length, equals(3));
+    expect(map.docs.length, equals(3));
   });
 
   test('put & get', () async {
@@ -196,8 +196,8 @@ void main() async {
     await adapter.db
         .put(adapter.sequenceTableName, id: '5', object: {"id": 'a'});
 
-    Map<String, dynamic> map = await adapter.db.read(adapter.docTableName);
-    print(map);
-    expect(map.length, equals(2));
+    ReadResult result = await adapter.db.read(adapter.docTableName);
+    print(result);
+    expect(result.docs.length, equals(2));
   });
 }
