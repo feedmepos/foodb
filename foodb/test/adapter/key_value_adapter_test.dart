@@ -41,7 +41,7 @@ void main() async {
     expect(docs.rows.length, equals(1));
     expect(docs.offset, equals(0));
 
-    Map<String, dynamic> map =
+    ReadResult map =
         await adapter.db.read(adapter.viewTableName("_all_docs__all_docs"));
     // print(map);
     // expect(map['docs'].length, equals(2));
@@ -50,9 +50,12 @@ void main() async {
   test('put & get', () async {
     final memoryDb = getMemoryAdapter();
     var res1 = await memoryDb.put(doc: Doc(id: 'foo1', model: {'a': 'b'}));
-    var res2 = await memoryDb.put(doc: Doc(id: 'foo2', model: {'c': 'd'}, rev: res1.rev));
-    var res3 = await memoryDb.put(doc: Doc(id: 'foo3', model: {'e': 'f'}, rev: res2.rev));
-    var res4 = await memoryDb.put(doc: Doc(id: 'foo4', model: {'e': 'f'}, rev: res3.rev));
+    var res2 = await memoryDb.put(
+        doc: Doc(id: 'foo2', model: {'c': 'd'}, rev: res1.rev));
+    var res3 = await memoryDb.put(
+        doc: Doc(id: 'foo3', model: {'e': 'f'}, rev: res2.rev));
+    var res4 = await memoryDb.put(
+        doc: Doc(id: 'foo4', model: {'e': 'f'}, rev: res3.rev));
     await memoryDb.put(doc: Doc(id: 'foo5', model: {'e': 'f'}, rev: res4.rev));
     var docsSize = await memoryDb.db.tableSize(memoryDb.docTableName);
     var doc1 = await memoryDb.get(id: 'foo1', fromJsonT: (v) => v);
@@ -193,8 +196,8 @@ void main() async {
     await adapter.db
         .put(adapter.sequenceTableName, id: '5', object: {"id": 'a'});
 
-    Map<String, dynamic> map = await adapter.db.read(adapter.docTableName);
-    print(map);
-    expect(map.length, equals(2));
+    ReadResult result = await adapter.db.read(adapter.docTableName);
+    print(result);
+    expect(result.docs.length, equals(2));
   });
 }
