@@ -18,7 +18,6 @@ import 'package:foodb/adapter/methods/revs_diff.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:http/http.dart';
 import 'package:foodb/adapter/params_converter.dart';
-import 'package:json_annotation/json_annotation.dart';
 import 'package:uri/uri.dart';
 
 class CouchdbAdapter extends AbstractAdapter {
