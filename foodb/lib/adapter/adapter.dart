@@ -7,6 +7,7 @@ import 'package:foodb/adapter/methods/explain.dart';
 import 'package:foodb/adapter/methods/find.dart';
 import 'package:foodb/adapter/methods/index.dart';
 import 'package:foodb/adapter/methods/info.dart';
+import 'package:foodb/adapter/methods/open_revs.dart';
 import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/adapter/methods/revs_diff.dart';
 import 'package:foodb/common/design_doc.dart';
@@ -54,7 +55,7 @@ abstract class AbstractAdapter {
       bool latest = false,
       bool localSeq = false,
       bool meta = false,
-      required Object openRevs,
+      required OpenRevs openRevs,
       String? rev,
       bool revs = false,
       bool revsInfo = false,

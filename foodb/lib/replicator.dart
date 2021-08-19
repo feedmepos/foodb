@@ -6,6 +6,7 @@ import 'package:foodb/adapter/methods/bulk_docs.dart';
 import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/adapter/methods/ensure_full_commit.dart';
 import 'package:foodb/adapter/methods/info.dart';
+import 'package:foodb/adapter/methods/open_revs.dart';
 import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/adapter/methods/revs_diff.dart';
 import 'package:foodb/common/doc.dart';
@@ -342,7 +343,7 @@ class Replicator {
       List<Doc<Map<String, dynamic>>> docs =
           await source.getWithOpenRev<Map<String, dynamic>>(
               id: key,
-              openRevs: changes[key]!,
+              openRevs: OpenRevs(revs: changes[key]!),
               revs: true,
               latest: true,
               fromJsonT: (value) {
