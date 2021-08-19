@@ -36,8 +36,7 @@ void main() {
           rev: '4-d',
           localSeq: '5')
     ]);
-    expect(history.leafDocs.length, 1);
-    expect(history.leafDocs.first.rev, '2-2');
+    expect(history.leafDocs.first.rev, '4-d');
     // TODO: TEST different sacnario
   });
 
@@ -79,8 +78,7 @@ void main() {
           model: {'e': 'f'},
           rev: '5-abc',
           revisions:
-              Revisions(start: 5, ids: ['abc', 'def', 'ghi', 'jkl', 'mno']),
-          deleted: true)
+              Revisions(start: 5, ids: ['abc', 'def', 'ghi', 'jkl', 'mno']))
     ]);
     expect(docHistory.leafDocs.length, 3);
     expect(docHistory.leafDocs.first.rev, '5-abc');
