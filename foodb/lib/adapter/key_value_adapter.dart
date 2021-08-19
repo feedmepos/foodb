@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/exception.dart';
 import 'package:foodb/adapter/methods/all_docs.dart';
@@ -27,7 +26,7 @@ abstract class KeyValueDatabase {
       {required String id, required Map<String, dynamic> object});
   Future<bool> delete(String tableName, {required String id});
   Future<Map<String, dynamic>?> get(String tableName, {required String id});
-  Future<Map<String, Map<String, dynamic>>> read(String tableName,
+  Future<Map<String, dynamic>> read(String tableName,
       {String? startKey, String? endKey, bool? desc});
   Future<int> tableSize(String tableName);
 }
@@ -63,15 +62,16 @@ class KeyValueAdapter extends AbstractAdapter {
         id: '_all_docs',
         model: DesignDoc(views: {'_all_docs': AllDocDesignDocView()})));
 
-    Map<String, Map<String, dynamic>> map = await _findByView(viewName,
-        startKey: allDocsRequest.startKey,
-        endKey: allDocsRequest.endKey,
+    Map<String, dynamic> map = await _findByView(viewName,
+        startKey: allDocsRequest.startKeyDocId,
+        endKey: allDocsRequest.endKeyDocId,
         desc: allDocsRequest.descending);
 
     return GetAllDocs(
-        offset: 0,
-        totalRows: await db.tableSize(viewTableName(viewName)),
-        rows: map.values
+        offset: map['offset'],
+        totalRows: map['total_rows'],
+        rows: map['docs']
+            .values
             .map<Row<T>>((e) => Row<T>(
                 id: e["_id"],
                 key: e["_id"],
@@ -116,15 +116,15 @@ class KeyValueAdapter extends AbstractAdapter {
   @override
   Future<ChangesStream> changesStream(ChangeRequest request) async {
     StreamController<String> streamController = StreamController();
-
+    var subscription;
     // now get new changes
     String lastSeq = (await db.read(sequenceTableName)).keys.last;
     if (request.since != 'now') {
       Map<String, dynamic> result =
           await db.read(sequenceTableName, startKey: request.since);
-      for (MapEntry entry in result.entries) {
+      for (MapEntry entry in result['docs'].entries) {
         UpdateSequence update = UpdateSequence.fromJson(entry.value);
-        streamController.sink.add(_encodeUpdateSequence(update,
+        streamController.sink.add(await _encodeUpdateSequence(update,
             includeDocs: request.includeDocs, style: request.style));
 
         if (request.limit != null) {
@@ -138,14 +138,15 @@ class KeyValueAdapter extends AbstractAdapter {
     }
     if (!streamController.isClosed) {
       if (request.feed == ChangeFeed.continuous) {
-        localChangeStreamController.stream.listen((event) {
-          streamController.sink.add(_encodeUpdateSequence(event,
+        subscription = localChangeStreamController.stream.listen(null);
+        subscription.onData((data) async {
+          streamController.sink.add(await _encodeUpdateSequence(data,
               includeDocs: request.includeDocs, style: request.style));
         });
       } else if (request.feed == ChangeFeed.longpoll) {
-        final subscription = localChangeStreamController.stream.listen(null);
-        subscription.onData((data) {
-          streamController.sink.add(_encodeUpdateSequence(data,
+        subscription = localChangeStreamController.stream.listen(null);
+        subscription.onData((data) async {
+          streamController.sink.add(await _encodeUpdateSequence(data,
               includeDocs: request.includeDocs, style: request.style));
           subscription.cancel();
           streamController.sink
@@ -162,8 +163,9 @@ class KeyValueAdapter extends AbstractAdapter {
     return ChangesStream(
         feed: request.feed,
         stream: streamController.stream,
-        cancel: () {
-          streamController.close();
+        onCancel: () async {
+          await subscription.cancel();
+          await streamController.close();
         });
   }
 
@@ -412,7 +414,6 @@ class KeyValueAdapter extends AbstractAdapter {
       stream.listen(
           onResult: (result) => print(result),
           onComplete: (resp) async {
-            print(resp.toJson());
             for (var result in resp.results) {
               var history = DocHistory<Map<String, dynamic>>.fromJson(
                   (await db.get(docTableName, id: result.id))!,
@@ -452,7 +453,7 @@ class KeyValueAdapter extends AbstractAdapter {
     return [];
   }
 
-  Future<Map<String, Map<String, dynamic>>> _findByView(String viewName,
+  Future<Map<String, dynamic>> _findByView(String viewName,
       {String? startKey, String? endKey, required bool desc}) async {
     return await db.read(viewTableName(viewName),
         startKey: startKey, endKey: endKey, desc: desc);
