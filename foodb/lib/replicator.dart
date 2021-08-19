@@ -343,7 +343,7 @@ class Replicator {
       List<Doc<Map<String, dynamic>>> docs =
           await source.getWithOpenRev<Map<String, dynamic>>(
               id: key,
-              openRevs: OpenRevs(revs: changes[key]!),
+              openRevs: OpenRevs.byRevs(revs: changes[key]!),
               revs: true,
               latest: true,
               fromJsonT: (value) {
