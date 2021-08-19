@@ -12,32 +12,29 @@ void main() {
     var history = DocHistory(docs: []);
     history.docs.addAll([
       Doc(
-          id: '1',
-          rev: '1-1',
+          id: 'a',
           model: {},
-          revisions: Revisions(start: 1, ids: ["1"])),
+          revisions: Revisions(ids: ['a'], start: 1),
+          rev: '1-a',
+          localSeq: '1'),
       Doc(
-          id: '1',
-          rev: '2-2',
+          id: 'a',
           model: {},
-          revisions: Revisions(start: 2, ids: ["2", "1"]))
-    ]);
-    history.docs.addAll([
-      Doc(
-          id: '1',
-          rev: '1-1',
-          model: {},
-          revisions: Revisions(start: 1, ids: ["a"])),
-      Doc(
-          id: '1',
-          rev: '2-a',
-          model: {},
-          revisions: Revisions(start: 2, ids: ["a", "a"])),
-      Doc(
-          id: '1',
+          revisions: Revisions(ids: ['b', 'a'], start: 2),
           rev: '2-b',
+          localSeq: '2'),
+      Doc(
+          id: 'a',
           model: {},
-          revisions: Revisions(start: 2, ids: ["b", "a"]))
+          revisions: Revisions(ids: ['c', 'b'], start: 3),
+          rev: '3-c',
+          localSeq: '3'),
+      Doc(
+          id: 'a',
+          model: {},
+          revisions: Revisions(ids: ['d', 'c'], start: 4),
+          rev: '4-d',
+          localSeq: '5')
     ]);
     expect(history.leafDocs.length, 1);
     expect(history.leafDocs.first.rev, '2-2');
@@ -45,18 +42,47 @@ void main() {
   });
 
   test('winner', () {
-    // TODO, remove winner index, make it computed
-    // get all leave nodes
-    // remove deleted
-    // sort by ids[0]
-    // sort by rivision start
+    var docHistory = DocHistory(docs: []);
+    docHistory.docs.addAll([
+      Doc(
+          id: 'foo1',
+          model: {'a': 'b'},
+          revisions: Revisions(start: 1, ids: ['a'])),
+      Doc(
+          id: 'foo2',
+          model: {'c': 'd'},
+          revisions: Revisions(start: 2, ids: ['b'])),
+      Doc(
+          id: 'foo3',
+          model: {'e': 'f'},
+          revisions: Revisions(start: 3, ids: ['c']),
+          deleted: true)
+    ]);
+    expect(docHistory.winner?.revisions?.start, 3);
   });
 
   test('conflict and deleted conflict', () {
-    // TODO, remove winner index, make it computed
-    // get all leave nodes
-    // remove deleted
-    // sort by ids[0]
-    // sort by rivision start
+    var docHistory = DocHistory<Map<String, dynamic>>(docs: []);
+    docHistory.docs.addAll([
+      Doc(
+          id: 'foo1',
+          model: {'a': 'b'},
+          rev: '2-b',
+          revisions: Revisions(start: 2, ids: ['b', 'a'])),
+      Doc(
+          id: 'foo2',
+          model: {'c': 'd'},
+          rev: '1-bb',
+          revisions: Revisions(start: 1, ids: ['bb'])),
+      Doc(
+          id: 'foo3',
+          model: {'e': 'f'},
+          rev: '5-abc',
+          revisions:
+              Revisions(start: 5, ids: ['abc', 'def', 'ghi', 'jkl', 'mno']),
+          deleted: true)
+    ]);
+    expect(docHistory.leafDocs.length, 3);
+    expect(docHistory.leafDocs.first.rev, '5-abc');
   });
 }
