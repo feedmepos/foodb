@@ -51,6 +51,9 @@ void main() async {
     final memoryDb = getMemoryAdapter();
     var res1 = await memoryDb.put(doc: Doc(id: 'foo1', model: {'a': 'b'}));
     var res2 = await memoryDb.put(doc: Doc(id: 'foo2', model: {'c': 'd'}, rev: res1.rev));
+    var res3 = await memoryDb.put(doc: Doc(id: 'foo3', model: {'e': 'f'}, rev: res2.rev));
+    var res4 = await memoryDb.put(doc: Doc(id: 'foo4', model: {'e': 'f'}, rev: res3.rev));
+    await memoryDb.put(doc: Doc(id: 'foo5', model: {'e': 'f'}, rev: res4.rev));
     var docsSize = await memoryDb.db.tableSize(memoryDb.docTableName);
     var doc1 = await memoryDb.get(id: 'foo1', fromJsonT: (v) => v);
     var doc2 = await memoryDb.get(id: 'foo2', fromJsonT: (v) => v);

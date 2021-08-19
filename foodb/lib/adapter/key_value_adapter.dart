@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/exception.dart';
 import 'package:foodb/adapter/methods/all_docs.dart';
@@ -24,10 +25,14 @@ import 'package:foodb/common/view_meta.dart';
 abstract class KeyValueDatabase {
   Future<bool> put(String tableName,
       {required String id, required Map<String, dynamic> object});
+
   Future<bool> delete(String tableName, {required String id});
-  Future<Map<String, dynamic>?> get(String tableName, {required String id});
+
+  Future<Map<String, dynamic>?> get(String tableName, {String? id});
+
   Future<Map<String, dynamic>> read(String tableName,
       {String? startKey, String? endKey, bool? desc});
+
   Future<int> tableSize(String tableName);
 }
 
@@ -378,20 +383,45 @@ class KeyValueAdapter extends AbstractAdapter {
       {required Doc<Map<String, dynamic>> winnerDoc,
       required DocHistory<Map<String, dynamic>> history}) async {
     // TODO
-    // 1 - get new seq
-    // 2 - add id to new seq
-    // 4 - delete seq if doc has existing seq
-    int lastSeq = await db.tableSize(
-        sequenceTableName); // cannot use table size anymore, because will perform delete
-    String newSeqString = Utils.generateSequence(lastSeq + 1);
-    var updateSequence = UpdateSequence(
-        seq: lastSeq.toString(),
-        id: winnerDoc.id,
-        winnerRev: winnerDoc.rev!,
-        allLeafRev: history.leafDocs.map((e) => e.rev!).toList());
+    Map<String, dynamic>? changes = await db.get(sequenceTableName);
+
+    String newSeqString;
+    UpdateSequence updateSequence;
+
+    if (changes == null) {
+      newSeqString = Utils.generateSequence(1);
+      updateSequence = UpdateSequence(
+          seq: newSeqString,
+          id: winnerDoc.id,
+          winnerRev: winnerDoc.rev!,
+          allLeafRev: history.leafDocs.map((e) => e.rev!).toList());
+    } else {
+      var list =
+          changes.entries.map((e) => UpdateSequence.fromJson(e.value)).toList();
+
+      // Delete existing sequence
+      var oldSeq = list.indexWhere((element) =>
+          SequenceTool(element.seq).index == winnerDoc.revisions?.start);
+
+      if (oldSeq != -1) {
+        await db.delete(sequenceTableName, id: list[oldSeq].seq);
+      }
+
+      // Sort by descending order
+      list.sort(
+          (a, b) => SequenceTool(b.seq).index - SequenceTool(a.seq).index);
+      var lastSeq = SequenceTool(list.first.seq);
+
+      newSeqString = Utils.generateSequence(lastSeq.index + 1);
+      updateSequence = UpdateSequence(
+          seq: newSeqString,
+          id: winnerDoc.id,
+          winnerRev: winnerDoc.rev!,
+          allLeafRev: history.leafDocs.map((e) => e.rev!).toList());
+    }
+
     await db.put(sequenceTableName,
         id: newSeqString, object: updateSequence.toJson());
-
     localChangeStreamController.sink.add(updateSequence);
 
     return winnerDoc.copyWith(localSeq: newSeqString);
@@ -460,6 +490,6 @@ class KeyValueAdapter extends AbstractAdapter {
   }
 
   String _getViewName({required String designDocId, required String viewId}) {
-    return '${designDocId}_${viewId}';
+    return '${designDocId}_$viewId';
   }
 }
