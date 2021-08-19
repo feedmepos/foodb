@@ -77,23 +77,17 @@ class CouchdbAdapter extends AbstractAdapter {
   @override
   Future<ChangesStream> changesStream(ChangeRequest request) async {
     var client = getClient();
-    // final path =
-    //     '_changes?${includeNonNullParam('doc_ids', request.body?.docIds)}&'
-    //     'conflicts=${request.conflicts}&descending=${request.descending}&'
-    //     'feed=${request.feed}&${includeNonNullParam('filter', request.filter)}&heartbeat='
-    //     '${request.heartbeat}&include_docs=${request.includeDocs}&attachments=${request.attachments}&'
-    //     'att_encoding_info=${request.attEncodingInfo}&${includeNonNullParam('last-event-id', request.lastEventId)}'
-    //     '&${includeNonNullParam('limit', request.limit)}&since=${request.since}&style=${request.style}&'
-    //     'timeout=${request.timeout}&${includeNonNullParam('view', request.view)}&'
-    //     '${includeNonNullParam('seq_interval', request.seqInterval)}';
-
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_changes')));
     uriBuilder.queryParameters = convertToParams(request.toJson());
 
     var res = await client.send(Request('get', uriBuilder.build()));
     var streamedRes = res.stream.transform(utf8.decoder);
-    var streamedResponse =
-        ChangesStream(stream: streamedRes, client: client, feed: request.feed);
+    var streamedResponse = ChangesStream(
+        stream: streamedRes,
+        onCancel: () {
+          client.close();
+        },
+        feed: request.feed);
     return streamedResponse;
   }
 

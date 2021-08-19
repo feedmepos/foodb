@@ -41,30 +41,28 @@ class ChangeResult {
 
 class ChangesStream {
   Stream<String> _stream;
-  Client? _client;
+  //Client? _client;
   String _feed;
-  Function? _cancel;
+  Function? _onCancel;
   List<ChangeResult> _results = [];
-  ChangesStream({required stream, client, required feed, cancel})
+  StreamSubscription? _subscription;
+  ChangesStream({required stream, required feed, onCancel})
       : _stream = stream,
-        _client = client,
-        _cancel = cancel,
+        // _client = client,
+        _onCancel = onCancel,
         _feed = feed;
-  List<StreamSubscription> subscriptions = [];
 
-  cancel() {
-    subscriptions.forEach((element) {
-      element.cancel();
-    });
-    if (_cancel != null) _cancel!();
-    if (_client != null) _client!.close();
+  cancel() async {
+    if (_onCancel != null) await _onCancel!();
+    if (_subscription != null) await _subscription!.cancel();
+    //if (_client != null) _client!.close();
   }
 
-  StreamSubscription listen(
+  void listen(
       {Function(ChangeResponse)? onComplete,
       Function(ChangeResult)? onResult,
       Function? onHearbeat}) {
-    return _stream.listen((event) {
+    _subscription = _stream.listen((event) {
       // is heartbeat
       if (event.trim() == '') {
         if (onHearbeat != null) onHearbeat();

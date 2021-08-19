@@ -30,21 +30,43 @@ class InMemoryDatabase implements KeyValueDatabase {
       _stores[tableName]?[id];
 
   @override
-  Future<Map<String, Map<String, dynamic>>> read(String tableName,
+  Future<Map<String, dynamic>> read(String tableName,
       {String? startKey, String? endKey, bool? desc}) async {
     var table = _stores[tableName];
-    Map<String, Map<String, dynamic>> result = {};
+    Map<String, dynamic> result = {};
+    int offSet = 0;
+    bool detectedDoc = false;
     if (table != null) {
-      // TODO implement desc
+      // TODO implement desc -done
       // TODO read between
-      table.entries.forEach((element) {
-        if ((startKey == null || element.key.compareTo(startKey) > 0) &&
-            (endKey == null || element.key.compareTo(endKey) < 0)) {
-          result.putIfAbsent(element.key, () => element.value);
+      if (desc == true) {
+        if (startKey == null || endKey == null) {
+          List<String> keys = table.keys.toList();
+          for (int x = table.length - 1; x >= 0; x--) {
+            if ((startKey == null || keys[x].compareTo(startKey) <= 0) &&
+                (endKey == null || keys[x].compareTo(endKey) >= 0)) {
+              result.putIfAbsent(keys[x], () => table[keys[x]]);
+              detectedDoc = true;
+            } else {
+              if (detectedDoc == false) offSet++;
+            }
+          }
         }
-      });
+      } else {
+        table.entries.forEach((element) {
+          if ((startKey == null || element.key.compareTo(startKey) >= 0) &&
+              (endKey == null || element.key.compareTo(endKey) <= 0)) {
+            result.putIfAbsent(element.key, () => element.value);
+            detectedDoc = true;
+          } else if (detectedDoc == false) offSet++;
+        });
+      }
     }
-    return result;
+    return {
+      "offset": offSet,
+      "total_rows": await tableSize(tableName),
+      "docs": result
+    };
   }
 
   @override

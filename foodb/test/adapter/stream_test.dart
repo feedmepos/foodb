@@ -1,27 +1,33 @@
 import 'dart:async';
-import 'dart:convert';
-
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodb/adapter/adapter.dart';
-import 'package:foodb/adapter/methods/changes.dart';
 
 void main() {
-  StreamController<String> streamController =
-      StreamController<String>.broadcast();
+  StreamController<String> localController = StreamController.broadcast();
   test('stream', () {
-    var fn = expectAsync1((ChangeResponse result) {
-      print(result.lastSeq);
+    var sub = localController.stream.listen((event) {});
+    StreamController<String> streamController = new StreamController();
+
+    var fn = expectAsync1((result) {
+      sub.cancel();
+      streamController.close();
       expect(result, isNotNull);
     });
 
-    streamController.onListen = () {
-      streamController.sink.add('\"last_seq\":\"0\", \"pending\": 0}');
-    };
+    var fn2 = expectAsync0(() {
+      expect(1 + 1, 2);
+    });
+    sub.onData((event) {
+      streamController.sink.add(event);
+      fn(event);
+    });
 
-    ChangesStream changesStream = ChangesStream(
-        stream: streamController.stream, feed: ChangeFeed.continuous);
-    changesStream.onResult((result) => print(result));
-    changesStream.onComplete((result) => fn(result));
-    //streamController.add("\"last_seq\":\"0\", \"pending\": 0}");
+    streamController.stream.listen((event) {
+      print(event);
+    });
+
+    localController.add("event");
+    localController.add("event");
+
+    Future.delayed(Duration(seconds: 2)).then((value) => fn2());
   });
 }

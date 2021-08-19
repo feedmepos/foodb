@@ -140,7 +140,7 @@ class Replicator {
       int upperboundInt = int.parse(upperbound.split('-')[0]);
       listenToChangesFeed(feed: ChangeFeed.normal, since: since)
           .then((changeStream) async {
-        var listener = changeStream.listen(
+        changeStream.listen(
             onResult: (changeResult) => dbChanges.add(changeResult),
             onComplete: (changeResponse) async {
               try {
@@ -170,7 +170,6 @@ class Replicator {
               }
             });
         this.onCancels[since] = () {
-          listener.cancel();
           changeStream.cancel();
         };
       });
@@ -187,7 +186,7 @@ class Replicator {
       listenToChangesFeed(feed: ChangeFeed.continuous, since: since)
           .then((changeStream) async {
         this.onCancels[since] = changeStream.cancel;
-        var listener = changeStream.listen(onResult: (changeResult) {
+        changeStream.listen(onResult: (changeResult) {
           try {
             dbChanges.add(changeResult);
             if (dbChanges.length == limit) {
@@ -200,7 +199,6 @@ class Replicator {
           }
         });
         this.onCancels[since] = () {
-          listener.cancel();
           changeStream.cancel();
         };
       });
