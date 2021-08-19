@@ -34,10 +34,15 @@ void main() {
           model: {},
           revisions: Revisions(ids: ['d', 'c'], start: 4),
           rev: '4-d',
+          localSeq: '5'),
+      Doc(
+          id: 'a',
+          model: {},
+          revisions: Revisions(ids: ['d', 'c'], start: 4),
+          rev: '4-d',
           localSeq: '5')
     ]);
     expect(history.leafDocs.first.rev, '4-d');
-    // TODO: TEST different sacnario
   });
 
   test('winner', () {
