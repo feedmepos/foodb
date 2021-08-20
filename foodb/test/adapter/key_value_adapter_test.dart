@@ -109,10 +109,15 @@ void main() async {
     expect(revsDiff["a"]!.missing.length, 3);
   });
 
-  test('put with newEdits=false', () {
+  test('put with newEdits, empty rev', () async {
     final memoryDb = getMemoryAdapter();
     //rev cannot be empty (different behaviour with couchdb)
-    memoryDb.put(doc: Doc(id: "id", model: {}), newRev: "1-a", newEdits: false);
+    await memoryDb.put(
+        doc: Doc(id: "id", model: {}), newRev: "1-a", newEdits: false);
+    var result = await memoryDb.db.get(memoryDb.docTableName, id: 'id');
+    var docHistory = DocHistory<Map<String, dynamic>>.fromJson(
+        result!, (v) => v as Map<String, dynamic>);
+    expect(docHistory.docs.first.rev, '1-a');
   });
 
   test('update with newedit =false', () async {
