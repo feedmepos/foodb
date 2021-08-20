@@ -325,6 +325,7 @@ class KeyValueAdapter extends AbstractAdapter {
 
       if (existDoc == -1) {
         docHistory = docHistory.copyWith(docs: [
+          ...docHistory.docs,
           doc.copyWith(rev: newDocRev.toString(), revisions: newDocRevisions)
         ]);
       } else {
