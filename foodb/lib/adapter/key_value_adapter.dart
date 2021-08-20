@@ -344,9 +344,16 @@ class KeyValueAdapter extends AbstractAdapter {
 
   @override
   Future<Map<String, RevsDiff>> revsDiff(
-      {required Map<String, List<String>> body}) {
-    // TODO: implement revsDiff
-    throw UnimplementedError();
+      {required Map<String, List<String>> body}) async {
+    Map<String, RevsDiff> revsDiff = {};
+    body.forEach((key, value) async {
+      DocHistory<Map<String, dynamic>> docHistory =
+          DocHistory<Map<String, dynamic>>.fromJson(
+              (await db.get(docTableName, id: key))!,
+              (json) => json as Map<String, dynamic>);
+      revsDiff[key] = docHistory.revsDiff(value);
+    });
+    return revsDiff;
   }
 
   @override

@@ -6,6 +6,7 @@ import 'package:foodb/adapter/in_memory_database.dart';
 import 'package:foodb/adapter/key_value_adapter.dart';
 import 'package:foodb/adapter/methods/all_docs.dart';
 import 'package:foodb/adapter/methods/changes.dart';
+import 'package:foodb/adapter/methods/revs_diff.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/doc_history.dart';
 
@@ -16,7 +17,7 @@ void main() async {
     return KeyValueAdapter(dbName: 'test', db: InMemoryDatabase());
   }
 
-  test("_generateView", () async {
+  test("allDocs()", () async {
     var db = InMemoryDatabase();
     var adapter = KeyValueAdapter(dbName: 'test', db: db);
 
@@ -58,6 +59,45 @@ void main() async {
     expect(docsSize, 5);
     expect(doc1?.model['a'], isNotNull);
     expect(doc2?.model['c'], isNotNull);
+  });
+
+  test('revsDiff', () async {
+    final adapter = getMemoryAdapter();
+
+    adapter.db.put(adapter.docTableName,
+        id: 'a',
+        object: DocHistory(docs: [
+          Doc(
+              id: 'a',
+              model: {},
+              revisions: Revisions(ids: ['a'], start: 1),
+              rev: '1-a',
+              localSeq: '1'),
+          Doc(
+              id: 'a',
+              model: {},
+              revisions: Revisions(ids: ['b', 'a'], start: 2),
+              rev: '2-b',
+              localSeq: '2'),
+          Doc(
+              id: 'a',
+              model: {},
+              revisions: Revisions(ids: ['c', 'b'], start: 3),
+              rev: '3-c',
+              localSeq: '3'),
+          Doc(
+              id: 'a',
+              model: {},
+              revisions: Revisions(ids: ['d', 'c'], start: 4),
+              rev: '4-d',
+              localSeq: '5')
+        ]).toJson((value) => jsonDecode(jsonEncode(value))));
+
+    Map<String, RevsDiff> revsDiff = await adapter.revsDiff(body: {
+      "a": ["1-a", "4-c", "1-c", "4-d", "5-e"]
+    });
+    print(revsDiff["a"]!.toJson());
+    expect(revsDiff["a"]!.missing.length, 3);
   });
 
   test("getWithOpenRev", () {

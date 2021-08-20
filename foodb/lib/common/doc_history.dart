@@ -1,3 +1,4 @@
+import 'package:foodb/adapter/methods/revs_diff.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/rev.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -13,6 +14,18 @@ class DocHistory<T> {
   });
 
   Doc<T>? get winner => docs.length > 0 ? docs[docs.length - 1] : null;
+
+  RevsDiff revsDiff(List<String> body) {
+    List<String> revs = docs.map((e) => e.rev!).toList();
+    print(revs.toString());
+    List<String> missing = [];
+    body.forEach((element) {
+      if (!revs.contains(element)) {
+        missing.add(element);
+      }
+    });
+    return RevsDiff(missing: missing);
+  }
 
   Iterable<Doc<T>> get leafDocs sync* {
     var sorted = docs.toList();
