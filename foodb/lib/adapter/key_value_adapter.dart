@@ -308,9 +308,9 @@ class KeyValueAdapter extends AbstractAdapter {
         doc.copyWith(rev: newDocRev.toString(), revisions: newDocRevisions)
       ]);
     } else {
-      if (doc.rev == null) {
+      if (newRev == null) {
         throw AdapterException(
-            error: 'doc rev must be supplied when new_edits is false');
+            error: 'newRev must be supplied when new_edits is false');
       }
 
       var existDoc =
@@ -319,7 +319,7 @@ class KeyValueAdapter extends AbstractAdapter {
       Doc<Map<String, dynamic>> newDoc =
           existDoc == -1 ? doc : docHistory.docs[existDoc];
 
-      newDocRev = Rev.parse(doc.rev!);
+      newDocRev = Rev.parse(newRev);
       var newDocRevisions = newDoc.revisions ??
           Revisions(
               start: newDocRev.index,
