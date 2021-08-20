@@ -64,6 +64,10 @@ void main() async {
   test('revsDiff', () async {
     final adapter = getMemoryAdapter();
 
+    // adapter.put(doc: Doc(id: "id", model: {}), newRev: "1-a");
+    // adapter.put(doc: Doc(id: "id", model: {}, rev: "1-a"), newRev: "2-b");
+    // adapter.put(doc: Doc(id: "id", model: {}, rev: "2-b"), newRev: "3-c");
+    // adapter.put(doc: Doc(id: "id", model: {}, rev: "3-c"), newRev: "4-d");
     adapter.db.put(adapter.docTableName,
         id: 'a',
         object: DocHistory(docs: [
@@ -96,6 +100,11 @@ void main() async {
     Map<String, RevsDiff> revsDiff = await adapter.revsDiff(body: {
       "a": ["1-a", "4-c", "1-c", "4-d", "5-e"]
     });
+    DocHistory<Map<String, dynamic>> docHistory = new DocHistory.fromJson(
+        (await adapter.db.get(adapter.docTableName, id: "a"))!,
+        (json) => json as Map<String, dynamic>);
+    print(docHistory.docs.length);
+    expect(docHistory.docs.length, equals(4));
     print(revsDiff["a"]!.toJson());
     expect(revsDiff["a"]!.missing.length, 3);
   });
@@ -126,8 +135,9 @@ void main() async {
     expect(docHistory.docs.length, 2);
   });
 
-  test('update with newedit =false', () async {
+  test('update with newedit =false and rev= newrev', () async {
     //change with rev = newRev // but in this situation, we will not know newrev is successor of which rev (original rev)
+    //i see put function in value-adapter oso didnt consider predecessor
     final memoryDb = getMemoryAdapter();
     await memoryDb.put(
         doc: Doc(id: "id", rev: "1-a", model: {}),
@@ -144,6 +154,9 @@ void main() async {
     DocHistory docHistory = DocHistory<Map<String, dynamic>>.fromJson(
         (await memoryDb.db.get(memoryDb.docTableName, id: "id"))!,
         (json) => json as Map<String, dynamic>);
+    for (Doc doc in docHistory.docs) {
+      print(doc.rev);
+    }
 
     expect(docHistory.docs.length, equals(3));
   });
