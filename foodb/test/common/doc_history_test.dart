@@ -35,12 +35,6 @@ void main() {
           revisions: Revisions(ids: ['d', 'c'], start: 4),
           rev: '4-d',
           localSeq: '5'),
-      Doc(
-          id: 'a',
-          model: {},
-          revisions: Revisions(ids: ['d', 'c'], start: 4),
-          rev: '4-d',
-          localSeq: '5')
     ]);
     expect(history.leafDocs.first.rev, '4-d');
   });
@@ -63,6 +57,12 @@ void main() {
           deleted: true)
     ]);
     expect(docHistory.winner?.revisions?.start, 3);
+  });
+
+  group("decide doc winner", () {
+    test('highest rivision start win', () {});
+    test('rivision start same, non deleted rev win', () {});
+    test('rivision start same, both not deleted, md5 desc win', () {});
   });
 
   test('conflict and deleted conflict', () {

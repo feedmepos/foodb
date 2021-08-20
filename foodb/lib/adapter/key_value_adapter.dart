@@ -39,7 +39,9 @@ abstract class KeyValueDatabase {
 
   Future<bool> delete(String tableName, {required String id});
 
-  Future<Map<String, dynamic>?> get(String tableName, {String? id});
+  Future<Map<String, dynamic>?> get(String tableName, {required String id});
+
+  Future<MapEntry<String, dynamic>?> last(String tableName);
 
   Future<ReadResult> read(String tableName,
       {String? startKey, String? endKey, bool? desc});
@@ -392,48 +394,77 @@ class KeyValueAdapter extends AbstractAdapter {
   Future<Doc<Map<String, dynamic>>> _beforeUpdate(
       {required Doc<Map<String, dynamic>> winnerDoc,
       required DocHistory<Map<String, dynamic>> history}) async {
-    Map<String, dynamic>? changes = await db.get(sequenceTableName);
+    var lastSeq = '0-1';
+    var last = await db.last(sequenceTableName);
 
-    String newSeqString;
-    UpdateSequence updateSequence;
-
-    if (changes == null) {
-      newSeqString = Utils.generateSequence(1);
-      updateSequence = UpdateSequence(
-          seq: newSeqString,
-          id: winnerDoc.id,
-          winnerRev: winnerDoc.rev!,
-          allLeafRev: history.leafDocs.map((e) => e.rev!).toList());
-    } else {
-      var list =
-          changes.entries.map((e) => UpdateSequence.fromJson(e.value)).toList();
-
-      // Delete existing sequence
-      var oldSeq = list.indexWhere((element) =>
-          SequenceTool(element.seq).index == winnerDoc.revisions?.start);
-
-      if (oldSeq != -1) {
-        await db.delete(sequenceTableName, id: list[oldSeq].seq);
-      }
-
-      // Sort by descending order
-      list.sort(
-          (a, b) => SequenceTool(b.seq).index - SequenceTool(a.seq).index);
-      var lastSeq = SequenceTool(list.first.seq);
-
-      newSeqString = Utils.generateSequence(lastSeq.index + 1);
-      updateSequence = UpdateSequence(
-          seq: newSeqString,
-          id: winnerDoc.id,
-          winnerRev: winnerDoc.rev!,
-          allLeafRev: history.leafDocs.map((e) => e.rev!).toList());
+    if (last != null) {
+      lastSeq = last.key;
     }
 
-    await db.put(sequenceTableName,
-        id: newSeqString, object: updateSequence.toJson());
-    localChangeStreamController.sink.add(updateSequence);
+    String newSeq = '${int.parse(lastSeq.split('-')[0]) + 1}-1';
 
-    return winnerDoc.copyWith(localSeq: newSeqString);
+    // delete winnerDocLocalSeq
+    if (winnerDoc.localSeq != null) {
+      await db.delete(sequenceTableName, id: winnerDoc.localSeq!);
+    }
+
+    // put new seq
+    var newUpdateSeq = UpdateSequence(
+        seq: newSeq,
+        id: winnerDoc.id,
+        winnerRev: winnerDoc.rev!,
+        allLeafRev: history.leafDocs.map((e) => e.rev!).toList());
+    await db.put(sequenceTableName, id: newSeq, object: newUpdateSeq.toJson());
+
+    localChangeStreamController.sink.add(newUpdateSeq);
+    return winnerDoc.copyWith(localSeq: newSeq);
+
+    // var newSeq = UpdateSequence(seq: seq, id: id, winnerRev: winnerRev, allLeafRev: allLeafRev)
+    // // remove old seq
+    // if (oldDoc.localSeq != null) {
+    //   await db.delete(sequenceTableName, id: oldDoc.localSeq);
+    // }
+    // Map<String, dynamic>? changes = await db.get(sequenceTableName);
+
+    // String newSeqString;
+    // UpdateSequence updateSequence;
+
+    // if (changes == null) {
+    //   newSeqString = Utils.generateSequence(1);
+    //   updateSequence = UpdateSequence(
+    //       seq: newSeqString,
+    //       id: winnerDoc.id,
+    //       winnerRev: winnerDoc.rev!,
+    //       allLeafRev: history.leafDocs.map((e) => e.rev!).toList());
+    // } else {
+    //   var list =
+    //       changes.entries.map((e) => UpdateSequence.fromJson(e.value)).toList();
+
+    //   // Delete existing sequence
+    //   var oldSeq = list.indexWhere((element) =>
+    //       SequenceTool(element.seq).index == winnerDoc.revisions?.start);
+
+    //   if (oldSeq != -1) {
+    //     await db.delete(sequenceTableName, id: list[oldSeq].seq);
+    //   }
+
+    //   // Sort by descending order
+    //   list.sort(
+    //       (a, b) => SequenceTool(b.seq).index - SequenceTool(a.seq).index);
+    //   var lastSeq = SequenceTool(list.first.seq);
+
+    //   newSeqString = Utils.generateSequence(lastSeq.index + 1);
+    //   updateSequence = UpdateSequence(
+    //       seq: newSeqString,
+    //       id: winnerDoc.id,
+    //       winnerRev: winnerDoc.rev!,
+    //       allLeafRev: history.leafDocs.map((e) => e.rev!).toList());
+    // }
+
+    // await db.put(sequenceTableName,
+    //     id: newSeqString, object: updateSequence.toJson());
+
+    // return winnerDoc.copyWith(localSeq: newSeqString);
   }
 
   Future<void> _generateView(Doc<DesignDoc> designDoc) async {

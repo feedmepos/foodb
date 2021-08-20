@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -38,13 +37,8 @@ void main() async {
             endKeyDocId: "a\ufff0"),
         (json) => json);
     print(docs.toJson((value) => value));
-    // expect(docs.rows.length, equals(1));
-    // expect(docs.offset, equals(0));
-
-    ReadResult map =
-        await adapter.db.read(adapter.viewTableName("_all_docs__all_docs"));
-    print(map);
-    expect(map.docs.length, equals(3));
+    expect(docs.rows.length, equals(1));
+    expect(docs.offset, equals(0));
   });
 
   test('put & get', () async {
@@ -61,7 +55,7 @@ void main() async {
     var doc1 = await memoryDb.get(id: 'foo1', fromJsonT: (v) => v);
     var doc2 = await memoryDb.get(id: 'foo2', fromJsonT: (v) => v);
     expect(res2.ok, true);
-    expect(docsSize, 2);
+    expect(docsSize, 5);
     expect(doc1?.model['a'], isNotNull);
     expect(doc2?.model['c'], isNotNull);
   });
@@ -146,33 +140,6 @@ void main() async {
         });
 
     adapter.put(doc: Doc(id: "e", model: {"name": "e", "no": 777}));
-  });
-
-  test("allDocs()", () async {
-    var adapter = getMemoryAdapter();
-    adapter.db.put(adapter.docTableName,
-        id: 'a',
-        object: DocHistory(docs: [
-          Doc(id: 'a', model: {}, rev: '1', localSeq: '1'),
-          Doc(id: 'a', model: {}, rev: '2', localSeq: '2'),
-          Doc(id: 'a', model: {}, rev: '3', localSeq: '3'),
-          Doc(id: 'a', model: {}, rev: '4', localSeq: '5')
-        ]).toJson((value) => jsonDecode(jsonEncode(value))));
-    adapter.db.put(adapter.docTableName,
-        id: 'b',
-        object:
-            DocHistory(docs: [Doc(id: 'b', model: {}, rev: '1', localSeq: '4')])
-                .toJson((value) => jsonDecode(jsonEncode(value))));
-
-    adapter.db.put(adapter.sequenceTableName, id: '4', object: {"id": 'b'});
-    adapter.db.put(adapter.sequenceTableName, id: '5', object: {"id": 'a'});
-
-    var docs = await adapter.allDocs(GetAllDocsRequest(), (json) => json);
-    expect(docs.rows.length, 2);
-    expect(docs.rows[0].id, 'a');
-    expect(docs.rows[0].value.rev, '4');
-    expect(docs.rows[0].id, 'b');
-    expect(docs.rows[1].value.rev, '1');
   });
 
   test('read', () async {

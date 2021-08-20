@@ -26,11 +26,14 @@ class InMemoryDatabase implements KeyValueDatabase {
   }
 
   @override
-  Future<Map<String, dynamic>?> get(String tableName, {String? id}) async {
-    if (id != null)
-      return _stores[tableName]?[id];
-    else
-      return _stores[tableName];
+  Future<Map<String, dynamic>?> get(String tableName,
+      {required String id}) async {
+    return _stores[tableName]?[id];
+  }
+
+  @override
+  Future<MapEntry<String, dynamic>?> last(String tableName) async {
+    return _stores[tableName]?.entries.last;
   }
 
   @override
