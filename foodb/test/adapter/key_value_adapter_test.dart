@@ -100,58 +100,61 @@ void main() async {
     expect(revsDiff["a"]!.missing.length, 3);
   });
 
-  test('put with newEdits, empty rev', () async {
-    final memoryDb = getMemoryAdapter();
-    //rev cannot be empty (different behaviour with couchdb)
-    await memoryDb.put(
-        doc: Doc(id: "id", model: {}), newRev: "1-a", newEdits: false);
-    var result = await memoryDb.db.get(memoryDb.docTableName, id: 'id');
-    var docHistory = DocHistory<Map<String, dynamic>>.fromJson(
-        result!, (v) => v as Map<String, dynamic>);
-    expect(docHistory.docs.first.rev, '1-a');
+  group('   newEdits=false', () {
+    test('put with newRev but empty rev', () async {
+      final memoryDb = getMemoryAdapter();
+      //rev cannot be empty (different behaviour with couchdb)
+      await memoryDb.put(
+          doc: Doc(id: "id", model: {}), newRev: "1-a", newEdits: false);
+      var result = await memoryDb.db.get(memoryDb.docTableName, id: 'id');
+      var docHistory = DocHistory<Map<String, dynamic>>.fromJson(
+          result!, (v) => v as Map<String, dynamic>);
+      expect(docHistory.docs.first.rev, '1-a');
+    });
+
+    test('put with same rev but different newRev', () async {
+      final memoryDb = getMemoryAdapter();
+      await memoryDb.put(
+          doc: Doc(id: "id", rev: "1-a", model: {}),
+          newRev: "1-a",
+          newEdits: false);
+      await memoryDb.put(
+          doc: Doc(id: "id", rev: "1-a", model: {}),
+          newRev: "2-b",
+          newEdits: false);
+      DocHistory docHistory = DocHistory<Map<String, dynamic>>.fromJson(
+          (await memoryDb.db.get(memoryDb.docTableName, id: "id"))!,
+          (json) => json as Map<String, dynamic>);
+      //2b rev no stored inside
+      for (Doc doc in docHistory.docs) {
+        print(doc.rev);
+      }
+      expect(docHistory.docs.length, 2);
+    });
+
+    test('update', () async {
+      //change with rev = newRev // but in this situation, we will not know newrev is successor of which rev (original rev)
+      final memoryDb = getMemoryAdapter();
+      await memoryDb.put(
+          doc: Doc(id: "id", rev: "1-a", model: {}),
+          newRev: "1-a",
+          newEdits: false);
+      await memoryDb.put(
+          doc: Doc(id: "id", rev: "2-b", model: {}),
+          newRev: "2-b",
+          newEdits: false);
+      await memoryDb.put(
+          doc: Doc(id: "id", rev: "3-c", model: {}),
+          newRev: "3-c",
+          newEdits: false);
+      DocHistory docHistory = DocHistory<Map<String, dynamic>>.fromJson(
+          (await memoryDb.db.get(memoryDb.docTableName, id: "id"))!,
+          (json) => json as Map<String, dynamic>);
+
+      expect(docHistory.docs.length, equals(3));
+    });
   });
 
-  test('update with newedit =false', () async {
-    final memoryDb = getMemoryAdapter();
-    await memoryDb.put(
-        doc: Doc(id: "id", rev: "1-a", model: {}),
-        newRev: "1-a",
-        newEdits: false);
-    await memoryDb.put(
-        doc: Doc(id: "id", rev: "1-a", model: {}),
-        newRev: "2-b",
-        newEdits: false);
-    DocHistory docHistory = DocHistory<Map<String, dynamic>>.fromJson(
-        (await memoryDb.db.get(memoryDb.docTableName, id: "id"))!,
-        (json) => json as Map<String, dynamic>);
-    //2b rev no stored inside
-    for (Doc doc in docHistory.docs) {
-      print(doc.rev);
-    }
-    expect(docHistory.docs.length, 2);
-  });
-
-  test('update with newedit =false', () async {
-    //change with rev = newRev // but in this situation, we will not know newrev is successor of which rev (original rev)
-    final memoryDb = getMemoryAdapter();
-    await memoryDb.put(
-        doc: Doc(id: "id", rev: "1-a", model: {}),
-        newRev: "1-a",
-        newEdits: false);
-    await memoryDb.put(
-        doc: Doc(id: "id", rev: "2-b", model: {}),
-        newRev: "2-b",
-        newEdits: false);
-    await memoryDb.put(
-        doc: Doc(id: "id", rev: "3-c", model: {}),
-        newRev: "3-c",
-        newEdits: false);
-    DocHistory docHistory = DocHistory<Map<String, dynamic>>.fromJson(
-        (await memoryDb.db.get(memoryDb.docTableName, id: "id"))!,
-        (json) => json as Map<String, dynamic>);
-
-    expect(docHistory.docs.length, equals(3));
-  });
   test("getWithOpenRev", () {
     // TODO, get all leaf node
   });
