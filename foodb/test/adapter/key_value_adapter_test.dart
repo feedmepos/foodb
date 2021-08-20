@@ -144,9 +144,6 @@ void main() async {
     DocHistory docHistory = DocHistory<Map<String, dynamic>>.fromJson(
         (await memoryDb.db.get(memoryDb.docTableName, id: "id"))!,
         (json) => json as Map<String, dynamic>);
-    for (Doc doc in docHistory.docs) {
-      print(doc.rev);
-    }
 
     expect(docHistory.docs.length, equals(3));
   });
