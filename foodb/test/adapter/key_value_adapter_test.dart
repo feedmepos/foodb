@@ -106,7 +106,7 @@ void main() async {
     memoryDb.put(doc: Doc(id: "id", model: {}), newRev: "1-a", newEdits: false);
   });
 
-  test('update with newedit =faalse', () async {
+  test('update with newedit =false', () async {
     final memoryDb = getMemoryAdapter();
     await memoryDb.put(
         doc: Doc(id: "id", rev: "1-a", model: {}),
@@ -127,7 +127,7 @@ void main() async {
   });
 
   test('update with newedit =false', () async {
-    //change with rev = newRev // but in this situation, we will not newrev is successor of which rev (original rev)
+    //change with rev = newRev // but in this situation, we will not know newrev is successor of which rev (original rev)
     final memoryDb = getMemoryAdapter();
     await memoryDb.put(
         doc: Doc(id: "id", rev: "1-a", model: {}),
@@ -147,6 +147,7 @@ void main() async {
     for (Doc doc in docHistory.docs) {
       print(doc.rev);
     }
+
     expect(docHistory.docs.length, equals(3));
   });
   test("getWithOpenRev", () {
