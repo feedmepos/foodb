@@ -278,9 +278,9 @@ class KeyValueAdapter extends AbstractAdapter {
       {required Doc<Map<String, dynamic>> doc,
       bool newEdits = true,
       String? newRev}) async {
-    if (newRev != null && newRev != doc.rev) {
-      throw AdapterException(error: 'newRev must be same as doc _rev');
-    }
+    // if (newRev != null && newRev != doc.rev) {
+    //   throw AdapterException(error: 'newRev must be same as doc _rev');
+    // }
 
     var history = await db.get(docTableName, id: doc.id);
     DocHistory<Map<String, dynamic>> docHistory = history == null
