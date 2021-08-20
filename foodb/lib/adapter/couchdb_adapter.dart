@@ -196,7 +196,6 @@ class CouchdbAdapter extends AbstractAdapter {
   @override
   Future<Map<String, RevsDiff>> revsDiff(
       {required Map<String, List<String>> body}) async {
-    print(jsonEncode(body));
     Response response = await this.client.post(this.getUri("_revs_diff"),
         headers: {'Content-Type': 'application/json'}, body: jsonEncode(body));
     return (jsonDecode(response.body).map<String, RevsDiff>((k, v) {
