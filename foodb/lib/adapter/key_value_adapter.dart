@@ -102,7 +102,11 @@ class KeyValueAdapter extends AbstractAdapter {
   Future<BulkDocResponse> bulkDocs(
       {required List<Doc<Map<String, dynamic>>> body,
       bool newEdits = false}) async {
-    throw UnimplementedError();
+    
+    body.forEach((element) {
+
+    });
+    return BulkDocResponse();
   }
 
   _encodeUpdateSequence(UpdateSequence update,
@@ -323,9 +327,9 @@ class KeyValueAdapter extends AbstractAdapter {
       var newDocRevisions = newDoc.revisions ??
           Revisions(
               start: newDocRev.index,
-              ids: docHistory.winner == null
+              ids: doc.rev == null
                   ? [newDocRev.md5]
-                  : [newDocRev.md5, ...docHistory.winner!.revisions!.ids]);
+                  : [newDocRev.md5, doc.rev!]);
 
       if (existDoc == -1) {
         docHistory = docHistory.copyWith(docs: [
