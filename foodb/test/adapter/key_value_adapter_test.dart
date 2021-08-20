@@ -123,9 +123,7 @@ void main() async {
   test('update with newedit =false', () async {
     final memoryDb = getMemoryAdapter();
     await memoryDb.put(
-        doc: Doc(id: "id", rev: "1-a", model: {}),
-        newRev: "1-a",
-        newEdits: false);
+        doc: Doc(id: "id", model: {}), newRev: "1-a", newEdits: false);
     await memoryDb.put(
         doc: Doc(id: "id", rev: "1-a", model: {}),
         newRev: "2-b",
