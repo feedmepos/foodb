@@ -321,7 +321,11 @@ class KeyValueAdapter extends AbstractAdapter {
 
       newDocRev = Rev.parse(doc.rev!);
       var newDocRevisions = newDoc.revisions ??
-          Revisions(start: newDocRev.index, ids: [newDocRev.md5]);
+          Revisions(
+              start: newDocRev.index,
+              ids: docHistory.winner == null
+                  ? [newDocRev.md5]
+                  : [newDocRev.md5, ...docHistory.winner!.revisions!.ids]);
 
       if (existDoc == -1) {
         docHistory = docHistory.copyWith(docs: [
