@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:foodb/common/rev.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'doc.g.dart';
@@ -7,7 +8,7 @@ part 'doc.g.dart';
 @immutable
 class Doc<T> {
   final String id;
-  final String? rev;
+  final Rev? rev;
   final bool? deleted;
   final Revisions? revisions;
   final T model;
@@ -34,7 +35,7 @@ class Doc<T> {
       Map<String, dynamic> json, T Function(Object? json) fromJsonT) {
     return Doc<T>(
       id: json['_id'] as String,
-      rev: json['_rev'] as String?,
+      rev: json['_rev'] == null ? null : Rev.fromString(json['_rev'] as String),
       model: fromJsonT(json),
       deleted: json['_deleted'] as bool?,
       revisions: json['_revisions'] == null
@@ -57,7 +58,7 @@ class Doc<T> {
     Map<String, dynamic> map = toJsonT(this.model) as Map<String, dynamic>;
     map.addAll(<String, dynamic>{
       '_id': this.id,
-      '_rev': this.rev,
+      '_rev': this.rev.toString(),
       '_deleted': this.deleted,
       '_revisions': this.revisions?.toJson(),
       '_local_seq': this.localSeq,
@@ -101,7 +102,8 @@ class Revisions {
 @JsonSerializable()
 @immutable
 class RevsInfo {
-  final String rev;
+  @JsonKey(fromJson: RevFromJsonString, toJson: RevToJsonString)
+  final Rev rev;
   final String status;
   RevsInfo({
     required this.rev,

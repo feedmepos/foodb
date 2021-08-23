@@ -301,16 +301,16 @@ class Replicator {
       print(changeResult.id);
       if (changes.containsKey(changeResult.id)) {
         if (changes[changeResult.id]?[0].split('-')[0] ==
-            changeResult.changes[0].rev.split('-')[0]) {
-          changes[changeResult.id]?.add(changeResult.changes[0].rev);
+            changeResult.changes[0].rev.index.toString()) {
+          changes[changeResult.id]?.add(changeResult.changes[0].rev.toString());
         }
       } else {
-        List<String> revs = [changeResult.changes[0].rev];
+        List<String> revs = [changeResult.changes[0].rev.toString()];
         if (changeResult.changes.length > 1) {
           for (int i = 1; i < changeResult.changes.length; i++) {
-            if (int.parse(changeResult.changes[i].rev.split('-')[0]) ==
+            if (int.parse(changeResult.changes[i].rev.index.toString()) ==
                 int.parse(revs.first.split('-')[0])) {
-              revs.add(changeResult.changes[i].rev);
+              revs.add(changeResult.changes[i].rev.toString());
             }
           }
         }

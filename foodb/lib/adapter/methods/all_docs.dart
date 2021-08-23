@@ -1,4 +1,5 @@
 import 'package:foodb/common/doc.dart';
+import 'package:foodb/common/rev.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'all_docs.g.dart';
@@ -45,7 +46,8 @@ class Row<T> {
 
 @JsonSerializable()
 class Value {
-  String rev;
+  @JsonKey(fromJson: RevFromJsonString, toJson: RevToJsonString)
+  Rev rev;
   Value({required this.rev});
 
   factory Value.fromJson(Map<String, dynamic> json) => _$ValueFromJson(json);

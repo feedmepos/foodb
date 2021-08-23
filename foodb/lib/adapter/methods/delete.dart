@@ -1,3 +1,4 @@
+import 'package:foodb/common/rev.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'delete.g.dart';
@@ -6,7 +7,8 @@ part 'delete.g.dart';
 class DeleteResponse {
   bool? ok;
   String? id;
-  String? rev;
+  @JsonKey(fromJson: RevFromJsonString, toJson: RevToJsonString)
+  Rev? rev;
   String? error;
   String? reason;
 

@@ -16,6 +16,7 @@ import 'package:foodb/adapter/methods/open_revs.dart';
 import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/adapter/methods/revs_diff.dart';
 import 'package:foodb/common/doc.dart';
+import 'package:foodb/common/rev.dart';
 import 'package:http/http.dart';
 import 'package:foodb/adapter/params_converter.dart';
 import 'package:uri/uri.dart';
@@ -184,10 +185,9 @@ class CouchdbAdapter extends AbstractAdapter {
   }
 
   @override
-  Future<DeleteResponse> delete(
-      {required String id, required String rev}) async {
+  Future<DeleteResponse> delete({required String id, required Rev rev}) async {
     UriBuilder uriBuilder = new UriBuilder.fromUri(this.getUri(id));
-    uriBuilder.queryParameters = convertToParams({'rev': rev});
+    uriBuilder.queryParameters = convertToParams({'rev': rev.toString()});
     return DeleteResponse.fromJson(
         jsonDecode((await this.client.delete(uriBuilder.build())).body));
   }

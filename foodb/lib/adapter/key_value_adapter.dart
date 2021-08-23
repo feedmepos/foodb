@@ -101,8 +101,11 @@ class KeyValueAdapter extends AbstractAdapter {
   Future<BulkDocResponse> bulkDocs(
       {required List<Doc<Map<String, dynamic>>> body,
       bool newEdits = false}) async {
-    body.forEach((element) {});
-    return BulkDocResponse();
+    List<PutResponse> putResponses = [];
+    for (var doc in body) {
+      putResponses.add(await put(doc: doc, newEdits: newEdits));
+    }
+    return BulkDocResponse(putResponses: putResponses);
   }
 
   _encodeUpdateSequence(UpdateSequence update,
@@ -196,23 +199,22 @@ class KeyValueAdapter extends AbstractAdapter {
   }
 
   @override
-  Future<DeleteResponse> delete(
-      {required String id, required String rev}) async {
-    var result = await db.get(docTableName, id: id);
-    if (result != null) {
-      var history = DocHistory.fromJson(result);
-      if (history.winner?.rev != rev)
-        throw AdapterException(error: 'Invalid rev');
+  Future<DeleteResponse> delete({required String id, required Rev rev}) async {
+    var history = await db.get(docTableName, id: id);
+    DocHistory docHistory = history == null
+        ? DocHistory(id: id, docs: {}, revisions: RevisionTree(nodes: []))
+        : DocHistory.fromJson(history);
+    var winnerBeforeUpdate = docHistory.winner;
 
-      return DeleteResponse(ok: true, id: id, rev: rev);
-    } else {
-      return DeleteResponse(
-          ok: false,
-          id: id,
-          rev: rev,
-          error: "Missing",
-          reason: "Could not find the doc by id $id");
+    if (winnerBeforeUpdate == null) {
+      throw AdapterException(error: 'doc not found');
     }
+
+    var result = await put(
+        doc:
+            Doc(id: id, model: {}, deleted: true, rev: winnerBeforeUpdate.rev));
+
+    return DeleteResponse(ok: true, id: id, rev: result.rev);
   }
 
   Future<DocHistory?> getHistory(String id) async {
@@ -269,109 +271,151 @@ class KeyValueAdapter extends AbstractAdapter {
     throw UnimplementedError();
   }
 
+  _validateUpdate(
+      {newEdits = true, InternalDoc? winnerBeforeUpdate, Rev? inputRev}) {
+    if (newEdits == true) {
+      if (winnerBeforeUpdate != null) {
+        if (inputRev == null || winnerBeforeUpdate.rev == inputRev) {
+          throw AdapterException(
+              error: 'update conflict', reason: 'rev is different');
+        }
+      }
+    } else {
+      if (inputRev == null) {
+        throw AdapterException(
+            error: 'missing rev', reason: 'rev is required to update');
+      }
+    }
+  }
+
+  Rev _generateNewRev(
+      {required Map<String, dynamic> docToEncode,
+      newEdits = true,
+      Rev? inputRev,
+      InternalDoc? winnerBeforeUpdate,
+      Revisions? revisions}) {
+    Rev newRev = Rev(index: 0, md5: '0').increase(docToEncode);
+    if (newEdits == true) {
+      if (winnerBeforeUpdate != null) {
+        newRev = winnerBeforeUpdate.rev.increase(docToEncode);
+      }
+    } else {
+      if (revisions != null) {
+        newRev = Rev(index: revisions.start, md5: revisions.ids[0]);
+      } else {
+        newRev = inputRev!;
+      }
+    }
+    return newRev;
+  }
+
+  RevisionTree _rebuildRevisionTree(
+      {newEdits = true,
+      required RevisionTree oldReivisions,
+      required Rev newRev,
+      InternalDoc? winnerBeforeUpdate,
+      Revisions? inputRevision}) {
+    Map<String, RevisionNode> mappedRevision = Map.fromIterable(
+        oldReivisions.nodes,
+        key: (e) => e.rev.toString(),
+        value: (e) => e);
+    if (newEdits == true) {
+      mappedRevision.putIfAbsent(newRev.toString(),
+          () => RevisionNode(rev: newRev, prevRev: winnerBeforeUpdate?.rev));
+    } else {
+      if (inputRevision == null) {
+        mappedRevision.putIfAbsent(
+            newRev.toString(), () => RevisionNode(rev: newRev));
+      } else {
+        inputRevision.ids.asMap().forEach((key, value) {
+          Rev rev = Rev(index: inputRevision.start - key, md5: value);
+          Rev? prevRev;
+          if (key < inputRevision.ids.length) {
+            prevRev = Rev(
+                index: inputRevision.start - key - 1,
+                md5: inputRevision.ids[key + 1]);
+          }
+          mappedRevision.update(rev.toString(), (value) {
+            if (value.prevRev == null && prevRev != null) {
+              value.prevRev = prevRev;
+            }
+            return value;
+          }, ifAbsent: () => RevisionNode(rev: newRev, prevRev: prevRev));
+        });
+      }
+    }
+    return oldReivisions.copyWith(
+        nodes: mappedRevision.values.map((e) => e).toList());
+  }
+
+  _generateUpdateSequence({
+    String? lastKey,
+  }) {
+    var lastSeq = lastKey ?? '0-1';
+    return '${int.parse(lastSeq.split('-')[0]) + 1}-1';
+  }
+
   @override
   Future<PutResponse> put(
       {required Doc<Map<String, dynamic>> doc, bool newEdits = true}) async {
     var history = await db.get(docTableName, id: doc.id);
-    DocHistory docHistory =
-        history == null ? DocHistory(docs: []) : DocHistory.fromJson(history);
+    DocHistory docHistory = history == null
+        ? DocHistory(id: doc.id, docs: {}, revisions: RevisionTree(nodes: []))
+        : DocHistory.fromJson(history);
+    var docJson = doc.toJson((value) => value);
+    var winnerBeforeUpdate = docHistory.winner;
 
-    Rev newDocRev;
+    // Validation
+    _validateUpdate(
+        newEdits: newEdits,
+        winnerBeforeUpdate: winnerBeforeUpdate,
+        inputRev: doc.rev);
 
-    /**
-     * newEdits = true
-     * - winner
-     * - compare winner rev == doc rev
-     * - increase rev from winner
-     * newEdits = false
-     * - doc rev must exist
-     * - use privided rev
-     * 
-     * set localSeq
-     * 
-     * update docHistoryRevisions = calculateRevisions()
-     */
+    // get new Rev
+    Rev newRev = _generateNewRev(
+        docToEncode: doc.toJson((value) => value),
+        newEdits: newEdits,
+        winnerBeforeUpdate: winnerBeforeUpdate,
+        revisions: doc.revisions,
+        inputRev: doc.rev);
 
-    // get prev rev
-    Rev? prevRev;
-    Rev currRev =
-        Rev(index: 0, md5: '0').increase(doc.toJson((value) => value));
-    if (newEdits == true) {
-      if (docHistory.winner != null) {
-        if (doc.rev != prevRev.toString()) {
-          throw AdapterException(error: 'update conflict');
-        }
-        prevRev = Rev.parse(docHistory.winner!.rev);
-        currRev = prevRev.increase(doc.toJson((value) => value));
-      }
-    } else {
-      if (doc.rev == null) {
-        throw AdapterException(
-            error: 'invalid put request',
-            reason: 'rev is required when newEdits = false');
-      }
-      currRev = Rev.parse(doc.rev!);
-      if (doc.revisions != null && doc.revisions!.ids[1] != null) {
-        prevRev =
-            Rev(index: doc.revisions!.start - 1, md5: doc.revisions!.ids[1]);
-      }
+    // rebuild rivision tree
+    RevisionTree newRevisionTreeObject = _rebuildRevisionTree(
+        oldReivisions: docHistory.revisions,
+        newRev: newRev,
+        winnerBeforeUpdate: winnerBeforeUpdate,
+        inputRevision: doc.revisions,
+        newEdits: newEdits);
+
+    // create updateSequence object
+    var newUpdateSeq = _generateUpdateSequence(
+        lastKey: (await db.last(sequenceTableName))?.key);
+
+    // create DocHistory Object
+    InternalDoc newDocObject = InternalDoc(
+        rev: newRev,
+        deleted: doc.deleted ?? false,
+        localSeq: newUpdateSeq,
+        data: doc.model);
+    DocHistory newDocHistoryObject = docHistory.copyWith(
+        docs: {...docHistory.docs, newDocObject.rev.toString(): newDocObject},
+        revisions: newRevisionTreeObject);
+    UpdateSequence newUpdateSeqObject = UpdateSequence(
+        id: doc.id,
+        seq: newUpdateSeq,
+        winnerRev: newDocHistoryObject.winner!.rev,
+        allLeafRev: newDocHistoryObject.leafDocs.map((e) => e.rev).toList());
+
+    // perform actual database operation
+    if (winnerBeforeUpdate != null) {
+      await db.delete(sequenceTableName, id: winnerBeforeUpdate.localSeq);
     }
+    await db.put(sequenceTableName,
+        id: newUpdateSeqObject.seq, object: newUpdateSeqObject.toJson());
+    await db.put(docTableName,
+        id: doc.id, object: newDocHistoryObject.toJson());
 
-    if (newEdits == true) {
-      var winner = docHistory.winner;
-      if (winner != null) {
-        if (doc.rev != winner.rev) {
-          throw AdapterException(error: 'update conflict');
-        }
-      }
-
-      newDocRev = Rev.parse(doc.rev ?? '0-0').increase(doc.model);
-      var newDocRevisions = Revisions(
-          start: newDocRev.index,
-          ids: winner != null
-              ? [newDocRev.md5, ...winner.revisions!.ids]
-              : [newDocRev.md5]);
-      docHistory = docHistory.copyWith(docs: [
-        ...docHistory.docs,
-        doc.copyWith(rev: newDocRev.toString(), revisions: newDocRevisions)
-      ]);
-    } else {
-      if (newRev == null) {
-        throw AdapterException(
-            error: 'newRev must be supplied when new_edits is false');
-      }
-
-      var existDoc =
-          docHistory.docs.indexWhere((element) => element.rev == doc.rev);
-
-      Doc<Map<String, dynamic>> newDoc =
-          existDoc == -1 ? doc : docHistory.docs[existDoc];
-
-      newDocRev = Rev.parse(newRev);
-      var newDocRevisions = newDoc.revisions ??
-          Revisions(
-              start: newDocRev.index,
-              ids: doc.rev == null
-                  ? [newDocRev.md5]
-                  : [newDocRev.md5, doc.rev!]);
-
-      if (existDoc == -1) {
-        docHistory = docHistory.copyWith(docs: [
-          ...docHistory.docs,
-          doc.copyWith(rev: newDocRev.toString(), revisions: newDocRevisions)
-        ]);
-      } else {
-        var newDocs = docHistory.docs.toList();
-        newDocs[existDoc] = doc.copyWith(revisions: newDocRevisions);
-        docHistory = docHistory.copyWith(docs: newDocs);
-      }
-    }
-
-    var finalDoc =
-        await _beforeUpdate(winnerDoc: docHistory.winner!, history: docHistory);
-    await db.put(docTableName, id: finalDoc.id, object: docHistory.toJson());
-
-    return PutResponse(ok: true, id: doc.id, rev: finalDoc.rev!);
+    return PutResponse(ok: true, id: doc.id, rev: newRev);
   }
 
   @override
@@ -424,83 +468,7 @@ class KeyValueAdapter extends AbstractAdapter {
     if (result.winner?.deleted == true) {
       return null;
     }
-    return result.winner;
-  }
-
-  Future<Doc<Map<String, dynamic>>> _beforeUpdate(
-      {required Doc<Map<String, dynamic>> winnerDoc,
-      required DocHistory history}) async {
-    var lastSeq = '0-1';
-    var last = await db.last(sequenceTableName);
-
-    if (last != null) {
-      lastSeq = last.key;
-    }
-
-    String newSeq = '${int.parse(lastSeq.split('-')[0]) + 1}-1';
-
-    // delete winnerDocLocalSeq
-    if (winnerDoc.localSeq != null) {
-      await db.delete(sequenceTableName, id: winnerDoc.localSeq!);
-    }
-
-    // put new seq
-    var newUpdateSeq = UpdateSequence(
-        seq: newSeq,
-        id: winnerDoc.id,
-        winnerRev: winnerDoc.rev!,
-        allLeafRev: history.leafDocs.map((e) => e.rev!).toList());
-    await db.put(sequenceTableName, id: newSeq, object: newUpdateSeq.toJson());
-
-    localChangeStreamController.sink.add(newUpdateSeq);
-    return winnerDoc.copyWith(localSeq: newSeq);
-
-    // var newSeq = UpdateSequence(seq: seq, id: id, winnerRev: winnerRev, allLeafRev: allLeafRev)
-    // // remove old seq
-    // if (oldDoc.localSeq != null) {
-    //   await db.delete(sequenceTableName, id: oldDoc.localSeq);
-    // }
-    // Map<String, dynamic>? changes = await db.get(sequenceTableName);
-
-    // String newSeqString;
-    // UpdateSequence updateSequence;
-
-    // if (changes == null) {
-    //   newSeqString = Utils.generateSequence(1);
-    //   updateSequence = UpdateSequence(
-    //       seq: newSeqString,
-    //       id: winnerDoc.id,
-    //       winnerRev: winnerDoc.rev!,
-    //       allLeafRev: history.leafDocs.map((e) => e.rev!).toList());
-    // } else {
-    //   var list =
-    //       changes.entries.map((e) => UpdateSequence.fromJson(e.value)).toList();
-
-    //   // Delete existing sequence
-    //   var oldSeq = list.indexWhere((element) =>
-    //       SequenceTool(element.seq).index == winnerDoc.revisions?.start);
-
-    //   if (oldSeq != -1) {
-    //     await db.delete(sequenceTableName, id: list[oldSeq].seq);
-    //   }
-
-    //   // Sort by descending order
-    //   list.sort(
-    //       (a, b) => SequenceTool(b.seq).index - SequenceTool(a.seq).index);
-    //   var lastSeq = SequenceTool(list.first.seq);
-
-    //   newSeqString = Utils.generateSequence(lastSeq.index + 1);
-    //   updateSequence = UpdateSequence(
-    //       seq: newSeqString,
-    //       id: winnerDoc.id,
-    //       winnerRev: winnerDoc.rev!,
-    //       allLeafRev: history.leafDocs.map((e) => e.rev!).toList());
-    // }
-
-    // await db.put(sequenceTableName,
-    //     id: newSeqString, object: updateSequence.toJson());
-
-    // return winnerDoc.copyWith(localSeq: newSeqString);
+    return result.winner!.toDoc(id, fromJsonT);
   }
 
   Future<void> _generateView(Doc<DesignDoc> designDoc) async {
@@ -550,7 +518,7 @@ class KeyValueAdapter extends AbstractAdapter {
       // TODO create dart mapper using query field
     } else if (view is AllDocDesignDocView) {
       return history.winner?.deleted != true
-          ? [MapEntry(history.winner!.id, history.winner?.model)]
+          ? [MapEntry(history.id, history.winner?.data)]
           : [];
     } else {
       throw new UnimplementedError('Unknown Design Doc View');

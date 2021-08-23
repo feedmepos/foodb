@@ -1,13 +1,10 @@
-import 'package:json_annotation/json_annotation.dart';
+import 'package:foodb/common/rev.dart';
 
-part 'update_sequence.g.dart';
-
-@JsonSerializable()
 class UpdateSequence {
   String seq;
   String id;
-  String winnerRev;
-  List<String> allLeafRev;
+  Rev winnerRev;
+  List<Rev> allLeafRev;
   UpdateSequence({
     required this.seq,
     required this.id,
@@ -15,7 +12,19 @@ class UpdateSequence {
     required this.allLeafRev,
   });
 
-  factory UpdateSequence.fromJson(Map<String, dynamic> json) =>
-      _$UpdateSequenceFromJson(json);
-  Map<String, dynamic> toJson() => _$UpdateSequenceToJson(this);
+  factory UpdateSequence.fromJson(Map<String, dynamic> json) => UpdateSequence(
+        seq: json['seq'] as String,
+        id: json['id'] as String,
+        winnerRev: Rev.fromString(json['winnerRev'] as String),
+        allLeafRev: (json['allLeafRev'] as List<dynamic>)
+            .map((e) => Rev.fromString(e as String))
+            .toList(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'seq': this.seq,
+        'id': this.id,
+        'winnerRev': this.winnerRev.toString(),
+        'allLeafRev': this.allLeafRev.map((e) => e.toString()),
+      };
 }

@@ -8,13 +8,13 @@ part of 'changes.dart';
 
 ChangeResultRev _$ChangeResultRevFromJson(Map<String, dynamic> json) {
   return ChangeResultRev(
-    rev: json['rev'] as String,
+    rev: RevFromJsonString(json['rev'] as String?),
   );
 }
 
 Map<String, dynamic> _$ChangeResultRevToJson(ChangeResultRev instance) =>
     <String, dynamic>{
-      'rev': instance.rev,
+      'rev': RevToJsonString(instance.rev),
     };
 
 ChangeResult _$ChangeResultFromJson(Map<String, dynamic> json) {

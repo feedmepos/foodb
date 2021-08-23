@@ -1,15 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:foodb/adapter/adapter.dart';
-import 'package:foodb/common/doc.dart';
-import 'package:http/http.dart';
+import 'package:foodb/common/rev.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'changes.g.dart';
 
 @JsonSerializable()
 class ChangeResultRev {
-  String rev;
+  @JsonKey(fromJson: RevFromJsonString, toJson: RevToJsonString)
+  Rev rev;
 
   ChangeResultRev({required this.rev});
 

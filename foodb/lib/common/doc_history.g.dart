@@ -8,17 +8,15 @@ part of 'doc_history.dart';
 
 RevisionNode _$RevisionNodeFromJson(Map<String, dynamic> json) {
   return RevisionNode(
-    rev: json['rev'] as String,
-    prevRev: json['prevRev'] as String?,
-    nextRev: json['nextRev'] as String?,
+    rev: RevFromJsonString(json['rev'] as String?),
+    prevRev: RevFromJsonString(json['prevRev'] as String?),
   );
 }
 
 Map<String, dynamic> _$RevisionNodeToJson(RevisionNode instance) =>
     <String, dynamic>{
-      'rev': instance.rev,
-      'prevRev': instance.prevRev,
-      'nextRev': instance.nextRev,
+      'rev': RevToJsonString(instance.rev),
+      'prevRev': RevToJsonString(instance.prevRev),
     };
 
 RevisionTree _$RevisionTreeFromJson(Map<String, dynamic> json) {
@@ -36,7 +34,7 @@ Map<String, dynamic> _$RevisionTreeToJson(RevisionTree instance) =>
 
 InternalDoc _$InternalDocFromJson(Map<String, dynamic> json) {
   return InternalDoc(
-    rev: json['rev'] as String,
+    rev: RevFromJsonString(json['rev'] as String?),
     deleted: json['deleted'] as bool,
     localSeq: json['localSeq'] as String,
     data: json['data'] as Map<String, dynamic>,
@@ -45,7 +43,7 @@ InternalDoc _$InternalDocFromJson(Map<String, dynamic> json) {
 
 Map<String, dynamic> _$InternalDocToJson(InternalDoc instance) =>
     <String, dynamic>{
-      'rev': instance.rev,
+      'rev': RevToJsonString(instance.rev),
       'deleted': instance.deleted,
       'localSeq': instance.localSeq,
       'data': instance.data,

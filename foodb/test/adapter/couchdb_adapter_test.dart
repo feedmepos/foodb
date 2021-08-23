@@ -16,6 +16,7 @@ import 'package:foodb/adapter/methods/ensure_full_commit.dart';
 import 'package:foodb/common/design_doc.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:foodb/common/rev.dart';
 import 'package:uuid/uuid.dart';
 
 void main() async {
@@ -67,7 +68,10 @@ void main() async {
   test('put()', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();
     PutResponse putResponse = await couchDb.put(
-        doc: Doc(id: "a", rev: "1-bb", model: {"name": "wgg", "no": 300}),
+        doc: Doc(
+            id: "a",
+            rev: Rev.fromString("1-bb"),
+            model: {"name": "wgg", "no": 300}),
         newEdits: false);
 
     expect(putResponse.ok, isTrue);
@@ -93,28 +97,37 @@ void main() async {
     test('empty revisions, create new history', () async {
       final CouchdbAdapter couchDb = getCouchDbAdapter();
       await couchDb.put(
-          doc: Doc(id: id, rev: '1-a', model: {"name": "wgg", "no": 300}),
+          doc: Doc(
+              id: id,
+              rev: Rev.fromString('1-a'),
+              model: {"name": "wgg", "no": 300}),
           newEdits: false);
       await couchDb.put(
-          doc: Doc(id: id, rev: '2-a', model: {"name": "wgg", "no": 300}),
+          doc: Doc(
+              id: id,
+              rev: Rev.fromString('2-a'),
+              model: {"name": "wgg", "no": 300}),
           newEdits: false);
       Doc<Map<String, dynamic>>? doc = await couchDb.get(
           id: id, fromJsonT: (val) => val, meta: true, revs: true);
       expect(doc, isNotNull);
       expect(doc!.conflicts!.length, 1);
       expect(doc.revisions!.ids.length, 1);
-      couchDb.delete(id: id, rev: '2-a');
+      couchDb.delete(id: id, rev: Rev.fromString('2-a'));
     });
 
     test('with revision, link to existing', () async {
       final CouchdbAdapter couchDb = getCouchDbAdapter();
       await couchDb.put(
-          doc: Doc(id: id, rev: '1-a', model: {"name": "wgg", "no": 300}),
+          doc: Doc(
+              id: id,
+              rev: Rev.fromString('1-a'),
+              model: {"name": "wgg", "no": 300}),
           newEdits: false);
       await couchDb.put(
           doc: Doc(
               id: id,
-              rev: '2-a',
+              rev: Rev.fromString('2-a'),
               model: {"name": "wgg", "no": 300},
               revisions: Revisions(start: 2, ids: ['a', 'a'])),
           newEdits: false);
@@ -123,7 +136,7 @@ void main() async {
       expect(doc, isNotNull);
       expect(doc!.conflicts, isNull);
       expect(doc.revisions!.ids.length, 2);
-      couchDb.delete(id: id, rev: '2-a');
+      couchDb.delete(id: id, rev: Rev.fromString('2-a'));
     });
 
     // test('put conflicts', () async {
@@ -170,8 +183,8 @@ void main() async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();
     Doc? doc = await couchDb.get(
         id: 'test2', revs: true, latest: true, fromJsonT: (v) => {});
-    DeleteResponse deleteResponse =
-        await couchDb.delete(id: "test2", rev: doc?.rev ?? '');
+    DeleteResponse deleteResponse = await couchDb.delete(
+        id: "test2", rev: doc?.rev ?? Rev.fromString('1-a'));
     expect(deleteResponse.ok, true);
   });
 
@@ -180,7 +193,7 @@ void main() async {
     List<Doc<Map<String, dynamic>>> newDocs = [];
     newDocs.add(Doc(
         id: 'test2',
-        rev: '1-zu21xehvdaine5smjxy9htiegd4rptkm5',
+        rev: Rev.fromString('1-zu21xehvdaine5smjxy9htiegd4rptkm5'),
         model: {
           'name': 'test test',
           'no': 1111,
@@ -191,7 +204,7 @@ void main() async {
         ])));
     newDocs.add(Doc(
         id: 'test7',
-        rev: '0-sasddsdsdfdfdsfdffdd',
+        rev: Rev.fromString('0-sasddsdsdfdfdsfdffdd'),
         model: {
           'name': 'test test asdfgh',
           'no': 2212,
@@ -199,7 +212,7 @@ void main() async {
         revisions: Revisions(start: 0, ids: ['sasddsdsdfdfdsfdffdd'])));
     newDocs.add(Doc(
         id: 'test5',
-        rev: '0-sasddsdsdfdfdsfdffdd',
+        rev: Rev.fromString('0-sasddsdsdfdfdsfdffdd'),
         model: {
           'name': 'test test 5',
           'no': 222,

@@ -10,7 +10,7 @@ PutResponse _$PutResponseFromJson(Map<String, dynamic> json) {
   return PutResponse(
     ok: json['ok'] as bool,
     id: json['id'] as String,
-    rev: json['rev'] as String,
+    rev: RevFromJsonString(json['rev'] as String?),
   );
 }
 
@@ -18,7 +18,7 @@ Map<String, dynamic> _$PutResponseToJson(PutResponse instance) =>
     <String, dynamic>{
       'ok': instance.ok,
       'id': instance.id,
-      'rev': instance.rev,
+      'rev': RevToJsonString(instance.rev),
     };
 
 PutRequestBody _$PutRequestBodyFromJson(Map<String, dynamic> json) {

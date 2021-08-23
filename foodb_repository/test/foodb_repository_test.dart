@@ -7,6 +7,7 @@ import 'package:foodb/adapter/methods/delete.dart';
 import 'package:foodb/adapter/methods/explain.dart';
 import 'package:foodb/adapter/methods/find.dart';
 import 'package:foodb/common/doc.dart';
+import 'package:foodb/common/rev.dart';
 import 'package:foodb/foodb.dart';
 import 'package:foodb_repository/foodb_repository.dart';
 
@@ -273,16 +274,15 @@ void main() async {
     );
     Doc<UserModel> newDoc = new Doc(
         id: doc!.id,
-        rev: "2-${doc.rev!.split('-')[1]}",
+        rev: Rev.fromString("2-${doc.rev.toString()!.split('-')[1]}"),
         model: doc.model,
         deleted: true,
-        revisions: Revisions(
-            start: 2, ids: [doc.rev!.split('-')[1], doc.rev!.split('-')[1]]));
+        revisions: Revisions(start: 2, ids: [doc.rev!.md5, doc.rev!.md5]));
     BulkDocResponse bulkDocResponse = await userRepo.bulkDocs([
       newDoc,
       Doc<UserModel>(
           id: 'User-yyyyIsPriority',
-          rev: '1-aaaqwertyuiytrew',
+          rev: Rev.fromString('1-aaaqwertyuiytrew'),
           //deleted: true,
           revisions: Revisions(ids: ["aaaqwertyuiytrew"], start: 1),
           model: UserModel(name: 'prio', no: 2000))

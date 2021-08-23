@@ -1,3 +1,4 @@
+import 'package:foodb/common/rev.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'put.g.dart';
@@ -6,7 +7,8 @@ part 'put.g.dart';
 class PutResponse {
   bool ok;
   String id;
-  String rev;
+  @JsonKey(fromJson: RevFromJsonString, toJson: RevToJsonString)
+  Rev rev;
 
   PutResponse({required this.ok, required this.id, required this.rev});
 

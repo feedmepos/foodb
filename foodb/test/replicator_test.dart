@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodb/adapter/couchdb_adapter.dart';
 import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/common/doc.dart';
+import 'package:foodb/common/rev.dart';
 import 'package:foodb/replicator.dart';
 
 void main() async {
@@ -57,7 +58,7 @@ void main() async {
     PutResponse putResponse = await getCouchDbAdapter(dbName: "adish").put(
       doc: Doc(
           id: "feedme",
-          rev: "1-asdfg",
+          rev: Rev.fromString("1-asdfg"),
           model: {"name": "feedmefood", "no": 300}),
       newEdits: false,
     );
@@ -67,7 +68,7 @@ void main() async {
       doc: Doc(
           id: "feedme",
           model: {"name": "feedmecola", "no": 200},
-          rev: "2-asdfg",
+          rev: Rev.fromString("2-asdfg"),
           revisions: Revisions(start: 2, ids: ["asdfg", "asdfg"])),
       newEdits: false,
     );
@@ -77,7 +78,7 @@ void main() async {
       doc: Doc(
           id: "feedme",
           model: {"name": "feedmeburger", "no": 900},
-          rev: "2-bbdfg",
+          rev: Rev.fromString("2-bbdfg"),
           revisions: Revisions(ids: ["bbdfg", "asdfg"], start: 2)),
       newEdits: false,
     );
@@ -91,7 +92,7 @@ void main() async {
     await getCouchDbAdapter(dbName: "a-test").put(
       doc: Doc(
           id: "feedme",
-          rev: "1-asdfg",
+          rev: Rev.fromString("1-asdfg"),
           model: {"name": "feedmefood", "no": 300}),
       newEdits: false,
     );
@@ -101,7 +102,7 @@ void main() async {
       doc: Doc(
           id: "feedme",
           model: {"name": "starvation", "no": 999},
-          rev: "2-zzzzz",
+          rev: Rev.fromString("2-zzzzz"),
           revisions: Revisions(ids: ["zzzzz", "asdfg"], start: 2)),
       newEdits: false,
     );

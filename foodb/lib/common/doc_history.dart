@@ -1,26 +1,36 @@
+import 'package:foodb/common/doc.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 import 'package:foodb/adapter/methods/revs_diff.dart';
-import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/rev.dart';
 
 part 'doc_history.g.dart';
 
 @JsonSerializable(explicitToJson: true)
 class RevisionNode {
-  String rev;
-  String? prevRev;
-  String? nextRev;
+  @JsonKey(fromJson: RevFromJsonString, toJson: RevToJsonString)
+  Rev rev;
+  @JsonKey(fromJson: RevFromJsonString, toJson: RevToJsonString)
+  Rev? prevRev;
 
   RevisionNode({
     required this.rev,
     this.prevRev,
-    this.nextRev,
   });
 
   factory RevisionNode.fromJson(Map<String, dynamic> json) =>
       _$RevisionNodeFromJson(json);
   Map<String, dynamic> toJson() => _$RevisionNodeToJson(this);
+
+  RevisionNode copyWith({
+    Rev? rev,
+    Rev? prevRev,
+  }) {
+    return RevisionNode(
+      rev: rev ?? this.rev,
+      prevRev: prevRev ?? this.prevRev,
+    );
+  }
 }
 
 @JsonSerializable(explicitToJson: true)
@@ -33,11 +43,20 @@ class RevisionTree {
   factory RevisionTree.fromJson(Map<String, dynamic> json) =>
       _$RevisionTreeFromJson(json);
   Map<String, dynamic> toJson() => _$RevisionTreeToJson(this);
+
+  RevisionTree copyWith({
+    List<RevisionNode>? nodes,
+  }) {
+    return RevisionTree(
+      nodes: nodes ?? this.nodes,
+    );
+  }
 }
 
 @JsonSerializable(explicitToJson: true)
 class InternalDoc {
-  String rev;
+  @JsonKey(fromJson: RevFromJsonString, toJson: RevToJsonString)
+  Rev rev;
   bool deleted;
   String localSeq;
   Map<String, dynamic> data;
@@ -51,6 +70,25 @@ class InternalDoc {
   factory InternalDoc.fromJson(Map<String, dynamic> json) =>
       _$InternalDocFromJson(json);
   Map<String, dynamic> toJson() => _$InternalDocToJson(this);
+
+  InternalDoc copyWith({
+    Rev? rev,
+    bool? deleted,
+    String? localSeq,
+    Map<String, dynamic>? data,
+  }) {
+    return InternalDoc(
+      rev: rev ?? this.rev,
+      deleted: deleted ?? this.deleted,
+      localSeq: localSeq ?? this.localSeq,
+      data: data ?? this.data,
+    );
+  }
+
+  Doc<T> toDoc<T>(String id, T Function(Map<String, dynamic> json) fromT) {
+    return Doc(
+        id: id, model: fromT(this.data), rev: this.rev, deleted: this.deleted);
+  }
 }
 
 @JsonSerializable(explicitToJson: true)
@@ -70,7 +108,7 @@ class DocHistory {
   Iterable<InternalDoc> get leafDocs {
     Map<String, InternalDoc> leaf = Map.from(docs);
     revisions.nodes.forEach((element) {
-      leaf.remove(element.prevRev);
+      leaf.remove(element.prevRev.toString());
     });
     return leaf.values;
   }
@@ -84,7 +122,7 @@ class DocHistory {
   }
 
   RevsDiff revsDiff(List<String> body) {
-    List<String> revs = docs.values.map((v) => v.rev).toList();
+    List<String> revs = docs.values.map((v) => v.rev.toString()).toList();
     print(revs.toString());
     List<String> missing = [];
     body.forEach((element) {
@@ -98,4 +136,16 @@ class DocHistory {
   factory DocHistory.fromJson(Map<String, dynamic> json) =>
       _$DocHistoryFromJson(json);
   Map<String, dynamic> toJson() => _$DocHistoryToJson(this);
+
+  DocHistory copyWith({
+    String? id,
+    Map<String, InternalDoc>? docs,
+    RevisionTree? revisions,
+  }) {
+    return DocHistory(
+      id: id ?? this.id,
+      docs: docs ?? this.docs,
+      revisions: revisions ?? this.revisions,
+    );
+  }
 }

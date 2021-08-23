@@ -1,27 +1,42 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodb/adapter/methods/revs_diff.dart';
-import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/doc_history.dart';
+import 'package:foodb/common/rev.dart';
 
 void main() {
   test('revsDiff', () async {
     DocHistory history = DocHistory(
         id: 'a',
         docs: {
-          "1-a":
-              InternalDoc(rev: "1-a", deleted: false, localSeq: "1", data: {}),
-          "2-b":
-              InternalDoc(rev: "2-b", deleted: false, localSeq: "2", data: {}),
-          "3-c":
-              InternalDoc(rev: "3-c", deleted: false, localSeq: "3", data: {}),
-          "4-d":
-              InternalDoc(rev: "4-d", deleted: false, localSeq: "4", data: {})
+          "1-a": InternalDoc(
+              rev: Rev.fromString("1-a"),
+              deleted: false,
+              localSeq: "1",
+              data: {}),
+          "2-b": InternalDoc(
+              rev: Rev.fromString("2-b"),
+              deleted: false,
+              localSeq: "2",
+              data: {}),
+          "3-c": InternalDoc(
+              rev: Rev.fromString("3-c"),
+              deleted: false,
+              localSeq: "3",
+              data: {}),
+          "4-d": InternalDoc(
+              rev: Rev.fromString("4-d"),
+              deleted: false,
+              localSeq: "4",
+              data: {})
         },
         revisions: RevisionTree(nodes: [
-          RevisionNode(rev: '1-a'),
-          RevisionNode(rev: '2-b', prevRev: '1-a'),
-          RevisionNode(rev: '3-c', prevRev: '2-b'),
-          RevisionNode(rev: '4-d', prevRev: '3-c')
+          RevisionNode(rev: Rev.fromString('1-a')),
+          RevisionNode(
+              rev: Rev.fromString('2-b'), prevRev: Rev.fromString('1-a')),
+          RevisionNode(
+              rev: Rev.fromString('3-c'), prevRev: Rev.fromString('2-b')),
+          RevisionNode(
+              rev: Rev.fromString('4-d'), prevRev: Rev.fromString('3-c'))
         ]));
 
     RevsDiff revsDiff =
@@ -32,24 +47,40 @@ void main() {
     print(revsDiff.toJson());
     expect(revsDiff.missing.length, 3);
   });
+
   test("leafdocs", () async {
     DocHistory history = DocHistory(
         id: 'a',
         docs: {
-          "1-a":
-              InternalDoc(rev: "1-a", deleted: false, localSeq: "1", data: {}),
-          "2-b":
-              InternalDoc(rev: "2-b", deleted: false, localSeq: "2", data: {}),
-          "3-c":
-              InternalDoc(rev: "3-c", deleted: false, localSeq: "3", data: {}),
-          "4-d":
-              InternalDoc(rev: "4-d", deleted: false, localSeq: "4", data: {})
+          "1-a": InternalDoc(
+              rev: Rev.fromString("1-a"),
+              deleted: false,
+              localSeq: "1",
+              data: {}),
+          "2-b": InternalDoc(
+              rev: Rev.fromString("2-b"),
+              deleted: false,
+              localSeq: "2",
+              data: {}),
+          "3-c": InternalDoc(
+              rev: Rev.fromString("3-c"),
+              deleted: false,
+              localSeq: "3",
+              data: {}),
+          "4-d": InternalDoc(
+              rev: Rev.fromString("4-d"),
+              deleted: false,
+              localSeq: "4",
+              data: {})
         },
         revisions: RevisionTree(nodes: [
-          RevisionNode(rev: "1-a"),
-          RevisionNode(rev: "2-b", prevRev: "1-a"),
-          RevisionNode(rev: "3-c", prevRev: "2-b"),
-          RevisionNode(rev: "4-d", prevRev: "3-c")
+          RevisionNode(rev: Rev.fromString("1-a")),
+          RevisionNode(
+              rev: Rev.fromString("2-b"), prevRev: Rev.fromString("1-a")),
+          RevisionNode(
+              rev: Rev.fromString("3-c"), prevRev: Rev.fromString("2-b")),
+          RevisionNode(
+              rev: Rev.fromString("4-d"), prevRev: Rev.fromString("3-c"))
         ]));
 
     print(history.winner?.toJson());
@@ -58,7 +89,7 @@ void main() {
       print(doc.rev);
     }
     expect(history.leafDocs.length, 1);
-    expect(history.winner?.rev, "4-d");
+    expect(history.winner?.rev.toString(), "4-d");
   });
   group('winner', () {
     test("test with single leaf doc", () async {
@@ -66,26 +97,41 @@ void main() {
           id: 'a',
           docs: {
             "1-a": InternalDoc(
-                rev: "1-a", deleted: false, localSeq: "1", data: {}),
+                rev: Rev.fromString("1-a"),
+                deleted: false,
+                localSeq: "1",
+                data: {}),
             "2-b": InternalDoc(
-                rev: "2-b", deleted: false, localSeq: "2", data: {}),
+                rev: Rev.fromString("2-b"),
+                deleted: false,
+                localSeq: "2",
+                data: {}),
             "3-c": InternalDoc(
-                rev: "3-c", deleted: false, localSeq: "3", data: {}),
-            "4-d":
-                InternalDoc(rev: "4-d", deleted: false, localSeq: "4", data: {})
+                rev: Rev.fromString("3-c"),
+                deleted: false,
+                localSeq: "3",
+                data: {}),
+            "4-d": InternalDoc(
+                rev: Rev.fromString("4-d"),
+                deleted: false,
+                localSeq: "4",
+                data: {})
           },
           revisions: RevisionTree(nodes: [
-            RevisionNode(rev: "1-a"),
-            RevisionNode(rev: "2-b", prevRev: "1-a"),
-            RevisionNode(rev: "3-c", prevRev: "2-b"),
-            RevisionNode(rev: "4-d", prevRev: "3-c")
+            RevisionNode(rev: Rev.fromString("1-a")),
+            RevisionNode(
+                rev: Rev.fromString("2-b"), prevRev: Rev.fromString("1-a")),
+            RevisionNode(
+                rev: Rev.fromString("3-c"), prevRev: Rev.fromString("2-b")),
+            RevisionNode(
+                rev: Rev.fromString("4-d"), prevRev: Rev.fromString("3-c"))
           ]));
 
       for (InternalDoc doc in history.leafDocs) {
         print(doc.rev);
       }
       expect(history.leafDocs.length, 1);
-      expect(history.winner?.rev, "4-d");
+      expect(history.winner?.rev.toString(), "4-d");
     });
 
     test("test with 2 different length leafdocs", () async {
@@ -93,52 +139,82 @@ void main() {
           id: 'a',
           docs: {
             "1-a": InternalDoc(
-                rev: "1-a", deleted: false, localSeq: "1", data: {}),
+                rev: Rev.fromString("1-a"),
+                deleted: false,
+                localSeq: "1",
+                data: {}),
             "2-b": InternalDoc(
-                rev: "2-b", deleted: false, localSeq: "2", data: {}),
+                rev: Rev.fromString("2-b"),
+                deleted: false,
+                localSeq: "2",
+                data: {}),
             "3-c": InternalDoc(
-                rev: "3-c", deleted: false, localSeq: "3", data: {}),
-            "4-d":
-                InternalDoc(rev: "2-d", deleted: false, localSeq: "4", data: {})
+                rev: Rev.fromString("3-c"),
+                deleted: false,
+                localSeq: "3",
+                data: {}),
+            "4-d": InternalDoc(
+                rev: Rev.fromString("2-d"),
+                deleted: false,
+                localSeq: "4",
+                data: {})
           },
           revisions: RevisionTree(nodes: [
-            RevisionNode(rev: "1-a"),
-            RevisionNode(rev: "2-b", prevRev: "1-a"),
-            RevisionNode(rev: "3-c", prevRev: "2-b"),
-            RevisionNode(rev: "2-d", prevRev: "1-a")
+            RevisionNode(rev: Rev.fromString("1-a")),
+            RevisionNode(
+                rev: Rev.fromString("2-b"), prevRev: Rev.fromString("1-a")),
+            RevisionNode(
+                rev: Rev.fromString("3-c"), prevRev: Rev.fromString("2-b")),
+            RevisionNode(
+                rev: Rev.fromString("2-d"), prevRev: Rev.fromString("1-a"))
           ]));
 
       for (InternalDoc doc in history.leafDocs) {
         print(doc.rev);
       }
       expect(history.leafDocs.length, 2);
-      expect(history.winner?.rev, "3-c");
+      expect(history.winner?.rev.toString(), "3-c");
     });
     test('test with 3 same length leafdocs', () async {
       DocHistory history = DocHistory(
           id: 'a',
           docs: {
             "1-a": InternalDoc(
-                rev: "1-a", deleted: false, localSeq: "1", data: {}),
+                rev: Rev.fromString("1-a"),
+                deleted: false,
+                localSeq: "1",
+                data: {}),
             "2-b": InternalDoc(
-                rev: "2-b", deleted: false, localSeq: "2", data: {}),
+                rev: Rev.fromString("2-b"),
+                deleted: false,
+                localSeq: "2",
+                data: {}),
             "3-c": InternalDoc(
-                rev: "2-d", deleted: false, localSeq: "3", data: {}),
-            "4-d":
-                InternalDoc(rev: "2-c", deleted: false, localSeq: "4", data: {})
+                rev: Rev.fromString("2-d"),
+                deleted: false,
+                localSeq: "3",
+                data: {}),
+            "4-d": InternalDoc(
+                rev: Rev.fromString("2-c"),
+                deleted: false,
+                localSeq: "4",
+                data: {})
           },
           revisions: RevisionTree(nodes: [
-            RevisionNode(rev: "1-a"),
-            RevisionNode(rev: "2-b", prevRev: "1-a"),
-            RevisionNode(rev: "2-d", prevRev: "1-a"),
-            RevisionNode(rev: "2-c", prevRev: "1-a")
+            RevisionNode(rev: Rev.fromString("1-a")),
+            RevisionNode(
+                rev: Rev.fromString("2-b"), prevRev: Rev.fromString("1-a")),
+            RevisionNode(
+                rev: Rev.fromString("2-d"), prevRev: Rev.fromString("1-a")),
+            RevisionNode(
+                rev: Rev.fromString("2-c"), prevRev: Rev.fromString("1-a"))
           ]));
 
       for (InternalDoc doc in history.leafDocs) {
         print(doc.rev);
       }
       expect(history.leafDocs.length, 3);
-      expect(history.winner?.rev, "2-d");
+      expect(history.winner?.rev.toString(), "2-d");
     });
 
     test('test with 3 same length leafdocs with deleted= true', () async {
@@ -146,26 +222,41 @@ void main() {
           id: 'a',
           docs: {
             "1-a": InternalDoc(
-                rev: "1-a", deleted: false, localSeq: "1", data: {}),
+                rev: Rev.fromString("1-a"),
+                deleted: false,
+                localSeq: "1",
+                data: {}),
             "2-b": InternalDoc(
-                rev: "2-b", deleted: false, localSeq: "2", data: {}),
-            "3-c":
-                InternalDoc(rev: "2-d", deleted: true, localSeq: "3", data: {}),
-            "4-d":
-                InternalDoc(rev: "2-c", deleted: false, localSeq: "4", data: {})
+                rev: Rev.fromString("2-b"),
+                deleted: false,
+                localSeq: "2",
+                data: {}),
+            "3-c": InternalDoc(
+                rev: Rev.fromString("2-d"),
+                deleted: true,
+                localSeq: "3",
+                data: {}),
+            "4-d": InternalDoc(
+                rev: Rev.fromString("2-c"),
+                deleted: false,
+                localSeq: "4",
+                data: {})
           },
           revisions: RevisionTree(nodes: [
-            RevisionNode(rev: "1-a"),
-            RevisionNode(rev: "2-b", prevRev: "1-a"),
-            RevisionNode(rev: "2-d", prevRev: "1-a"),
-            RevisionNode(rev: "2-c", prevRev: "1-a")
+            RevisionNode(rev: Rev.fromString("1-a")),
+            RevisionNode(
+                rev: Rev.fromString("2-b"), prevRev: Rev.fromString("1-a")),
+            RevisionNode(
+                rev: Rev.fromString("2-d"), prevRev: Rev.fromString("1-a")),
+            RevisionNode(
+                rev: Rev.fromString("2-c"), prevRev: Rev.fromString("1-a"))
           ]));
 
       for (InternalDoc doc in history.leafDocs) {
         print(doc.rev);
       }
       expect(history.leafDocs.length, 3);
-      expect(history.winner?.rev, "2-c");
+      expect(history.winner?.rev.toString(), "2-c");
     });
   });
 }

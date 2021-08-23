@@ -10,6 +10,7 @@ import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/adapter/methods/revs_diff.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/doc_history.dart';
+import 'package:foodb/common/rev.dart';
 
 void main() async {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -52,19 +53,34 @@ void main() async {
             id: 'a',
             docs: {
               "1-a": InternalDoc(
-                  rev: "1-a", deleted: false, localSeq: "1", data: {}),
+                  rev: Rev.fromString("1-a"),
+                  deleted: false,
+                  localSeq: "1",
+                  data: {}),
               "2-b": InternalDoc(
-                  rev: "2-b", deleted: false, localSeq: "2", data: {}),
+                  rev: Rev.fromString("2-b"),
+                  deleted: false,
+                  localSeq: "2",
+                  data: {}),
               "3-c": InternalDoc(
-                  rev: "3-c", deleted: false, localSeq: "3", data: {}),
+                  rev: Rev.fromString("3-c"),
+                  deleted: false,
+                  localSeq: "3",
+                  data: {}),
               "4-d": InternalDoc(
-                  rev: "4-d", deleted: false, localSeq: "4", data: {})
+                  rev: Rev.fromString("4-d"),
+                  deleted: false,
+                  localSeq: "4",
+                  data: {})
             },
             revisions: RevisionTree(nodes: [
-              RevisionNode(rev: '1-a'),
-              RevisionNode(rev: '2-b', prevRev: '1-a'),
-              RevisionNode(rev: '3-c', prevRev: '2-b'),
-              RevisionNode(rev: '4-d', prevRev: '3-c')
+              RevisionNode(rev: Rev.fromString('1-a')),
+              RevisionNode(
+                  rev: Rev.fromString('2-b'), prevRev: Rev.fromString('1-a')),
+              RevisionNode(
+                  rev: Rev.fromString('3-c'), prevRev: Rev.fromString('2-b')),
+              RevisionNode(
+                  rev: Rev.fromString('4-d'), prevRev: Rev.fromString('3-c'))
             ])).toJson());
 
     Map<String, RevsDiff> revsDiff = await adapter.revsDiff(body: {
@@ -102,7 +118,8 @@ void main() async {
     test('put 1 single doc', () async {
       final memoryDb = getMemoryAdapter();
       await memoryDb.put(
-          doc: Doc(id: "id", rev: "1-a", model: {}), newEdits: false);
+          doc: Doc(id: "id", rev: Rev.fromString("1-a"), model: {}),
+          newEdits: false);
       var result = await memoryDb.db.get(memoryDb.docTableName, id: 'id');
       var docHistory = DocHistory.fromJson(result!);
       expect(docHistory.docs.length, 1);
@@ -112,9 +129,11 @@ void main() async {
     test('put 2 different revision tree', () async {
       final memoryDb = getMemoryAdapter();
       await memoryDb.put(
-          doc: Doc(id: "id", rev: "1-a", model: {}), newEdits: false);
+          doc: Doc(id: "id", rev: Rev.fromString("1-a"), model: {}),
+          newEdits: false);
       await memoryDb.put(
-          doc: Doc(id: "id", rev: "2-b", model: {}), newEdits: false);
+          doc: Doc(id: "id", rev: Rev.fromString("2-b"), model: {}),
+          newEdits: false);
       DocHistory docHistory = DocHistory.fromJson(
           (await memoryDb.db.get(memoryDb.docTableName, id: "id"))!);
       //2b rev no stored inside
@@ -125,22 +144,27 @@ void main() async {
     });
 
     test(
+        "put 1-a. 2-a, 3-a, then put 3-a > 2-a > 1-a reivision, then put 3-a > 2-b > 1-b, should remain 3-a > 2-a > 1-a",
+        () {});
+
+    test(
         'update doc with newedit =false and revisions connecting to its ancestors',
         () async {
       final memoryDb = getMemoryAdapter();
       await memoryDb.put(
-          doc: Doc(id: "id", rev: "1-a", model: {}), newEdits: false);
+          doc: Doc(id: "id", rev: Rev.fromString("1-a"), model: {}),
+          newEdits: false);
       await memoryDb.put(
           doc: Doc(
               id: "id",
-              rev: "2-b",
+              rev: Rev.fromString("2-b"),
               model: {},
               revisions: Revisions(ids: ['b', 'a'], start: 2)),
           newEdits: false);
       await memoryDb.put(
           doc: Doc(
               id: "id",
-              rev: "3-c",
+              rev: Rev.fromString("3-c"),
               model: {},
               revisions: Revisions(ids: ['c', 'b'], start: 3)),
           newEdits: false);
@@ -204,31 +228,49 @@ void main() async {
             id: 'a',
             docs: {
               "1-a": InternalDoc(
-                  rev: "1-a", deleted: false, localSeq: "1", data: {}),
+                  rev: Rev.fromString("1-a"),
+                  deleted: false,
+                  localSeq: "1",
+                  data: {}),
               "2-b": InternalDoc(
-                  rev: "2-b", deleted: false, localSeq: "2", data: {}),
+                  rev: Rev.fromString("2-b"),
+                  deleted: false,
+                  localSeq: "2",
+                  data: {}),
               "3-c": InternalDoc(
-                  rev: "3-c", deleted: false, localSeq: "3", data: {}),
+                  rev: Rev.fromString("3-c"),
+                  deleted: false,
+                  localSeq: "3",
+                  data: {}),
               "4-d": InternalDoc(
-                  rev: "4-d", deleted: false, localSeq: "5", data: {})
+                  rev: Rev.fromString("4-d"),
+                  deleted: false,
+                  localSeq: "5",
+                  data: {})
             },
             revisions: RevisionTree(nodes: [
-              RevisionNode(rev: '1-a'),
-              RevisionNode(rev: '2-b', prevRev: '1-a'),
-              RevisionNode(rev: '3-c', prevRev: '2-b'),
-              RevisionNode(rev: '4-d', prevRev: '3-c')
+              RevisionNode(rev: Rev.fromString('1-a')),
+              RevisionNode(
+                  rev: Rev.fromString('2-b'), prevRev: Rev.fromString('1-a')),
+              RevisionNode(
+                  rev: Rev.fromString('3-c'), prevRev: Rev.fromString('2-b')),
+              RevisionNode(
+                  rev: Rev.fromString('4-d'), prevRev: Rev.fromString('3-c'))
             ])).toJson());
     ;
     await adapter.db.put(adapter.docTableName,
         id: 'b',
         object: DocHistory(
-                id: 'b',
-                docs: {
-                  "1-a": InternalDoc(
-                      rev: "1-a", deleted: false, localSeq: "4", data: {}),
-                },
-                revisions: RevisionTree(nodes: [RevisionNode(rev: '1-a')]))
-            .toJson());
+            id: 'b',
+            docs: {
+              "1-a": InternalDoc(
+                  rev: Rev.fromString("1-a"),
+                  deleted: false,
+                  localSeq: "4",
+                  data: {}),
+            },
+            revisions: RevisionTree(
+                nodes: [RevisionNode(rev: Rev.fromString('1-a'))])).toJson());
 
     await adapter.db
         .put(adapter.sequenceTableName, id: '4', object: {"id": 'b'});

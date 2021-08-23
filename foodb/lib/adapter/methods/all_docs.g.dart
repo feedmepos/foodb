@@ -66,12 +66,12 @@ Map<String, dynamic> _$RowToJson<T>(
 
 Value _$ValueFromJson(Map<String, dynamic> json) {
   return Value(
-    rev: json['rev'] as String,
+    rev: RevFromJsonString(json['rev'] as String?),
   );
 }
 
 Map<String, dynamic> _$ValueToJson(Value instance) => <String, dynamic>{
-      'rev': instance.rev,
+      'rev': RevToJsonString(instance.rev),
     };
 
 GetAllDocsRequest _$GetAllDocsRequestFromJson(Map<String, dynamic> json) {

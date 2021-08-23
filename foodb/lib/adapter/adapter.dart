@@ -12,6 +12,7 @@ import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/adapter/methods/revs_diff.dart';
 import 'package:foodb/common/design_doc.dart';
 import 'package:foodb/common/doc.dart';
+import 'package:foodb/common/rev.dart';
 import 'package:synchronized/synchronized.dart';
 
 class ChangeFeed {
@@ -82,7 +83,7 @@ abstract class AbstractAdapter {
   Future<PutResponse> put(
       {required Doc<Map<String, dynamic>> doc, bool newEdits = true});
 
-  Future<DeleteResponse> delete({required String id, required String rev});
+  Future<DeleteResponse> delete({required String id, required Rev rev});
 
   Future<Map<String, RevsDiff>> revsDiff(
       {required Map<String, List<String>> body});
