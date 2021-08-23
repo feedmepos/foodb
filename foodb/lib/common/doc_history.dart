@@ -1,21 +1,75 @@
+import 'package:json_annotation/json_annotation.dart';
+
 import 'package:foodb/adapter/methods/revs_diff.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/rev.dart';
-import 'package:json_annotation/json_annotation.dart';
 
 part 'doc_history.g.dart';
 
-@JsonSerializable(genericArgumentFactories: true, explicitToJson: true)
-class DocHistory<T> {
-  List<Doc<T>> docs;
+@JsonSerializable(explicitToJson: true)
+class RevisionNode {
+  String rev;
+  String? prevRev;
+  String? nextRev;
 
-  DocHistory({
-    required this.docs,
+  RevisionNode({
+    required this.rev,
+    this.prevRev,
+    this.nextRev,
   });
 
-  Doc<T>? get winner {
-    List<Doc<T>> sortedLeaves = leafDocs.toList();
-    sortedLeaves.sort((a, b) => b.rev!.compareTo(a.rev!));
+  factory RevisionNode.fromJson(Map<String, dynamic> json) =>
+      _$RevisionNodeFromJson(json);
+  Map<String, dynamic> toJson() => _$RevisionNodeToJson(this);
+}
+
+@JsonSerializable(explicitToJson: true)
+class RevisionTree {
+  List<RevisionNode> nodes;
+  RevisionTree({
+    required this.nodes,
+  });
+
+  factory RevisionTree.fromJson(Map<String, dynamic> json) =>
+      _$RevisionTreeFromJson(json);
+  Map<String, dynamic> toJson() => _$RevisionTreeToJson(this);
+}
+
+@JsonSerializable(explicitToJson: true)
+class InternalDoc {
+  String rev;
+  bool deleted;
+  String localSeq;
+  Map<String, dynamic> data;
+  InternalDoc({
+    required this.rev,
+    required this.deleted,
+    required this.localSeq,
+    required this.data,
+  });
+
+  factory InternalDoc.fromJson(Map<String, dynamic> json) =>
+      _$InternalDocFromJson(json);
+  Map<String, dynamic> toJson() => _$InternalDocToJson(this);
+}
+
+@JsonSerializable(explicitToJson: true)
+class DocHistory {
+  String id;
+  Map<String, InternalDoc> docs;
+  RevisionTree revisions;
+
+  DocHistory({required this.id, required this.docs, required this.revisions});
+
+  Iterable<InternalDoc> get leafDocs {
+    return revisions.nodes
+        .where((element) => element.nextRev == null)
+        .map((e) => docs[e.rev]!);
+  }
+
+  InternalDoc? get winner {
+    List<InternalDoc> sortedLeaves = leafDocs.toList();
+    sortedLeaves.sort((a, b) => b.rev.compareTo(a.rev));
 
     return sortedLeaves.length > 0 ? sortedLeaves.first : null;
   }
@@ -32,30 +86,7 @@ class DocHistory<T> {
     return RevsDiff(missing: missing);
   }
 
-  Iterable<Doc<T>> get leafDocs sync* {
-    var sorted = docs.toList();
-    sorted.sort((a, b) => b.revisions!.start - a.revisions!.start);
-    while (sorted.length > 0) {
-      var leaf = sorted.first;
-      sorted.removeAt(0);
-      sorted.removeWhere((e) =>
-          e.deleted == true ||
-          leaf.revisions!.ids.contains(Rev.parse(e.rev!).md5));
-      yield leaf;
-    }
-  }
-
-  factory DocHistory.fromJson(
-          Map<String, dynamic> json, T Function(Object? json) fromJsonT) =>
-      _$DocHistoryFromJson(json, fromJsonT);
-  Map<String, dynamic> toJson(Object Function(T value) toJsonT) =>
-      _$DocHistoryToJson(this, toJsonT);
-
-  DocHistory<T> copyWith({
-    List<Doc<T>>? docs,
-  }) {
-    return DocHistory<T>(
-      docs: docs ?? this.docs,
-    );
-  }
+  factory DocHistory.fromJson(Map<String, dynamic> json) =>
+      _$DocHistoryFromJson(json);
+  Map<String, dynamic> toJson() => _$DocHistoryToJson(this);
 }

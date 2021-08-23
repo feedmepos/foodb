@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/couchdb_adapter.dart';
+import 'package:foodb/adapter/exception.dart';
 import 'package:foodb/adapter/methods/all_docs.dart';
 import 'package:foodb/adapter/methods/bulk_docs.dart';
 import 'package:foodb/adapter/methods/changes.dart';
@@ -59,13 +60,73 @@ void main() async {
   test('put()', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();
     PutResponse putResponse = await couchDb.put(
-        doc: Doc(
-            id: "User-{\"name\":\"D\",\"no\":200}",
-            model: {"name": "wgg", "no": 300}),
-        newRev: "19-232132434325sfsgdfgdfgd",
-        newEdits: false);
+        doc: Doc(id: "a", model: {"name": "wgg", "no": 300}), newEdits: false);
 
     expect(putResponse.ok, isTrue);
+  });
+
+  group("put()", () {
+    const id = "putNewEditsisfalse";
+    setUp(() async {
+      await getCouchDbAdapter().destroy();
+      await getCouchDbAdapter().init();
+    });
+    test('without Rev should catch error', () async {
+      final CouchdbAdapter couchDb = getCouchDbAdapter();
+      try {
+        PutResponse putResponse = await couchDb.put(
+            doc: Doc(id: id, model: {"name": "wgg", "no": 300}),
+            newEdits: false);
+      } catch (err) {
+        expectAsync0(() => {expect(err, isInstanceOf<AdapterException>())})();
+      }
+    });
+
+    test('empty revisions, create new history', () async {
+      final CouchdbAdapter couchDb = getCouchDbAdapter();
+      await couchDb.put(
+          doc: Doc(id: id, rev: '1-a', model: {"name": "wgg", "no": 300}),
+          newEdits: false);
+      await couchDb.put(
+          doc: Doc(id: id, rev: '2-a', model: {"name": "wgg", "no": 300}),
+          newEdits: false);
+      Doc<Map<String, dynamic>>? doc = await couchDb.get(
+          id: id, fromJsonT: (val) => val, meta: true, revs: true);
+      expect(doc, isNotNull);
+      expect(doc!.conflicts!.length, 1);
+      expect(doc.revisions!.ids.length, 1);
+      couchDb.delete(id: id, rev: '2-a');
+    });
+
+    test('with revision, link to existing', () async {
+      final CouchdbAdapter couchDb = getCouchDbAdapter();
+      await couchDb.put(
+          doc: Doc(id: id, rev: '1-a', model: {"name": "wgg", "no": 300}),
+          newEdits: false);
+      await couchDb.put(
+          doc: Doc(id: id, rev: '2-a', model: {"name": "wgg", "no": 300}),
+          newEdits: false,
+          revisions: Revisions(start: 2, ids: ['a', 'a']));
+      Doc<Map<String, dynamic>>? doc = await couchDb.get(
+          id: id, fromJsonT: (val) => val, meta: true, revs: true);
+      expect(doc, isNotNull);
+      expect(doc!.conflicts, isNull);
+      expect(doc.revisions!.ids.length, 2);
+      couchDb.delete(id: id, rev: '2-a');
+    });
+
+    // test('put conflicts', () async {
+    //   final CouchdbAdapter couchDb = getCouchDbAdapter(dbName: "adish");
+    //   PutResponse conflictResponse = await couchDb.put(
+    //       doc: Doc(
+    //           id: "put u mf",
+    //           model: {"name": "berry-berry", "no": 888},
+    //           rev: "1-d5ea00d10b2471cdbe3420293c980282"),
+    //       newEdits: false,
+    //       newRev: "2-testtest2");
+
+    //   expect(conflictResponse.ok, isTrue);
+    // });
   });
 
   test('get()', () async {
@@ -176,19 +237,6 @@ void main() async {
   test('delete db', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter(dbName: "aawertyuytre");
     await couchDb.destroy();
-  });
-
-  test('put conflicts', () async {
-    final CouchdbAdapter couchDb = getCouchDbAdapter(dbName: "adish");
-    PutResponse conflictResponse = await couchDb.put(
-        doc: Doc(
-            id: "put u mf",
-            model: {"name": "berry-berry", "no": 888},
-            rev: "1-d5ea00d10b2471cdbe3420293c980282"),
-        newEdits: false,
-        newRev: "2-testtest2");
-
-    expect(conflictResponse.ok, isTrue);
   });
 
   test("change stream", () async {

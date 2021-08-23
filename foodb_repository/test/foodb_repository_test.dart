@@ -140,7 +140,6 @@ void main() async {
     // Create
     var repo = getUserRepo();
     Doc<UserModel>? doc = await repo.create(UserModel(name: "user 4", no: 999));
-    print(doc?.toJson((value) => repo.toJsonT(value)));
     expect(doc, isNotNull);
 
     // Update
@@ -154,7 +153,6 @@ void main() async {
     BulkDocResponse bulkDocResponse = await repo.bulkDocs([doc2!]);
 
     Doc<UserModel>? updatedDoc = await repo.read(doc2.id);
-    print(updatedDoc?.toJson((value) => repo.toJsonT(value)));
     expect(bulkDocResponse.error, isNull);
   });
 
@@ -231,9 +229,6 @@ void main() async {
     Doc<UserModel>? updatedDoc = await repo1.read(docs[0].id);
     Doc<SaleModel>? updatedDoc2 = await repo2.read(docs2[0].id);
 
-    print(updatedDoc?.toJson((value) => UserModelToJson(value)));
-    print(updatedDoc2?.toJson((value) => SaleModelToJson(value)));
-
     expect(updatedDoc?.model.name, equals(docs[0].model.name));
     expect(updatedDoc2?.model.name, equals(docs2[0].model.name));
 
@@ -247,9 +242,6 @@ void main() async {
     // read again. shouldn't get deleted doc
     List<Doc<UserModel>> newDocs1 = await repo1.all();
     List<Doc<SaleModel>> newDocs2 = await repo2.all();
-
-    print(newDocs1[0].toJson((value) => UserModelToJson(value)));
-    print(newDocs2[0].toJson((value) => SaleModelToJson(value)));
 
     expect(newDocs1.length == 1, isTrue);
     expect(newDocs2.length == 1, isTrue);
@@ -270,7 +262,6 @@ void main() async {
 
     Doc<UserModel>? doc =
         await userRepo.read('sales_2021-08-10T13:50:09.658409');
-    print(doc?.toJson((value) => userRepo.toJsonT(value)));
     expect(doc?.model.name, isNotNull);
   });
 

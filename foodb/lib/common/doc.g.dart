@@ -17,3 +17,15 @@ Map<String, dynamic> _$RevisionsToJson(Revisions instance) => <String, dynamic>{
       'start': instance.start,
       'ids': instance.ids,
     };
+
+RevsInfo _$RevsInfoFromJson(Map<String, dynamic> json) {
+  return RevsInfo(
+    rev: json['rev'] as String,
+    status: json['status'] as String,
+  );
+}
+
+Map<String, dynamic> _$RevsInfoToJson(RevsInfo instance) => <String, dynamic>{
+      'rev': instance.rev,
+      'status': instance.status,
+    };

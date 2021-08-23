@@ -14,7 +14,6 @@ import 'package:foodb/adapter/methods/index.dart';
 import 'package:foodb/adapter/methods/info.dart';
 import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/adapter/methods/revs_diff.dart';
-import 'package:foodb/adapter/utils.dart';
 import 'package:foodb/common/design_doc.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/doc_history.dart';
@@ -102,10 +101,7 @@ class KeyValueAdapter extends AbstractAdapter {
   Future<BulkDocResponse> bulkDocs(
       {required List<Doc<Map<String, dynamic>>> body,
       bool newEdits = false}) async {
-    
-    body.forEach((element) {
-
-    });
+    body.forEach((element) {});
     return BulkDocResponse();
   }
 
@@ -122,12 +118,10 @@ class KeyValueAdapter extends AbstractAdapter {
     };
 
     if (includeDocs == true) {
-      DocHistory<Map<String, dynamic>> docs =
-          DocHistory<Map<String, dynamic>>.fromJson(
-              (await db.get(docTableName, id: update.id))!,
-              (json) => json as Map<String, dynamic>);
+      DocHistory docs =
+          DocHistory.fromJson((await db.get(docTableName, id: update.id))!);
 
-      Map<String, dynamic> winner = docs.winner!.toJson((value) => value);
+      Map<String, dynamic> winner = docs.winner!.toJson();
       winner.removeWhere((key, value) => value == null);
       changeResult["doc"] = winner;
     }
@@ -206,7 +200,7 @@ class KeyValueAdapter extends AbstractAdapter {
       {required String id, required String rev}) async {
     var result = await db.get(docTableName, id: id);
     if (result != null) {
-      var history = DocHistory.fromJson(result, (json) => json);
+      var history = DocHistory.fromJson(result);
       if (history.winner?.rev != rev)
         throw AdapterException(error: 'Invalid rev');
 
@@ -221,11 +215,9 @@ class KeyValueAdapter extends AbstractAdapter {
     }
   }
 
-  Future<DocHistory<Map<String, dynamic>>?> getHistory(String id) async {
+  Future<DocHistory?> getHistory(String id) async {
     var result = await db.get(docTableName, id: id);
-    return result != null
-        ? DocHistory.fromJson(result, (json) => json as Map<String, dynamic>)
-        : null;
+    return result != null ? DocHistory.fromJson(result) : null;
   }
 
   @override
@@ -279,19 +271,51 @@ class KeyValueAdapter extends AbstractAdapter {
 
   @override
   Future<PutResponse> put(
-      {required Doc<Map<String, dynamic>> doc,
-      bool newEdits = true,
-      String? newRev}) async {
-    // if (newRev != null && newRev != doc.rev) {
-    //   throw AdapterException(error: 'newRev must be same as doc _rev');
-    // }
-
+      {required Doc<Map<String, dynamic>> doc, bool newEdits = true}) async {
     var history = await db.get(docTableName, id: doc.id);
-    DocHistory<Map<String, dynamic>> docHistory = history == null
-        ? DocHistory(docs: [])
-        : DocHistory.fromJson(history, (json) => json as Map<String, dynamic>);
+    DocHistory docHistory =
+        history == null ? DocHistory(docs: []) : DocHistory.fromJson(history);
 
     Rev newDocRev;
+
+    /**
+     * newEdits = true
+     * - winner
+     * - compare winner rev == doc rev
+     * - increase rev from winner
+     * newEdits = false
+     * - doc rev must exist
+     * - use privided rev
+     * 
+     * set localSeq
+     * 
+     * update docHistoryRevisions = calculateRevisions()
+     */
+
+    // get prev rev
+    Rev? prevRev;
+    Rev currRev =
+        Rev(index: 0, md5: '0').increase(doc.toJson((value) => value));
+    if (newEdits == true) {
+      if (docHistory.winner != null) {
+        if (doc.rev != prevRev.toString()) {
+          throw AdapterException(error: 'update conflict');
+        }
+        prevRev = Rev.parse(docHistory.winner!.rev);
+        currRev = prevRev.increase(doc.toJson((value) => value));
+      }
+    } else {
+      if (doc.rev == null) {
+        throw AdapterException(
+            error: 'invalid put request',
+            reason: 'rev is required when newEdits = false');
+      }
+      currRev = Rev.parse(doc.rev!);
+      if (doc.revisions != null && doc.revisions!.ids[1] != null) {
+        prevRev =
+            Rev(index: doc.revisions!.start - 1, md5: doc.revisions!.ids[1]);
+      }
+    }
 
     if (newEdits == true) {
       var winner = docHistory.winner;
@@ -356,10 +380,8 @@ class KeyValueAdapter extends AbstractAdapter {
       {required Map<String, List<String>> body}) async {
     Map<String, RevsDiff> revsDiff = {};
     body.forEach((key, value) async {
-      DocHistory<Map<String, dynamic>> docHistory =
-          DocHistory<Map<String, dynamic>>.fromJson(
-              (await db.get(docTableName, id: key))!,
-              (json) => json as Map<String, dynamic>);
+      DocHistory docHistory =
+          DocHistory.fromJson((await db.get(docTableName, id: key))!);
       revsDiff[key] = docHistory.revsDiff(value);
     });
     return revsDiff;
@@ -399,8 +421,8 @@ class KeyValueAdapter extends AbstractAdapter {
     if (json == null) {
       return null;
     }
-    var result = DocHistory<T>.fromJson(
-        json, (e) => fromJsonT(e as Map<String, dynamic>));
+    var result =
+        DocHistory.fromJson(json, (e) => fromJsonT(e as Map<String, dynamic>));
     if (result.winner?.deleted == true) {
       return null;
     }
@@ -409,7 +431,7 @@ class KeyValueAdapter extends AbstractAdapter {
 
   Future<Doc<Map<String, dynamic>>> _beforeUpdate(
       {required Doc<Map<String, dynamic>> winnerDoc,
-      required DocHistory<Map<String, dynamic>> history}) async {
+      required DocHistory history}) async {
     var lastSeq = '0-1';
     var last = await db.last(sequenceTableName);
 
@@ -501,7 +523,7 @@ class KeyValueAdapter extends AbstractAdapter {
           onResult: (result) => print(result),
           onComplete: (resp) async {
             for (var result in resp.results) {
-              var history = DocHistory<Map<String, dynamic>>.fromJson(
+              var history = DocHistory.fromJson(
                   (await db.get(docTableName, id: result.id))!,
                   (json) => json as Map<String, dynamic>);
               var entries = _runMapper(view, history);
@@ -520,7 +542,7 @@ class KeyValueAdapter extends AbstractAdapter {
   }
 
   List<MapEntry<String, dynamic>> _runMapper(
-      AbstracDesignDocView view, DocHistory<Map<String, dynamic>> history) {
+      AbstracDesignDocView view, DocHistory history) {
     if (view is JSDesignDocView) {
       if (jsRuntime == null) {
         throw AdapterException(error: 'no js runtime found');

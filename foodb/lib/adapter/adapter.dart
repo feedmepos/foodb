@@ -80,9 +80,7 @@ abstract class AbstractAdapter {
   }
 
   Future<PutResponse> put(
-      {required Doc<Map<String, dynamic>> doc,
-      bool newEdits = true,
-      String? newRev});
+      {required Doc<Map<String, dynamic>> doc, bool newEdits = true});
 
   Future<DeleteResponse> delete({required String id, required String rev});
 

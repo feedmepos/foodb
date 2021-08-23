@@ -158,30 +158,29 @@ class CouchdbAdapter extends AbstractAdapter {
 
   @override
   Future<PutResponse> put(
-      {required Doc<Map<String, dynamic>> doc,
-      bool newEdits = true,
-      String? newRev}) async {
+      {required Doc<Map<String, dynamic>> doc, bool newEdits = true}) async {
     UriBuilder uriBuilder = new UriBuilder.fromUri(this.getUri(doc.id));
-    uriBuilder.queryParameters = convertToParams(
-        {'new_edits': newEdits, 'rev': newEdits ? doc.rev : newRev});
+    uriBuilder.queryParameters =
+        convertToParams({'new_edits': newEdits, "rev": doc.rev});
 
     Map<String, dynamic> newBody = doc.model;
 
     if (!newEdits) {
-      if (newRev == null) {
+      if (doc.rev == null) {
         throw new AdapterException(
-            error: 'newRev is required when newEdits is false');
+            error: 'rev is required when newEdits is false');
       }
-      newBody['_revisions'] = {
-        "ids": doc.rev == null
-            ? [newRev.split('-')[1]]
-            : [newRev.split('-')[1], doc.rev!.split('-')[1]],
-        "start": int.parse(newRev.split('-')[0])
-      };
+      if (doc.revisions != null) {
+        newBody['_revisions'] = doc.revisions!.toJson();
+      }
     }
-    return PutResponse.fromJson(jsonDecode(
-        (await this.client.put(uriBuilder.build(), body: jsonEncode(newBody)))
-            .body));
+    var response =
+        await this.client.put(uriBuilder.build(), body: jsonEncode(newBody));
+    if (response.statusCode != 201) {
+      throw AdapterException(
+          error: 'Invalid status code', reason: response.statusCode.toString());
+    }
+    return PutResponse.fromJson(jsonDecode(response.body));
   }
 
   @override
