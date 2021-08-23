@@ -13,7 +13,12 @@ class DocHistory<T> {
     required this.docs,
   });
 
-  Doc<T>? get winner => docs.length > 0 ? docs[docs.length - 1] : null;
+  Doc<T>? get winner {
+    List<Doc<T>> sortedLeaves = leafDocs.toList();
+    sortedLeaves.sort((a, b) => b.rev!.compareTo(a.rev!));
+
+    return sortedLeaves.length > 0 ? sortedLeaves.first : null;
+  }
 
   RevsDiff revsDiff(List<String> body) {
     List<String> revs = docs.map((e) => e.rev!).toList();
