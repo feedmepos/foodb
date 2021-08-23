@@ -369,8 +369,7 @@ class KeyValueAdapter extends AbstractAdapter {
 
     var finalDoc =
         await _beforeUpdate(winnerDoc: docHistory.winner!, history: docHistory);
-    await db.put(docTableName,
-        id: finalDoc.id, object: docHistory.toJson((value) => value));
+    await db.put(docTableName, id: finalDoc.id, object: docHistory.toJson());
 
     return PutResponse(ok: true, id: doc.id, rev: finalDoc.rev!);
   }
@@ -421,8 +420,7 @@ class KeyValueAdapter extends AbstractAdapter {
     if (json == null) {
       return null;
     }
-    var result =
-        DocHistory.fromJson(json, (e) => fromJsonT(e as Map<String, dynamic>));
+    var result = DocHistory.fromJson(json);
     if (result.winner?.deleted == true) {
       return null;
     }
@@ -524,8 +522,7 @@ class KeyValueAdapter extends AbstractAdapter {
           onComplete: (resp) async {
             for (var result in resp.results) {
               var history = DocHistory.fromJson(
-                  (await db.get(docTableName, id: result.id))!,
-                  (json) => json as Map<String, dynamic>);
+                  (await db.get(docTableName, id: result.id))!);
               var entries = _runMapper(view, history);
               for (var entry in entries) {
                 await db.put(viewTableName(viewName),

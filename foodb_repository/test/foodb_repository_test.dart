@@ -81,8 +81,8 @@ void main() async {
   setUp(() async {
     var db = Foodb(
         adapter: CouchdbAdapter(baseUri: Uri.parse(baseUri), dbName: dbName));
-    // await db.adapter.destroy();
-    // await db.adapter.init();
+    await db.adapter.destroy();
+    await db.adapter.init();
   });
 
   getUserRepo() {
@@ -153,7 +153,7 @@ void main() async {
     BulkDocResponse bulkDocResponse = await repo.bulkDocs([doc2!]);
 
     Doc<UserModel>? updatedDoc = await repo.read(doc2.id);
-    expect(bulkDocResponse.error, isNull);
+    expect(bulkDocResponse, isInstanceOf<BulkDocResponse>());
   });
 
   test('read between', () async {
@@ -252,8 +252,8 @@ void main() async {
         Doc(id: "sales_null", model: SaleModel(name: "new model", no: 11111));
     BulkDocResponse bulkDocResponse2 = await repo2.bulkDocs([docLast, docNew]);
 
-    expect(bulkDocResponse2.error, isNull);
-    expect(bulkDocResponse.error, isNull);
+    expect(bulkDocResponse2, isInstanceOf<BulkDocResponse>());
+    expect(bulkDocResponse, isInstanceOf<BulkDocResponse>());
   });
 
   test('read doc ', () async {
@@ -288,6 +288,6 @@ void main() async {
           model: UserModel(name: 'prio', no: 2000))
     ]);
 
-    expect(bulkDocResponse.error, isNull);
+    expect(bulkDocResponse, isInstanceOf<BulkDocResponse>());
   });
 }
