@@ -53,37 +53,34 @@ void main() async {
         });
   });
 
-  test("put docs", () async {
-    PutResponse putResponse = await getCouchDbAdapter(dbName: "adish").put(
-        doc: Doc(id: "feedme", model: {"name": "feedmefood", "no": 300}),
-        newEdits: false,
-        newRev: "1-asdfg");
-    expect(putResponse.ok, isTrue);
-  });
-
   test('replicator', () async {
     PutResponse putResponse = await getCouchDbAdapter(dbName: "adish").put(
-        doc: Doc(id: "feedme", model: {"name": "feedmefood", "no": 300}),
-        newEdits: false,
-        newRev: "1-asdfg");
+      doc: Doc(
+          id: "feedme",
+          rev: "1-asdfg",
+          model: {"name": "feedmefood", "no": 300}),
+      newEdits: false,
+    );
     expect(putResponse.ok, isTrue);
 
     PutResponse putResponse2 = await getCouchDbAdapter(dbName: "adish").put(
-        doc: Doc(
-            id: "feedme",
-            model: {"name": "feedmecola", "no": 200},
-            rev: "1-asdfg"),
-        newEdits: false,
-        newRev: "2-asdfg");
+      doc: Doc(
+          id: "feedme",
+          model: {"name": "feedmecola", "no": 200},
+          rev: "2-asdfg",
+          revisions: Revisions(start: 2, ids: ["asdfg", "asdfg"])),
+      newEdits: false,
+    );
     expect(putResponse2.ok, isTrue);
 
     PutResponse putResponse3 = await getCouchDbAdapter(dbName: "adish").put(
-        doc: Doc(
-            id: "feedme",
-            model: {"name": "feedmeburger", "no": 900},
-            rev: "1-asdfg"),
-        newEdits: false,
-        newRev: "2-bbdfg");
+      doc: Doc(
+          id: "feedme",
+          model: {"name": "feedmeburger", "no": 900},
+          rev: "2-bbdfg",
+          revisions: Revisions(ids: ["bbdfg", "asdfg"], start: 2)),
+      newEdits: false,
+    );
     expect(putResponse3.ok, isTrue);
 
     await getCouchDbAdapter(dbName: "a-test").destroy();
@@ -92,18 +89,22 @@ void main() async {
     //case 1
     //case 2
     await getCouchDbAdapter(dbName: "a-test").put(
-        doc: Doc(id: "feedme", model: {"name": "feedmefood", "no": 300}),
-        newEdits: false,
-        newRev: "1-asdfg");
+      doc: Doc(
+          id: "feedme",
+          rev: "1-asdfg",
+          model: {"name": "feedmefood", "no": 300}),
+      newEdits: false,
+    );
 
     // case 3
     await getCouchDbAdapter(dbName: "a-test").put(
-        doc: Doc(
-            id: "feedme",
-            model: {"name": "starvation", "no": 999},
-            rev: "1-asdfg"),
-        newEdits: false,
-        newRev: "2-zzzzz");
+      doc: Doc(
+          id: "feedme",
+          model: {"name": "starvation", "no": 999},
+          rev: "2-zzzzz",
+          revisions: Revisions(ids: ["zzzzz", "asdfg"], start: 2)),
+      newEdits: false,
+    );
 
     // var fn3 = expectAsync1((result) {
     //   print(result);
