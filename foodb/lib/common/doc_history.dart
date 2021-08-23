@@ -61,21 +61,30 @@ class DocHistory {
 
   DocHistory({required this.id, required this.docs, required this.revisions});
 
+  // Iterable<InternalDoc> get leafDocs {
+  //   return revisions.nodes
+  //       .where((element) => element.nextRev == null)
+  //       .map((e) => docs[e.rev]!);
+  // }
+
   Iterable<InternalDoc> get leafDocs {
-    return revisions.nodes
-        .where((element) => element.nextRev == null)
-        .map((e) => docs[e.rev]!);
+    Map<String, InternalDoc> leaf = Map.from(docs);
+    revisions.nodes.forEach((element) {
+      leaf.remove(element.prevRev);
+    });
+    return leaf.values;
   }
 
   InternalDoc? get winner {
     List<InternalDoc> sortedLeaves = leafDocs.toList();
+    sortedLeaves.removeWhere((element) => element.deleted == true);
     sortedLeaves.sort((a, b) => b.rev.compareTo(a.rev));
 
     return sortedLeaves.length > 0 ? sortedLeaves.first : null;
   }
 
   RevsDiff revsDiff(List<String> body) {
-    List<String> revs = docs.map((e) => e.rev!).toList();
+    List<String> revs = docs.values.map((v) => v.rev).toList();
     print(revs.toString());
     List<String> missing = [];
     body.forEach((element) {

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/in_memory_database.dart';
@@ -42,6 +43,42 @@ void main() async {
     expect(docs.offset, equals(0));
   });
 
+  test('revsDiff', () async {
+    final adapter = getMemoryAdapter();
+
+    await adapter.db.put(adapter.docTableName,
+        id: 'a',
+        object: DocHistory(
+            id: 'a',
+            docs: {
+              "1-a": InternalDoc(
+                  rev: "1-a", deleted: false, localSeq: "1", data: {}),
+              "2-b": InternalDoc(
+                  rev: "2-b", deleted: false, localSeq: "2", data: {}),
+              "3-c": InternalDoc(
+                  rev: "3-c", deleted: false, localSeq: "3", data: {}),
+              "4-d": InternalDoc(
+                  rev: "4-d", deleted: false, localSeq: "4", data: {})
+            },
+            revisions: RevisionTree(nodes: [
+              RevisionNode(rev: '1-a'),
+              RevisionNode(rev: '2-b', prevRev: '1-a'),
+              RevisionNode(rev: '3-c', prevRev: '2-b'),
+              RevisionNode(rev: '4-d', prevRev: '3-c')
+            ])).toJson());
+
+    Map<String, RevsDiff> revsDiff = await adapter.revsDiff(body: {
+      "a": ["1-a", "4-c", "1-c", "4-d", "5-e"]
+    });
+    DocHistory docHistory = new DocHistory.fromJson(
+        (await adapter.db.get(adapter.docTableName, id: "a"))!);
+
+    expect(docHistory.docs.length, equals(4));
+
+    print(revsDiff["a"]!.toJson());
+    expect(revsDiff["a"]!.missing.length, 3);
+  });
+
   test('put & get', () async {
     final memoryDb = getMemoryAdapter();
     var res1 = await memoryDb.put(doc: Doc(id: 'foo1', model: {'a': 'b'}));
@@ -61,282 +98,67 @@ void main() async {
     expect(doc2?.model['c'], isNotNull);
   });
 
-  test('revsDiff', () async {
-    final adapter = getMemoryAdapter();
-
-    // adapter.put(doc: Doc(id: "id", model: {}), newRev: "1-a");
-    // adapter.put(doc: Doc(id: "id", model: {}, rev: "1-a"), newRev: "2-b");
-    // adapter.put(doc: Doc(id: "id", model: {}, rev: "2-b"), newRev: "3-c");
-    // adapter.put(doc: Doc(id: "id", model: {}, rev: "3-c"), newRev: "4-d");
-    adapter.db.put(adapter.docTableName,
-        id: 'a',
-        object: DocHistory(docs: [
-          Doc(
-              id: 'a',
-              model: {},
-              revisions: Revisions(ids: ['a'], start: 1),
-              rev: '1-a',
-              localSeq: '1'),
-          Doc(
-              id: 'a',
-              model: {},
-              revisions: Revisions(ids: ['b', 'a'], start: 2),
-              rev: '2-b',
-              localSeq: '2'),
-          Doc(
-              id: 'a',
-              model: {},
-              revisions: Revisions(ids: ['c', 'b'], start: 3),
-              rev: '3-c',
-              localSeq: '3'),
-          Doc(
-              id: 'a',
-              model: {},
-              revisions: Revisions(ids: ['d', 'c'], start: 4),
-              rev: '4-d',
-              localSeq: '5')
-        ]).toJson((value) => jsonDecode(jsonEncode(value))));
-
-    Map<String, RevsDiff> revsDiff = await adapter.revsDiff(body: {
-      "a": ["1-a", "4-c", "1-c", "4-d", "5-e"]
-    });
-    DocHistory<Map<String, dynamic>> docHistory = new DocHistory.fromJson(
-        (await adapter.db.get(adapter.docTableName, id: "a"))!,
-        (json) => json as Map<String, dynamic>);
-    print(docHistory.docs.length);
-    expect(docHistory.docs.length, equals(4));
-    print(revsDiff["a"]!.toJson());
-    expect(revsDiff["a"]!.missing.length, 3);
-  });
-
-  group('   newEdits=false', () {
-    test('put with newRev but empty rev', () async {
+  group('put with newEdits=false', () {
+    test('put 1 single doc', () async {
       final memoryDb = getMemoryAdapter();
-      //rev cannot be empty (different behaviour with couchdb)
       await memoryDb.put(
-          doc: Doc(id: "id", model: {}), newRev: "1-a", newEdits: false);
+          doc: Doc(id: "id", rev: "1-a", model: {}), newEdits: false);
       var result = await memoryDb.db.get(memoryDb.docTableName, id: 'id');
-      var docHistory = DocHistory<Map<String, dynamic>>.fromJson(
-          result!, (v) => v as Map<String, dynamic>);
-      expect(docHistory.docs.first.rev, '1-a');
+      var docHistory = DocHistory.fromJson(result!);
+      expect(docHistory.docs.length, 1);
+      expect(docHistory.leafDocs.length, 1);
     });
 
-    test('put with same rev but different newRev', () async {
+    test('put 2 different revision tree', () async {
       final memoryDb = getMemoryAdapter();
       await memoryDb.put(
-          doc: Doc(id: "id", rev: "1-a", model: {}),
-          newRev: "1-a",
-          newEdits: false);
+          doc: Doc(id: "id", rev: "1-a", model: {}), newEdits: false);
       await memoryDb.put(
-          doc: Doc(id: "id", rev: "1-a", model: {}),
-          newRev: "2-b",
-          newEdits: false);
-      DocHistory docHistory = DocHistory<Map<String, dynamic>>.fromJson(
-          (await memoryDb.db.get(memoryDb.docTableName, id: "id"))!,
-          (json) => json as Map<String, dynamic>);
+          doc: Doc(id: "id", rev: "2-b", model: {}), newEdits: false);
+      DocHistory docHistory = DocHistory.fromJson(
+          (await memoryDb.db.get(memoryDb.docTableName, id: "id"))!);
       //2b rev no stored inside
-      for (Doc doc in docHistory.docs) {
+      for (InternalDoc doc in docHistory.leafDocs) {
         print(doc.rev);
       }
-      expect(docHistory.docs.length, 2);
+      expect(docHistory.leafDocs.length, 2);
     });
 
-    test('update with newedit =false and rev= newrev', () async {
-      //change with rev = newRev // but in this situation, we will not know newrev is successor of which rev (original rev)
-      //i see put function in value-adapter oso didnt consider predecessor
+    test(
+        'update doc with newedit =false and revisions connecting to its ancestors',
+        () async {
       final memoryDb = getMemoryAdapter();
       await memoryDb.put(
-          doc: Doc(id: "id", rev: "1-a", model: {}),
-          newRev: "1-a",
+          doc: Doc(id: "id", rev: "1-a", model: {}), newEdits: false);
+      await memoryDb.put(
+          doc: Doc(
+              id: "id",
+              rev: "2-b",
+              model: {},
+              revisions: Revisions(ids: ['b', 'a'], start: 2)),
           newEdits: false);
       await memoryDb.put(
-          doc: Doc(id: "id", rev: "2-b", model: {}),
-          newRev: "2-b",
+          doc: Doc(
+              id: "id",
+              rev: "3-c",
+              model: {},
+              revisions: Revisions(ids: ['c', 'b'], start: 3)),
           newEdits: false);
-      await memoryDb.put(
-          doc: Doc(id: "id", rev: "3-c", model: {}),
-          newRev: "3-c",
-          newEdits: false);
-      DocHistory docHistory = DocHistory<Map<String, dynamic>>.fromJson(
-          (await memoryDb.db.get(memoryDb.docTableName, id: "id"))!,
-          (json) => json as Map<String, dynamic>);
-      for (Doc doc in docHistory.docs) {
+
+      DocHistory docHistory = DocHistory.fromJson(
+          (await memoryDb.db.get(memoryDb.docTableName, id: "id"))!);
+
+      for (InternalDoc doc in docHistory.leafDocs) {
         print(doc.rev);
       }
 
       expect(docHistory.docs.length, equals(3));
+      expect(docHistory.leafDocs.length, equals(1));
     });
   });
 
   test("getWithOpenRev", () {
     // TODO, get all leaf node
-  });
-
-  test("leafdocs", () async {
-    var adapter = getMemoryAdapter();
-    adapter.db.put(adapter.docTableName,
-        id: 'a',
-        object: DocHistory(docs: [
-          Doc(
-              id: 'a',
-              model: {},
-              revisions: Revisions(ids: ['a'], start: 1),
-              rev: '1-a',
-              localSeq: '1'),
-          Doc(
-              id: 'a',
-              model: {},
-              revisions: Revisions(ids: ['b', 'a'], start: 2),
-              rev: '2-b',
-              localSeq: '2'),
-          Doc(
-              id: 'a',
-              model: {},
-              revisions: Revisions(ids: ['c', 'b'], start: 3),
-              rev: '3-c',
-              localSeq: '3'),
-          Doc(
-              id: 'a',
-              model: {},
-              revisions: Revisions(ids: ['d', 'c'], start: 4),
-              rev: '4-d',
-              localSeq: '5')
-        ]).toJson((value) => jsonDecode(jsonEncode(value))));
-
-    DocHistory<Map<String, dynamic>> history =
-        DocHistory<Map<String, dynamic>>.fromJson(
-            (await adapter.db.get(adapter.docTableName, id: 'a'))!,
-            (json) => json as Map<String, dynamic>);
-    print(history.winner?.toJson((value) => value));
-    for (Doc doc in history.leafDocs) {
-      print(doc.rev);
-    }
-    expect(history.winner?.rev, "4-d");
-  });
-
-  group('winner', () {
-    var adapter = getMemoryAdapter();
-    test("test with single leaf doc", () async {
-      adapter.db.put(adapter.docTableName,
-          id: 'a',
-          object: DocHistory(docs: [
-            Doc(
-                id: 'a',
-                model: {},
-                revisions: Revisions(ids: ['a'], start: 1),
-                rev: '1-a',
-                localSeq: '1'),
-            Doc(
-                id: 'a',
-                model: {},
-                revisions: Revisions(ids: ['b', 'a'], start: 2),
-                rev: '2-b',
-                localSeq: '2'),
-            Doc(
-                id: 'a',
-                model: {},
-                revisions: Revisions(ids: ['c, b'], start: 3),
-                rev: '3-c',
-                localSeq: '3'),
-            Doc(
-                id: 'a',
-                model: {},
-                revisions: Revisions(ids: ['d', 'c'], start: 4),
-                rev: '4-d',
-                localSeq: '5')
-          ]).toJson((value) => jsonDecode(jsonEncode(value))));
-
-      DocHistory<Map<String, dynamic>> history =
-          DocHistory<Map<String, dynamic>>.fromJson(
-              (await adapter.db.get(adapter.docTableName, id: 'a'))!,
-              (json) => json as Map<String, dynamic>);
-      for (Doc<Map<String, dynamic>> doc in history.leafDocs) {
-        print(doc.rev);
-      }
-      expect(history.leafDocs.length, 2);
-      expect(history.winner?.rev, "4-d");
-    });
-    test('test with 3 different length leaf docs', () async {
-      adapter.db.put(adapter.docTableName,
-          id: 'a',
-          object: DocHistory(docs: [
-            Doc(
-                id: 'a',
-                model: {},
-                revisions: Revisions(ids: ['a'], start: 1),
-                rev: '1-a',
-                localSeq: '1'),
-            Doc(
-                id: 'a',
-                model: {},
-                revisions: Revisions(ids: ['b', 'a'], start: 2),
-                rev: '2-b',
-                localSeq: '2'),
-            Doc(
-                id: 'a',
-                model: {},
-                revisions: Revisions(ids: ['d'], start: 1),
-                rev: '1-d',
-                localSeq: '3'),
-            Doc(
-                id: 'a',
-                model: {},
-                revisions: Revisions(ids: ['c'], start: 1),
-                rev: '1-c',
-                localSeq: '5')
-          ]).toJson((value) => jsonDecode(jsonEncode(value))));
-
-      DocHistory<Map<String, dynamic>> history =
-          DocHistory<Map<String, dynamic>>.fromJson(
-              (await adapter.db.get(adapter.docTableName, id: 'a'))!,
-              (json) => json as Map<String, dynamic>);
-      for (Doc<Map<String, dynamic>> doc in history.leafDocs) {
-        print(doc.rev);
-      }
-      expect(history.leafDocs.length, 3);
-      expect(history.winner?.rev, "2-b");
-    });
-    test('test with 3 same length leaf docs', () async {
-      adapter.db.put(adapter.docTableName,
-          id: 'a',
-          object: DocHistory(docs: [
-            Doc(
-                id: 'a',
-                model: {},
-                revisions: Revisions(ids: ['a'], start: 1),
-                rev: '1-a',
-                localSeq: '1'),
-            Doc(
-                id: 'a',
-                model: {},
-                revisions: Revisions(ids: ['b', 'a'], start: 2),
-                rev: '2-b',
-                localSeq: '2'),
-            Doc(
-                id: 'a',
-                model: {},
-                revisions: Revisions(ids: ['d', 'a'], start: 2),
-                rev: '2-d',
-                localSeq: '3'),
-            Doc(
-                id: 'a',
-                model: {},
-                revisions: Revisions(ids: ['c', 'a'], start: 2),
-                rev: '2-c',
-                localSeq: '5')
-          ]).toJson((value) => jsonDecode(jsonEncode(value))));
-
-      DocHistory<Map<String, dynamic>> history =
-          DocHistory<Map<String, dynamic>>.fromJson(
-              (await adapter.db.get(adapter.docTableName, id: 'a'))!,
-              (json) => json as Map<String, dynamic>);
-      for (Doc<Map<String, dynamic>> doc in history.leafDocs) {
-        print(doc.rev);
-      }
-
-      expect(history.leafDocs.length, 3);
-      expect(history.winner?.rev, "2-d");
-    });
   });
   test("changeStream", () async {
     var adapter = getMemoryAdapter();
@@ -378,17 +200,35 @@ void main() async {
     var adapter = getMemoryAdapter();
     await adapter.db.put(adapter.docTableName,
         id: 'a',
-        object: DocHistory(docs: [
-          Doc(id: 'a', model: {}, rev: '1', localSeq: '1'),
-          Doc(id: 'a', model: {}, rev: '2', localSeq: '2'),
-          Doc(id: 'a', model: {}, rev: '3', localSeq: '3'),
-          Doc(id: 'a', model: {}, rev: '4', localSeq: '5')
-        ]).toJson((value) => jsonDecode(jsonEncode(value))));
+        object: DocHistory(
+            id: 'a',
+            docs: {
+              "1-a": InternalDoc(
+                  rev: "1-a", deleted: false, localSeq: "1", data: {}),
+              "2-b": InternalDoc(
+                  rev: "2-b", deleted: false, localSeq: "2", data: {}),
+              "3-c": InternalDoc(
+                  rev: "3-c", deleted: false, localSeq: "3", data: {}),
+              "4-d": InternalDoc(
+                  rev: "4-d", deleted: false, localSeq: "5", data: {})
+            },
+            revisions: RevisionTree(nodes: [
+              RevisionNode(rev: '1-a'),
+              RevisionNode(rev: '2-b', prevRev: '1-a'),
+              RevisionNode(rev: '3-c', prevRev: '2-b'),
+              RevisionNode(rev: '4-d', prevRev: '3-c')
+            ])).toJson());
+    ;
     await adapter.db.put(adapter.docTableName,
         id: 'b',
-        object:
-            DocHistory(docs: [Doc(id: 'b', model: {}, rev: '1', localSeq: '4')])
-                .toJson((value) => jsonDecode(jsonEncode(value))));
+        object: DocHistory(
+                id: 'b',
+                docs: {
+                  "1-a": InternalDoc(
+                      rev: "1-a", deleted: false, localSeq: "4", data: {}),
+                },
+                revisions: RevisionTree(nodes: [RevisionNode(rev: '1-a')]))
+            .toJson());
 
     await adapter.db
         .put(adapter.sequenceTableName, id: '4', object: {"id": 'b'});

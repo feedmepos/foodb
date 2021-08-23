@@ -1,92 +1,171 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foodb/adapter/methods/revs_diff.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/doc_history.dart';
 
 void main() {
-  test("winnerIndex", () {
-    var history = DocHistory(docs: []);
-    expect(history.winner, isNull);
-  });
+  test('revsDiff', () async {
+    DocHistory history = DocHistory(
+        id: 'a',
+        docs: {
+          "1-a":
+              InternalDoc(rev: "1-a", deleted: false, localSeq: "1", data: {}),
+          "2-b":
+              InternalDoc(rev: "2-b", deleted: false, localSeq: "2", data: {}),
+          "3-c":
+              InternalDoc(rev: "3-c", deleted: false, localSeq: "3", data: {}),
+          "4-d":
+              InternalDoc(rev: "4-d", deleted: false, localSeq: "4", data: {})
+        },
+        revisions: RevisionTree(nodes: [
+          RevisionNode(rev: '1-a'),
+          RevisionNode(rev: '2-b', prevRev: '1-a'),
+          RevisionNode(rev: '3-c', prevRev: '2-b'),
+          RevisionNode(rev: '4-d', prevRev: '3-c')
+        ]));
 
-  test("leafNode", () {
-    var history = DocHistory(docs: []);
-    history.docs.addAll([
-      Doc(
-          id: 'a',
-          model: {},
-          revisions: Revisions(ids: ['a'], start: 1),
-          rev: '1-a',
-          localSeq: '1'),
-      Doc(
-          id: 'a',
-          model: {},
-          revisions: Revisions(ids: ['b', 'a'], start: 2),
-          rev: '2-b',
-          localSeq: '2'),
-      Doc(
-          id: 'a',
-          model: {},
-          revisions: Revisions(ids: ['c', 'b'], start: 3),
-          rev: '3-c',
-          localSeq: '3'),
-      Doc(
-          id: 'a',
-          model: {},
-          revisions: Revisions(ids: ['d', 'c'], start: 4),
-          rev: '4-d',
-          localSeq: '5'),
-    ]);
+    RevsDiff revsDiff =
+        await history.revsDiff(["1-a", "4-c", "1-c", "4-d", "5-e"]);
+
+    expect(history.docs.length, equals(4));
+
+    print(revsDiff.toJson());
+    expect(revsDiff.missing.length, 3);
+  });
+  test("leafdocs", () async {
+    DocHistory history = DocHistory(
+        id: 'a',
+        docs: {
+          "1-a":
+              InternalDoc(rev: "1-a", deleted: false, localSeq: "1", data: {}),
+          "2-b":
+              InternalDoc(rev: "2-b", deleted: false, localSeq: "2", data: {}),
+          "3-c":
+              InternalDoc(rev: "3-c", deleted: false, localSeq: "3", data: {}),
+          "4-d":
+              InternalDoc(rev: "4-d", deleted: false, localSeq: "4", data: {})
+        },
+        revisions: RevisionTree(nodes: [
+          RevisionNode(rev: "1-a"),
+          RevisionNode(rev: "2-b", prevRev: "1-a"),
+          RevisionNode(rev: "3-c", prevRev: "2-b"),
+          RevisionNode(rev: "4-d", prevRev: "3-c")
+        ]));
+
+    print(history.winner?.toJson());
+
+    for (InternalDoc doc in history.leafDocs) {
+      print(doc.rev);
+    }
     expect(history.leafDocs.length, 1);
-    // expect(history.leafDocs.first.rev, '4-d');
+    expect(history.winner?.rev, "4-d");
   });
+  group('winner', () {
+    test("test with single leaf doc", () async {
+      DocHistory history = DocHistory(
+          id: 'a',
+          docs: {
+            "1-a": InternalDoc(
+                rev: "1-a", deleted: false, localSeq: "1", data: {}),
+            "2-b": InternalDoc(
+                rev: "2-b", deleted: false, localSeq: "2", data: {}),
+            "3-c": InternalDoc(
+                rev: "3-c", deleted: false, localSeq: "3", data: {}),
+            "4-d":
+                InternalDoc(rev: "4-d", deleted: false, localSeq: "4", data: {})
+          },
+          revisions: RevisionTree(nodes: [
+            RevisionNode(rev: "1-a"),
+            RevisionNode(rev: "2-b", prevRev: "1-a"),
+            RevisionNode(rev: "3-c", prevRev: "2-b"),
+            RevisionNode(rev: "4-d", prevRev: "3-c")
+          ]));
 
-  test('winner', () {
-    var docHistory = DocHistory(docs: []);
-    docHistory.docs.addAll([
-      Doc(
-          id: 'foo1',
-          model: {'a': 'b'},
-          revisions: Revisions(start: 1, ids: ['a'])),
-      Doc(
-          id: 'foo2',
-          model: {'c': 'd'},
-          revisions: Revisions(start: 2, ids: ['b'])),
-      Doc(
-          id: 'foo3',
-          model: {'e': 'f'},
-          revisions: Revisions(start: 3, ids: ['c']),
-          deleted: true)
-    ]);
-    expect(docHistory.winner?.revisions?.start, 3);
-  });
+      for (InternalDoc doc in history.leafDocs) {
+        print(doc.rev);
+      }
+      expect(history.leafDocs.length, 1);
+      expect(history.winner?.rev, "4-d");
+    });
 
-  group("decide doc winner", () {
-    test('highest rivision start win', () {});
-    test('rivision start same, non deleted rev win', () {});
-    test('rivision start same, both not deleted, md5 desc win', () {});
-  });
+    test("test with 2 different length leafdocs", () async {
+      DocHistory history = DocHistory(
+          id: 'a',
+          docs: {
+            "1-a": InternalDoc(
+                rev: "1-a", deleted: false, localSeq: "1", data: {}),
+            "2-b": InternalDoc(
+                rev: "2-b", deleted: false, localSeq: "2", data: {}),
+            "3-c": InternalDoc(
+                rev: "3-c", deleted: false, localSeq: "3", data: {}),
+            "4-d":
+                InternalDoc(rev: "2-d", deleted: false, localSeq: "4", data: {})
+          },
+          revisions: RevisionTree(nodes: [
+            RevisionNode(rev: "1-a"),
+            RevisionNode(rev: "2-b", prevRev: "1-a"),
+            RevisionNode(rev: "3-c", prevRev: "2-b"),
+            RevisionNode(rev: "2-d", prevRev: "1-a")
+          ]));
 
-  test('conflict and deleted conflict', () {
-    var docHistory = DocHistory<Map<String, dynamic>>(docs: []);
-    docHistory.docs.addAll([
-      Doc(
-          id: 'foo1',
-          model: {'a': 'b'},
-          rev: '2-b',
-          revisions: Revisions(start: 2, ids: ['b', 'a'])),
-      Doc(
-          id: 'foo2',
-          model: {'c': 'd'},
-          rev: '1-bb',
-          revisions: Revisions(start: 1, ids: ['bb'])),
-      Doc(
-          id: 'foo3',
-          model: {'e': 'f'},
-          rev: '5-abc',
-          revisions:
-              Revisions(start: 5, ids: ['abc', 'def', 'ghi', 'jkl', 'mno']))
-    ]);
-    expect(docHistory.leafDocs.length, 3);
-    expect(docHistory.leafDocs.first.rev, '5-abc');
+      for (InternalDoc doc in history.leafDocs) {
+        print(doc.rev);
+      }
+      expect(history.leafDocs.length, 2);
+      expect(history.winner?.rev, "3-c");
+    });
+    test('test with 3 same length leafdocs', () async {
+      DocHistory history = DocHistory(
+          id: 'a',
+          docs: {
+            "1-a": InternalDoc(
+                rev: "1-a", deleted: false, localSeq: "1", data: {}),
+            "2-b": InternalDoc(
+                rev: "2-b", deleted: false, localSeq: "2", data: {}),
+            "3-c": InternalDoc(
+                rev: "2-d", deleted: false, localSeq: "3", data: {}),
+            "4-d":
+                InternalDoc(rev: "2-c", deleted: false, localSeq: "4", data: {})
+          },
+          revisions: RevisionTree(nodes: [
+            RevisionNode(rev: "1-a"),
+            RevisionNode(rev: "2-b", prevRev: "1-a"),
+            RevisionNode(rev: "2-d", prevRev: "1-a"),
+            RevisionNode(rev: "2-c", prevRev: "1-a")
+          ]));
+
+      for (InternalDoc doc in history.leafDocs) {
+        print(doc.rev);
+      }
+      expect(history.leafDocs.length, 3);
+      expect(history.winner?.rev, "2-d");
+    });
+
+    test('test with 3 same length leafdocs with deleted= true', () async {
+      DocHistory history = DocHistory(
+          id: 'a',
+          docs: {
+            "1-a": InternalDoc(
+                rev: "1-a", deleted: false, localSeq: "1", data: {}),
+            "2-b": InternalDoc(
+                rev: "2-b", deleted: false, localSeq: "2", data: {}),
+            "3-c":
+                InternalDoc(rev: "2-d", deleted: true, localSeq: "3", data: {}),
+            "4-d":
+                InternalDoc(rev: "2-c", deleted: false, localSeq: "4", data: {})
+          },
+          revisions: RevisionTree(nodes: [
+            RevisionNode(rev: "1-a"),
+            RevisionNode(rev: "2-b", prevRev: "1-a"),
+            RevisionNode(rev: "2-d", prevRev: "1-a"),
+            RevisionNode(rev: "2-c", prevRev: "1-a")
+          ]));
+
+      for (InternalDoc doc in history.leafDocs) {
+        print(doc.rev);
+      }
+      expect(history.leafDocs.length, 3);
+      expect(history.winner?.rev, "2-c");
+    });
   });
 }
