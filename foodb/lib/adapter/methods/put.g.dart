@@ -8,11 +8,9 @@ part of 'put.dart';
 
 PutResponse _$PutResponseFromJson(Map<String, dynamic> json) {
   return PutResponse(
-    ok: json['ok'] as bool?,
-    id: json['id'] as String?,
-    rev: json['rev'] as String?,
-    error: json['error'] as String?,
-    reason: json['reason'] as String?,
+    ok: json['ok'] as bool,
+    id: json['id'] as String,
+    rev: json['rev'] as String,
   );
 }
 
@@ -21,8 +19,6 @@ Map<String, dynamic> _$PutResponseToJson(PutResponse instance) =>
       'ok': instance.ok,
       'id': instance.id,
       'rev': instance.rev,
-      'error': instance.error,
-      'reason': instance.reason,
     };
 
 PutRequestBody _$PutRequestBodyFromJson(Map<String, dynamic> json) {

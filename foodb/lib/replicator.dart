@@ -84,22 +84,16 @@ class Replicator {
               () async => await uploadBatchOfChangedDocuments(body: docs));
           onData(bulkDocResponse);
 
-          if (bulkDocResponse.error == null) {
-            EnsureFullCommitResponse ensureFullCommitResponse =
-                await target.ensureFullCommit();
-            onData(ensureFullCommitResponse);
+          EnsureFullCommitResponse ensureFullCommitResponse =
+              await target.ensureFullCommit();
+          onData(ensureFullCommitResponse);
 
-            this.targetInfo = await getTargetInformation();
-            onData(targetInfo);
+          this.targetInfo = await getTargetInformation();
+          onData(targetInfo);
 
-            PutResponse insertResponse = await recordReplicationCheckpoint();
-            if (insertResponse.ok == true) {
-              onData(insertResponse);
-            } else {
-              throw ("replication log error: ${insertResponse.error}");
-            }
-          } else {
-            throw ("bulk docs error: ${bulkDocResponse.error}");
+          PutResponse insertResponse = await recordReplicationCheckpoint();
+          if (insertResponse.ok == true) {
+            onData(insertResponse);
           }
         } else {
           this.targetInfo = await getTargetInformation();
@@ -108,8 +102,6 @@ class Replicator {
           PutResponse insertResponse = await recordReplicationCheckpoint();
           if (insertResponse.ok == true) {
             onData(insertResponse);
-          } else {
-            throw ("replication log error: ${insertResponse.error}");
           }
         }
         dbChanges.removeRange(0, untilIndex);

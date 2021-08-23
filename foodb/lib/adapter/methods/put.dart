@@ -4,13 +4,11 @@ part 'put.g.dart';
 
 @JsonSerializable()
 class PutResponse {
-  bool? ok;
-  String? id;
-  String? rev;
-  String? error;
-  String? reason;
+  bool ok;
+  String id;
+  String rev;
 
-  PutResponse({this.ok, this.id, this.rev, this.error, this.reason});
+  PutResponse({required this.ok, required this.id, required this.rev});
 
   factory PutResponse.fromJson(Map<String, dynamic> json) =>
       _$PutResponseFromJson(json);

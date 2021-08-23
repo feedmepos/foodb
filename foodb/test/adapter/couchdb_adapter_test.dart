@@ -31,7 +31,14 @@ void main() async {
         dbName: dbName ?? envDbName, baseUri: Uri.parse(baseUri));
   }
 
-  test('bulkdocs()', () async {
+  Future<void> cleanUp() async {
+    await getCouchDbAdapter().destroy();
+    await getCouchDbAdapter().init();
+  }
+
+  test('bulkdocs() with newEdits =true', () async {
+    await cleanUp();
+
     final CouchdbAdapter couchDb = getCouchDbAdapter();
     var bulkdocResponse = await couchDb.bulkDocs(body: [
       new Doc<Map<String, dynamic>>(
@@ -39,7 +46,7 @@ void main() async {
       new Doc<Map<String, dynamic>>(
           id: "test 2", model: {"name": "soda", "no": 999}),
     ], newEdits: true);
-    expect(bulkdocResponse.error, isNull);
+    expect(bulkdocResponse.putResponses.length, 2);
   });
 
   test('allDocs()', () async {
@@ -60,7 +67,8 @@ void main() async {
   test('put()', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();
     PutResponse putResponse = await couchDb.put(
-        doc: Doc(id: "a", model: {"name": "wgg", "no": 300}), newEdits: false);
+        doc: Doc(id: "a", rev: "1-bb", model: {"name": "wgg", "no": 300}),
+        newEdits: false);
 
     expect(putResponse.ok, isTrue);
   });
@@ -104,9 +112,12 @@ void main() async {
           doc: Doc(id: id, rev: '1-a', model: {"name": "wgg", "no": 300}),
           newEdits: false);
       await couchDb.put(
-          doc: Doc(id: id, rev: '2-a', model: {"name": "wgg", "no": 300}),
-          newEdits: false,
-          revisions: Revisions(start: 2, ids: ['a', 'a']));
+          doc: Doc(
+              id: id,
+              rev: '2-a',
+              model: {"name": "wgg", "no": 300},
+              revisions: Revisions(start: 2, ids: ['a', 'a'])),
+          newEdits: false);
       Doc<Map<String, dynamic>>? doc = await couchDb.get(
           id: id, fromJsonT: (val) => val, meta: true, revs: true);
       expect(doc, isNotNull);
@@ -195,7 +206,7 @@ void main() async {
         },
         revisions: Revisions(start: 0, ids: ['sasddsdsdfdfdsfdffdd'])));
     BulkDocResponse bulkDocResponse = await couchDb.bulkDocs(body: newDocs);
-    expect(bulkDocResponse.error, isNull);
+    expect(bulkDocResponse.putResponses, []);
   });
 
   test('createIndex()', () async {

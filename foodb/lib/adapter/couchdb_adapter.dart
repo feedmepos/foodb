@@ -49,29 +49,28 @@ class CouchdbAdapter extends AbstractAdapter {
   Future<BulkDocResponse> bulkDocs(
       {required List<Doc<Map<String, dynamic>>> body,
       bool newEdits = false}) async {
-    var response = jsonDecode((await this.client.post(this.getUri('_bulk_docs'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'new_edits': newEdits,
-              'docs': body.map((e) {
-                Map<String, dynamic> map = e.toJson((value) => value);
-                map.removeWhere((key, value) => value == null);
-                return map;
-              }).toList()
-            })))
-        .body);
+    var response = (await this.client.post(this.getUri('_bulk_docs'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'new_edits': newEdits,
+          'docs': body.map((e) {
+            Map<String, dynamic> map = e.toJson((value) => value);
+            map.removeWhere((key, value) => value == null);
+            return map;
+          }).toList()
+        })));
 
-    List<PutResponse> putResponses = [];
-
-    if (response is Map<String, dynamic>) {
-      return BulkDocResponse.fromJson(response);
-    } else if (response.length > 0) {
-      for (Map<String, dynamic> row in response) {
+    if (response.statusCode == 201) {
+      List<dynamic> responses = jsonDecode(response.body);
+      List<PutResponse> putResponses = [];
+      for (Map<String, dynamic> row in responses) {
         putResponses.add(PutResponse.fromJson(row));
       }
       return BulkDocResponse(putResponses: putResponses);
+    } else {
+      throw AdapterException(
+          error: 'Invalid status code', reason: response.statusCode.toString());
     }
-    return BulkDocResponse();
   }
 
   @override
@@ -176,6 +175,7 @@ class CouchdbAdapter extends AbstractAdapter {
     }
     var response =
         await this.client.put(uriBuilder.build(), body: jsonEncode(newBody));
+
     if (response.statusCode != 201) {
       throw AdapterException(
           error: 'Invalid status code', reason: response.statusCode.toString());

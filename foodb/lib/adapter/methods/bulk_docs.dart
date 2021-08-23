@@ -5,10 +5,8 @@ part 'bulk_docs.g.dart';
 
 @JsonSerializable(explicitToJson: true)
 class BulkDocResponse {
-  List<PutResponse>? putResponses;
-  String? error;
-  String? reason;
-  BulkDocResponse({this.putResponses, this.error, this.reason});
+  List<PutResponse> putResponses;
+  BulkDocResponse({required this.putResponses});
 
   factory BulkDocResponse.fromJson(Map<String, dynamic> json) =>
       _$BulkDocResponseFromJson(json);
