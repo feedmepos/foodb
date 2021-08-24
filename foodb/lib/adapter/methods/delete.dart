@@ -5,14 +5,12 @@ part 'delete.g.dart';
 
 @JsonSerializable()
 class DeleteResponse {
-  bool? ok;
-  String? id;
+  bool ok;
+  String id;
   @JsonKey(fromJson: RevFromJsonString, toJson: RevToJsonString)
-  Rev? rev;
-  String? error;
-  String? reason;
+  Rev rev;
 
-  DeleteResponse({this.ok, this.id, this.rev, this.error, this.reason});
+  DeleteResponse({required this.ok, required this.id, required this.rev});
 
   factory DeleteResponse.fromJson(Map<String, dynamic> json) =>
       _$DeleteResponseFromJson(json);
