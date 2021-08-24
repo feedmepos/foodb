@@ -2,6 +2,14 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart' as crypto;
 
+ListOfRevFromJsonString(List<String> strs) {
+  return strs.map<Rev>((e) => RevFromJsonString(e)).toList();
+}
+
+ListOfRevToJsonString(List<Rev> strs) {
+  return strs.map<String>((e) => RevToJsonString(e)).toList();
+}
+
 RevFromJsonString(String? str) {
   if (str == null) {
     return null;

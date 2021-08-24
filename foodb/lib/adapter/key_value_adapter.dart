@@ -113,10 +113,10 @@ class KeyValueAdapter extends AbstractAdapter {
     Map<String, dynamic> changeResult = {
       "seq": update.seq,
       "id": update.id,
-      "changes": style == 'all'
-          ? update.allLeafRev.map((rev) => {"rev": rev}).toList()
+      "changes": style == 'all_docs'
+          ? update.allLeafRev.map((rev) => {"rev": rev.toString()}).toList()
           : [
-              {"rev": update.winnerRev}
+              {"rev": update.winnerRev.toString()}
             ],
     };
 
@@ -124,8 +124,10 @@ class KeyValueAdapter extends AbstractAdapter {
       DocHistory docs =
           DocHistory.fromJson((await db.get(docTableName, id: update.id))!);
 
-      Map<String, dynamic> winner = docs.winner!.toJson();
-      winner.removeWhere((key, value) => value == null);
+      Map<String, dynamic>? winner = docs.winner
+          ?.toDoc<Map<String, dynamic>>(update.id, (json) => json)
+          .toJson((value) => value);
+
       changeResult["doc"] = winner;
     }
     return jsonEncode(changeResult);
@@ -141,6 +143,7 @@ class KeyValueAdapter extends AbstractAdapter {
       ReadResult result =
           await db.read(sequenceTableName, startKey: request.since);
       for (MapEntry entry in result.docs.entries) {
+        print(entry);
         UpdateSequence update = UpdateSequence.fromJson(entry.value);
         streamController.sink.add(await _encodeUpdateSequence(update,
             includeDocs: request.includeDocs, style: request.style));
@@ -210,9 +213,9 @@ class KeyValueAdapter extends AbstractAdapter {
       throw AdapterException(error: 'doc not found');
     }
 
-    var result = await put(
-        doc:
-            Doc(id: id, model: {}, deleted: true, rev: winnerBeforeUpdate.rev));
+    //toask?: should be rev not winnerBeforeUpdate.rev??
+    var result =
+        await put(doc: Doc(id: id, model: {}, deleted: true, rev: rev));
 
     return DeleteResponse(ok: true, id: id, rev: result.rev);
   }
@@ -275,7 +278,7 @@ class KeyValueAdapter extends AbstractAdapter {
       {newEdits = true, InternalDoc? winnerBeforeUpdate, Rev? inputRev}) {
     if (newEdits == true) {
       if (winnerBeforeUpdate != null) {
-        if (inputRev == null || winnerBeforeUpdate.rev == inputRev) {
+        if (inputRev == null || winnerBeforeUpdate.rev != inputRev) {
           throw AdapterException(
               error: 'update conflict', reason: 'rev is different');
         }
@@ -330,7 +333,7 @@ class KeyValueAdapter extends AbstractAdapter {
         inputRevision.ids.asMap().forEach((key, value) {
           Rev rev = Rev(index: inputRevision.start - key, md5: value);
           Rev? prevRev;
-          if (key < inputRevision.ids.length) {
+          if (key < inputRevision.ids.length - 1) {
             prevRev = Rev(
                 index: inputRevision.start - key - 1,
                 md5: inputRevision.ids[key + 1]);
@@ -400,10 +403,11 @@ class KeyValueAdapter extends AbstractAdapter {
     DocHistory newDocHistoryObject = docHistory.copyWith(
         docs: {...docHistory.docs, newDocObject.rev.toString(): newDocObject},
         revisions: newRevisionTreeObject);
+
     UpdateSequence newUpdateSeqObject = UpdateSequence(
         id: doc.id,
         seq: newUpdateSeq,
-        winnerRev: newDocHistoryObject.winner!.rev,
+        winnerRev: newDocHistoryObject.winner?.rev ?? newDocObject.rev,
         allLeafRev: newDocHistoryObject.leafDocs.map((e) => e.rev).toList());
 
     // perform actual database operation
@@ -414,6 +418,7 @@ class KeyValueAdapter extends AbstractAdapter {
         id: newUpdateSeqObject.seq, object: newUpdateSeqObject.toJson());
     await db.put(docTableName,
         id: doc.id, object: newDocHistoryObject.toJson());
+    localChangeStreamController.sink.add(newUpdateSeqObject);
 
     return PutResponse(ok: true, id: doc.id, rev: newRev);
   }
@@ -465,10 +470,7 @@ class KeyValueAdapter extends AbstractAdapter {
       return null;
     }
     var result = DocHistory.fromJson(json);
-    if (result.winner?.deleted == true) {
-      return null;
-    }
-    return result.winner!.toDoc(id, fromJsonT);
+    return result.winner?.toDoc(id, fromJsonT);
   }
 
   Future<void> _generateView(Doc<DesignDoc> designDoc) async {
