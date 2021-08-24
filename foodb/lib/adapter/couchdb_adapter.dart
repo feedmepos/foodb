@@ -57,6 +57,7 @@ class CouchdbAdapter extends AbstractAdapter {
           'docs': body.map((e) {
             Map<String, dynamic> map = e.toJson((value) => value);
             map.removeWhere((key, value) => value == null);
+            print(map);
             return map;
           }).toList()
         })));
@@ -69,6 +70,7 @@ class CouchdbAdapter extends AbstractAdapter {
       }
       return BulkDocResponse(putResponses: putResponses);
     } else {
+      print(response.body);
       throw AdapterException(
           error: 'Invalid status code', reason: response.statusCode.toString());
     }

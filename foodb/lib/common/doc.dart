@@ -35,7 +35,7 @@ class Doc<T> {
       Map<String, dynamic> json, T Function(Object? json) fromJsonT) {
     return Doc<T>(
       id: json['_id'] as String,
-      rev: json['_rev'] == null ? null : Rev.fromString(json['_rev'] as String),
+      rev: json['_rev'] == null ? null : RevFromJsonString(json['_rev']),
       model: fromJsonT(json),
       deleted: json['_deleted'] as bool?,
       revisions: json['_revisions'] == null
@@ -58,7 +58,7 @@ class Doc<T> {
     Map<String, dynamic> map = toJsonT(this.model) as Map<String, dynamic>;
     map.addAll(<String, dynamic>{
       '_id': this.id,
-      '_rev': this.rev.toString(),
+      '_rev': RevToJsonString(this.rev),
       '_deleted': this.deleted,
       '_revisions': this.revisions?.toJson(),
       '_local_seq': this.localSeq,
