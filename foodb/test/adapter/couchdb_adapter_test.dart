@@ -32,22 +32,57 @@ void main() async {
         dbName: dbName ?? envDbName, baseUri: Uri.parse(baseUri));
   }
 
-  Future<void> cleanUp() async {
+  setUp(() async {
     await getCouchDbAdapter().destroy();
     await getCouchDbAdapter().init();
-  }
+  });
 
-  test('bulkdocs() with newEdits =true', () async {
-    await cleanUp();
+  group('bulkdocs()', () {
+    test('bulkdocs() with newEdits= false', () async {
+      final CouchdbAdapter couchDb = getCouchDbAdapter();
+      List<Doc<Map<String, dynamic>>> newDocs = [];
+      newDocs.add(Doc(
+          id: 'test2',
+          rev: Rev.fromString('1-zu21xehvdaine5smjxy9htiegd4rptkm5'),
+          model: {
+            'name': 'test test',
+            'no': 1111,
+          },
+          revisions: Revisions(start: 1, ids: [
+            'zu21xehvdaine5smjxy9htiegd4rptkm5',
+            'zu21xehvdaine5smjxy9htiegd4rptkm5'
+          ])));
+      newDocs.add(Doc(
+          id: 'test7',
+          rev: Rev.fromString('0-sasddsdsdfdfdsfdffdd'),
+          model: {
+            'name': 'test test asdfgh',
+            'no': 2212,
+          },
+          revisions: Revisions(start: 0, ids: ['sasddsdsdfdfdsfdffdd'])));
+      newDocs.add(Doc(
+          id: 'test5',
+          rev: Rev.fromString('0-sasddsdsdfdfdsfdffdd'),
+          model: {
+            'name': 'test test 5',
+            'no': 222,
+          },
+          revisions: Revisions(start: 0, ids: ['sasddsdsdfdfdsfdffdd'])));
+      BulkDocResponse bulkDocResponse = await couchDb.bulkDocs(body: newDocs);
+      expect(bulkDocResponse.putResponses, []);
+    });
 
-    final CouchdbAdapter couchDb = getCouchDbAdapter();
-    var bulkdocResponse = await couchDb.bulkDocs(body: [
-      new Doc<Map<String, dynamic>>(
-          id: "test 1", model: {"name": "beefy", "no": 999}),
-      new Doc<Map<String, dynamic>>(
-          id: "test 2", model: {"name": "soda", "no": 999}),
-    ], newEdits: true);
-    expect(bulkdocResponse.putResponses.length, 2);
+    test('bulkdocs() with newEdits =true', () async {
+      final CouchdbAdapter couchDb = getCouchDbAdapter();
+      var bulkdocResponse = await couchDb.bulkDocs(body: [
+        new Doc<Map<String, dynamic>>(
+            id: "test 1", model: {"name": "beefy", "no": 999}),
+        new Doc<Map<String, dynamic>>(
+            id: "test 2", model: {"name": "soda", "no": 999}),
+      ], newEdits: true);
+
+      expect(bulkdocResponse.putResponses.length, 2);
+    });
   });
 
   test('allDocs()', () async {
@@ -65,28 +100,23 @@ void main() async {
     expect(result.dbName, equals(envDbName));
   });
 
-  test('put()', () async {
-    final CouchdbAdapter couchDb = getCouchDbAdapter();
-    PutResponse putResponse = await couchDb.put(
-        doc: Doc(
-            id: "a",
-            rev: Rev.fromString("1-bb"),
-            model: {"name": "wgg", "no": 300}),
-        newEdits: false);
-
-    expect(putResponse.ok, isTrue);
-  });
-
-  group("put()", () {
+  group("put() with newEdits=False", () {
     const id = "putNewEditsisfalse";
-    setUp(() async {
-      await getCouchDbAdapter().destroy();
-      await getCouchDbAdapter().init();
+    test('with Rev should be success put', () async {
+      final CouchdbAdapter couchDb = getCouchDbAdapter();
+      PutResponse putResponse = await couchDb.put(
+          doc: Doc(
+              id: id,
+              rev: Rev.fromString("1-bb"),
+              model: {"name": "wgg", "no": 300}),
+          newEdits: false);
+
+      expect(putResponse.ok, isTrue);
     });
     test('without Rev should catch error', () async {
       final CouchdbAdapter couchDb = getCouchDbAdapter();
       try {
-        PutResponse putResponse = await couchDb.put(
+        await couchDb.put(
             doc: Doc(id: id, model: {"name": "wgg", "no": 300}),
             newEdits: false);
       } catch (err) {
@@ -155,83 +185,58 @@ void main() async {
 
   test('get()', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();
-    Doc? doc1 =
-        await couchDb.get(id: 'test1', revs: true, fromJsonT: (v) => {});
-    expect(doc1 != null, isTrue);
+    PutResponse putResponse =
+        await couchDb.put(doc: Doc(id: "test1", model: {}));
+    expect(putResponse.ok, isTrue);
 
-    Doc? doc2 =
-        await couchDb.get(id: 'test3', revs: true, fromJsonT: (v) => {});
-    expect(doc2 != null, isFalse);
+    Doc? doc1 = await couchDb.get(id: 'test1', fromJsonT: (v) => {});
+    expect(doc1, isNotNull);
+
+    Doc? doc2 = await couchDb.get(id: 'test3', fromJsonT: (v) => {});
+    expect(doc2, isNull);
   });
 
-  test('fetchDesignDoc()', () async {
+  group('designDoc', () {
     final CouchdbAdapter couchdb = getCouchDbAdapter();
-    Doc<DesignDoc>? designDoc =
-        await couchdb.fetchDesignDoc(id: "_design/type_user_name");
-    print(designDoc?.toJson((value) => value.toJson()));
-    expect(designDoc, isNotNull);
-    // TODO: test can fetch query and js
-  });
+    setUp(() async {
+      await couchdb.createIndex(indexFields: ['_id'], ddoc: "type_user_id");
+      await couchdb.createIndex(indexFields: ['name'], ddoc: "type_user_name");
+    });
+    test('fetchDesignDoc()', () async {
+      Doc<DesignDoc>? designDoc =
+          await couchdb.fetchDesignDoc(id: "_design/type_user_name");
+      print(designDoc?.toJson((value) => value.toJson()));
+      expect(designDoc, isNotNull);
+    });
 
-  test('fetchAllDesignDocs()', () async {
-    final CouchdbAdapter couchdb = getCouchDbAdapter();
-    List<Doc<DesignDoc>?> designDoc = await couchdb.fetchAllDesignDocs();
-    expect(designDoc.length, equals(2));
+    test('fetchAllDesignDocs()', () async {
+      List<Doc<DesignDoc>?> designDoc = await couchdb.fetchAllDesignDocs();
+      expect(designDoc.length, equals(2));
+    });
   });
 
   test('delete()', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();
-    Doc? doc = await couchDb.get(
-        id: 'test2', revs: true, latest: true, fromJsonT: (v) => {});
-    DeleteResponse deleteResponse = await couchDb.delete(
-        id: "test2", rev: doc?.rev ?? Rev.fromString('1-a'));
+    await couchDb.put(
+        doc: Doc(id: "test", rev: Rev.fromString("1-a"), model: {}),
+        newEdits: false);
+    DeleteResponse deleteResponse =
+        await couchDb.delete(id: "test", rev: Rev.fromString('1-a'));
     expect(deleteResponse.ok, true);
-  });
-
-  test('bulkdocs()', () async {
-    final CouchdbAdapter couchDb = getCouchDbAdapter();
-    List<Doc<Map<String, dynamic>>> newDocs = [];
-    newDocs.add(Doc(
-        id: 'test2',
-        rev: Rev.fromString('1-zu21xehvdaine5smjxy9htiegd4rptkm5'),
-        model: {
-          'name': 'test test',
-          'no': 1111,
-        },
-        revisions: Revisions(start: 1, ids: [
-          'zu21xehvdaine5smjxy9htiegd4rptkm5',
-          'zu21xehvdaine5smjxy9htiegd4rptkm5'
-        ])));
-    newDocs.add(Doc(
-        id: 'test7',
-        rev: Rev.fromString('0-sasddsdsdfdfdsfdffdd'),
-        model: {
-          'name': 'test test asdfgh',
-          'no': 2212,
-        },
-        revisions: Revisions(start: 0, ids: ['sasddsdsdfdfdsfdffdd'])));
-    newDocs.add(Doc(
-        id: 'test5',
-        rev: Rev.fromString('0-sasddsdsdfdfdsfdffdd'),
-        model: {
-          'name': 'test test 5',
-          'no': 222,
-        },
-        revisions: Revisions(start: 0, ids: ['sasddsdsdfdfdsfdffdd'])));
-    BulkDocResponse bulkDocResponse = await couchDb.bulkDocs(body: newDocs);
-    expect(bulkDocResponse.putResponses, []);
   });
 
   test('createIndex()', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();
     IndexResponse indexResponse =
         await couchDb.createIndex(indexFields: ['_id']);
-    print(indexResponse.result);
+    print(indexResponse.toJson());
     expect(indexResponse.result, isNotNull);
   });
 
   test('find()', () async {
     final CouchdbAdapter couchDb = getCouchDbAdapter();
+    await couchDb.createIndex(indexFields: ['_id']);
+    await couchDb.put(doc: Doc(id: "user_123", model: {}));
     FindResponse<Map<String, dynamic>> findResponse =
         await couchDb.find<Map<String, dynamic>>(
             FindRequest(selector: {
@@ -264,20 +269,22 @@ void main() async {
   });
 
   test("change stream", () async {
-    var dbName = "adish";
     int count = 0;
-    final CouchdbAdapter couchDb = getCouchDbAdapter(dbName: dbName.toString());
-    await couchDb.init();
+    final CouchdbAdapter couchDb = getCouchDbAdapter();
     await couchDb.put(doc: Doc(id: '1', model: {'name': 'ff'}));
-    await couchDb.put(doc: Doc(id: '2', model: {'name': 'zz'}));
+    await couchDb.put(
+        doc: Doc(id: '2', model: {'name': 'zz'}, rev: Rev.fromString('1-a')),
+        newEdits: false);
+    await couchDb.delete(id: '2', rev: Rev.fromString('1-a'));
     var fn = expectAsync1((changeResponse) {
       expect(changeResponse, isNotNull);
     });
     couchDb
         .changesStream(ChangeRequest(
-            includeDocs: false,
+            includeDocs: true,
             feed: ChangeFeed.normal,
-            since: 'now',
+            since: '0',
+            style: "all_docs",
             heartbeat: 1000))
         .then((changesStream) {
       var listener = changesStream.listen(onHearbeat: () {
