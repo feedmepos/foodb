@@ -35,8 +35,8 @@ void main() async {
     GetAllDocs<Map<String, dynamic>> docs = await adapter.allDocs(
         GetAllDocsRequest(
             // descending: true,
-            startKeyDocId: "a",
-            endKeyDocId: "a\ufff0"),
+            startKey: "a",
+            endKey: "a\ufff0"),
         (json) => json);
     print(docs.toJson((value) => value));
     expect(docs.rows.length, equals(1));

@@ -1,5 +1,38 @@
 import 'package:json_annotation/json_annotation.dart';
 
+part 'design_doc.g.dart';
+
+@JsonSerializable()
+class ViewDocMeta {
+  List<String> keys;
+
+  ViewDocMeta({required this.keys});
+
+  factory ViewDocMeta.fromJson(Map<String, dynamic> json) =>
+      _$ViewDocMetaFromJson(json);
+  Map<String, dynamic> toJson() => _$ViewDocMetaToJson(this);
+}
+
+class ViewKey {
+  String id;
+  String key;
+  ViewKey({
+    required this.id,
+    required this.key,
+  });
+
+  static final _seperator = '_\$foodb_';
+
+  String toString() {
+    return '$key$_seperator$id';
+  }
+
+  factory ViewKey.fromString(String str) {
+    var seperated = str.split(_seperator);
+    return ViewKey(id: seperated[1], key: seperated[0]);
+  }
+}
+
 class DesignDoc {
   String? language;
   Map<String, AbstracDesignDocView> views;

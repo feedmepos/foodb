@@ -59,13 +59,16 @@ class KeyValueAdapter extends AbstractAdapter {
   KeyValueAdapter({required dbName, required this.db, this.jsRuntime})
       : super(dbName: dbName);
 
-  String get docTableName => '${dbName}_docs';
+  String get docTableName => 'foodb_${dbName}_docs';
 
-  String get sequenceTableName => '${dbName}_sequences';
+  String get sequenceTableName => 'foodb_${dbName}_sequences';
 
-  String get viewMetaTableName => '${dbName}_viewmeta';
+  String get viewMetaTableName => 'foodb_${dbName}_viewmeta';
 
-  String viewTableName(String viewName) => '${dbName}_view_${viewName}';
+  String viewIdTableName(String viewName) =>
+      'foodb_${dbName}_view_id_${viewName}';
+  String viewKeyTableName(String viewName) =>
+      'foodb_${dbName}_view_key_${viewName}';
 
   StreamController<UpdateSequence> localChangeStreamController =
       StreamController.broadcast();
@@ -79,22 +82,33 @@ class KeyValueAdapter extends AbstractAdapter {
         id: '_all_docs',
         model: DesignDoc(views: {'_all_docs': AllDocDesignDocView()})));
 
-    ReadResult result = await _findByView(viewName,
-        startKey: allDocsRequest.startKeyDocId,
-        endKey: allDocsRequest.endKeyDocId,
+    ReadResult result = await db.read(viewKeyTableName(viewName),
+        startKey: allDocsRequest.startKey,
+        endKey: allDocsRequest.endKey,
         desc: allDocsRequest.descending);
 
+    Iterable<MapEntry<String, dynamic>> filteredResult = result.docs.entries;
+    // TODO: if startKey_docId or endKey_docId specified, then do another filter
+
+    List<Row<T>> rows = [];
+
+    for (var e in filteredResult) {
+      var key = ViewKey.fromString(e.key);
+      Row<T> row = Row<T>(
+        id: key.id,
+        key: key.key,
+        value: AllDocRowValue.fromJson(e.value['v']),
+      );
+      if (allDocsRequest.includeDocs) {
+        DocHistory docs =
+            DocHistory.fromJson((await db.get(docTableName, id: key.id))!);
+        row.doc = docs.winner!.toDoc<T>(docs.id, fromJsonT);
+      }
+      rows.add(row);
+    }
+
     return GetAllDocs(
-        offset: result.offset,
-        totalRows: result.totalRows,
-        rows: result.docs.values
-            .map<Row<T>>((e) => Row<T>(
-                id: e["_id"],
-                key: e["_id"],
-                value: Value(rev: e["_rev"]),
-                doc: Doc<T>.fromJson(
-                    e, (json) => fromJsonT(json as Map<String, dynamic>))))
-            .toList());
+        offset: result.offset, totalRows: result.totalRows, rows: rows);
   }
 
   @override
@@ -358,6 +372,23 @@ class KeyValueAdapter extends AbstractAdapter {
     return '${int.parse(lastSeq.split('-')[0]) + 1}-1';
   }
 
+  InternalDoc? _retrieveDocBeforeUpdate({
+    newEdits = true,
+    required DocHistory docHistory,
+    Revisions? revisions,
+  }) {
+    if (newEdits == true) {
+      return docHistory.winner;
+    } else {
+      if (revisions != null && revisions.ids.length > 1) {
+        return docHistory.docs[
+            Rev(index: revisions.start - 1, md5: revisions.ids[1]).toString()];
+      } else {
+        return null;
+      }
+    }
+  }
+
   @override
   Future<PutResponse> put(
       {required Doc<Map<String, dynamic>> doc, bool newEdits = true}) async {
@@ -399,7 +430,7 @@ class KeyValueAdapter extends AbstractAdapter {
         rev: newRev,
         deleted: doc.deleted ?? false,
         localSeq: newUpdateSeq,
-        data: doc.model);
+        data: doc.deleted == true ? {} : doc.model);
     DocHistory newDocHistoryObject = docHistory.copyWith(
         docs: {...docHistory.docs, newDocObject.rev.toString(): newDocObject},
         revisions: newRevisionTreeObject);
@@ -493,11 +524,21 @@ class KeyValueAdapter extends AbstractAdapter {
             for (var result in resp.results) {
               var history = DocHistory.fromJson(
                   (await db.get(docTableName, id: result.id))!);
-              var entries = _runMapper(view, history);
-              for (var entry in entries) {
-                await db.put(viewTableName(viewName),
-                    id: entry.key, object: entry.value);
+              var viewDocMeta = ViewDocMeta.fromJson(
+                  (await db.get(viewIdTableName(viewName), id: history.id))!);
+              for (var key in viewDocMeta.keys) {
+                await db.delete(viewKeyTableName(viewName),
+                    id: ViewKey(id: history.id, key: key).toString());
               }
+              var entries = _runMapper(view, history.id, history.winner);
+              for (var entry in entries) {
+                await db.put(viewKeyTableName(viewName),
+                    id: entry.key, object: {"v": entry.value});
+              }
+              await db.put(viewIdTableName(viewName),
+                  id: history.id,
+                  object: ViewDocMeta(keys: entries.map((e) => e.key).toList())
+                      .toJson());
             }
             c.complete(resp.lastSeq);
           });
@@ -509,29 +550,26 @@ class KeyValueAdapter extends AbstractAdapter {
   }
 
   List<MapEntry<String, dynamic>> _runMapper(
-      AbstracDesignDocView view, DocHistory history) {
-    if (view is JSDesignDocView) {
-      if (jsRuntime == null) {
-        throw AdapterException(error: 'no js runtime found');
+      AbstracDesignDocView view, String id, InternalDoc? doc) {
+    if (doc != null) {
+      if (view is JSDesignDocView) {
+        if (jsRuntime == null) {
+          throw AdapterException(error: 'no js runtime found');
+        }
+        jsRuntime?.evaluate(view.map);
+        // TODO use runtime to run mapper
+      } else if (view is QueryDesignDocView) {
+        // TODO create dart mapper using query field
+      } else if (view is AllDocDesignDocView) {
+        return [
+          MapEntry(ViewKey(id: id, key: id).toString(),
+              AllDocRowValue(rev: doc.rev).toJson())
+        ];
+      } else {
+        throw new UnimplementedError('Unknown Design Doc View');
       }
-      jsRuntime?.evaluate(view.map);
-      // TODO use runtime to run mapper
-    } else if (view is QueryDesignDocView) {
-      // TODO create dart mapper using query field
-    } else if (view is AllDocDesignDocView) {
-      return history.winner?.deleted != true
-          ? [MapEntry(history.id, history.winner?.data)]
-          : [];
-    } else {
-      throw new UnimplementedError('Unknown Design Doc View');
     }
     return [];
-  }
-
-  Future<ReadResult> _findByView(String viewName,
-      {String? startKey, String? endKey, required bool desc}) async {
-    return await db.read(viewTableName(viewName),
-        startKey: startKey, endKey: endKey, desc: desc);
   }
 
   String _getViewName({required String designDocId, required String viewId}) {

@@ -33,7 +33,7 @@ class GetAllDocs<T> {
 class Row<T> {
   String id;
   String key;
-  Value value;
+  AllDocRowValue value;
   Doc<T>? doc;
 
   Row({required this.id, required this.key, required this.value, this.doc});
@@ -45,13 +45,14 @@ class Row<T> {
 }
 
 @JsonSerializable()
-class Value {
+class AllDocRowValue {
   @JsonKey(fromJson: RevFromJsonString, toJson: RevToJsonString)
   Rev rev;
-  Value({required this.rev});
+  AllDocRowValue({required this.rev});
 
-  factory Value.fromJson(Map<String, dynamic> json) => _$ValueFromJson(json);
-  Map<String, dynamic> toJson() => _$ValueToJson(this);
+  factory AllDocRowValue.fromJson(Map<String, dynamic> json) =>
+      _$AllDocRowValueFromJson(json);
+  Map<String, dynamic> toJson() => _$AllDocRowValueToJson(this);
 }
 
 @JsonSerializable()

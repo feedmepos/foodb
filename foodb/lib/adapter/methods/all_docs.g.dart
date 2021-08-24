@@ -43,7 +43,7 @@ Row<T> _$RowFromJson<T>(
   return Row<T>(
     id: json['id'] as String,
     key: json['key'] as String,
-    value: Value.fromJson(json['value'] as Map<String, dynamic>),
+    value: AllDocRowValue.fromJson(json['value'] as Map<String, dynamic>),
     doc: json['doc'] == null
         ? null
         : Doc.fromJson(
@@ -64,13 +64,14 @@ Map<String, dynamic> _$RowToJson<T>(
       ),
     };
 
-Value _$ValueFromJson(Map<String, dynamic> json) {
-  return Value(
+AllDocRowValue _$AllDocRowValueFromJson(Map<String, dynamic> json) {
+  return AllDocRowValue(
     rev: RevFromJsonString(json['rev'] as String?),
   );
 }
 
-Map<String, dynamic> _$ValueToJson(Value instance) => <String, dynamic>{
+Map<String, dynamic> _$AllDocRowValueToJson(AllDocRowValue instance) =>
+    <String, dynamic>{
       'rev': RevToJsonString(instance.rev),
     };
 
