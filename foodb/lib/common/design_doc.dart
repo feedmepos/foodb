@@ -54,7 +54,8 @@ class DesignDoc {
       );
   Map<String, dynamic> toJson() => <String, dynamic>{
         'language': language,
-        'views': views.entries.map((e) => {"${e.key}": e.value.toJson()}),
+        'views':
+            Map.fromIterables(views.keys, views.values.map((e) => e.toJson()))
       };
 }
 
@@ -110,7 +111,7 @@ class QueryViewMapper {
   Map<String, String> fields;
 
   @JsonKey(name: "partial_filter_sector")
-  Map<String, String>? partialFilterSelector;
+  Map<String, dynamic>? partialFilterSelector;
 
   QueryViewMapper({required this.fields, this.partialFilterSelector});
 
@@ -119,10 +120,10 @@ class QueryViewMapper {
         fields: Map<String, String>.from(json['fields'] as Map),
         partialFilterSelector:
             (json['partial_filter_sector'] as Map<String, dynamic>?)?.map(
-          (k, e) => MapEntry(k, e as String),
+          (k, e) => MapEntry(k, e),
         ),
       );
-  @override
+
   Map<String, dynamic> toJson() => <String, dynamic>{
         'fields': fields,
         'partial_filter_sector': partialFilterSelector,
@@ -131,14 +132,22 @@ class QueryViewMapper {
 
 class QueryViewOptions {
   QueryViewOptionsDef def;
-  QueryViewOptions({required this.def});
+
+  @JsonKey(name: "partial_filter_sector")
+  Map<String, dynamic>? partialFilterSelector;
+  QueryViewOptions({required this.def, this.partialFilterSelector});
 
   factory QueryViewOptions.fromJson(Map<String, dynamic> json) =>
       QueryViewOptions(
         def: QueryViewOptionsDef.fromJson(json['def'] as Map<String, dynamic>),
+        partialFilterSelector:
+            (json['partial_filter_sector'] as Map<String, dynamic>?)?.map(
+          (k, e) => MapEntry(k, e),
+        ),
       );
   Map<String, dynamic> toJson() => <String, dynamic>{
         'def': def.toJson(),
+        'partial_filter_sector': partialFilterSelector,
       };
 }
 

@@ -6,7 +6,9 @@ import 'package:foodb/adapter/key_value_adapter.dart';
 import 'package:foodb/adapter/methods/all_docs.dart';
 import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/adapter/methods/delete.dart';
+import 'package:foodb/adapter/methods/index.dart';
 import 'package:foodb/adapter/methods/revs_diff.dart';
+import 'package:foodb/common/design_doc.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/doc_history.dart';
 import 'package:foodb/common/rev.dart';
@@ -18,29 +20,48 @@ void main() async {
     return KeyValueAdapter(dbName: 'test', db: InMemoryDatabase());
   }
 
-  test("allDocs()", () async {
-    var db = InMemoryDatabase();
-    var adapter = KeyValueAdapter(dbName: 'test', db: db);
+  group('allDocs', () {
+    var adapter = getMemoryAdapter();
 
-    await adapter.put(
-        doc: Doc<Map<String, dynamic>>(
-            id: "a", model: {"name": "a", "no": 999}));
-    await adapter.put(
-        doc: Doc<Map<String, dynamic>>(
-            id: "b", model: {"name": "b", "no": 999}));
-    await adapter.put(
-        doc: Doc<Map<String, dynamic>>(
-            id: "c", model: {"name": "c", "no": 999}));
+    setUp(() async {
+      await adapter.put(
+          doc: Doc<Map<String, dynamic>>(
+              id: "a",
+              rev: Rev.fromString("1-a"),
+              model: {"name": "a", "no": 999}),
+          newEdits: false);
+      await adapter.put(
+          doc: Doc<Map<String, dynamic>>(
+              id: "b",
+              rev: Rev.fromString("1-b"),
+              model: {"name": "b", "no": 999}),
+          newEdits: false);
+      await adapter.put(
+          doc: Doc<Map<String, dynamic>>(
+              id: "c",
+              rev: Rev.fromString("1-c"),
+              model: {"name": "c", "no": 999}),
+          newEdits: false);
+    });
+    test("check _generateView by create a, b, c and then delete/update a, b",
+        () async {
+      GetAllDocs<Map<String, dynamic>> docs =
+          await adapter.allDocs(GetAllDocsRequest(), (json) => json);
+      print(docs.toJson((value) => value));
+      expect(docs.rows.length, equals(3));
 
-    GetAllDocs<Map<String, dynamic>> docs = await adapter.allDocs(
-        GetAllDocsRequest(
-            // descending: true,
-            startKey: "a",
-            endKey: "a\ufff0"),
-        (json) => json);
-    print(docs.toJson((value) => value));
-    expect(docs.rows.length, equals(1));
-    expect(docs.offset, equals(0));
+      await adapter.delete(id: "a", rev: Rev.fromString("1-a"));
+      await adapter.put(
+          doc: Doc<Map<String, dynamic>>(
+              id: "b",
+              rev: Rev.fromString("1-b"),
+              model: {"name": "a", "no": 999}));
+
+      GetAllDocs<Map<String, dynamic>> docsAfterChange =
+          await adapter.allDocs(GetAllDocsRequest(), (json) => json);
+      print(docsAfterChange.toJson((value) => value));
+      expect(docsAfterChange.rows.length, equals(2));
+    });
   });
   test('revsDiff', () async {
     final adapter = getMemoryAdapter();
@@ -302,6 +323,25 @@ void main() async {
         expect(e, isInstanceOf<AdapterException>());
       }
     });
+
+    test("delete doc with 2 leaf nodes", () async {
+      await memoryDb.put(
+          doc: Doc(
+              id: "a",
+              rev: Rev.fromString("2-c"),
+              revisions: Revisions(ids: ['c', 'a'], start: 2),
+              model: {}),
+          newEdits: false);
+      DocHistory history = DocHistory.fromJson(
+          (await memoryDb.db.get(memoryDb.docTableName, id: "a"))!);
+      expect(history.leafDocs.length, 2);
+
+      await memoryDb.delete(id: "a", rev: Rev.fromString("2-c"));
+      DocHistory historyAfterDelete = DocHistory.fromJson(
+          (await memoryDb.db.get(memoryDb.docTableName, id: "a"))!);
+      print(historyAfterDelete.winner?.rev.toString());
+      expect(historyAfterDelete.leafDocs.length, 2);
+    });
   });
   group('bulkdocs', () {
     final memoryDb = getMemoryAdapter();
@@ -475,5 +515,41 @@ void main() async {
     ReadResult result = await adapter.db.read(adapter.docTableName);
     print(result);
     expect(result.docs.length, equals(2));
+  });
+  group("createIndex", () {
+    final memoryDb = getMemoryAdapter();
+    test('with indexFields only', () async {
+      IndexResponse indexResponse =
+          await memoryDb.createIndex(indexFields: ["_id"]);
+      expect(indexResponse, isNotNull);
+
+      Doc<Map<String, dynamic>>? doc =
+          await memoryDb.get(id: indexResponse.id, fromJsonT: (json) => json);
+      print(doc?.toJson((value) => value));
+      expect(doc, isNotNull);
+    });
+
+    test('with indexFields and partial_filter_selector', () async {
+      IndexResponse indexResponse = await memoryDb.createIndex(
+        indexFields: ["_id"],
+        partialFilterSelector: {
+          "year": {"\$gt": 2010},
+          "limit": 10,
+          "skip": 0
+        },
+      );
+      expect(indexResponse, isNotNull);
+
+      Doc<Map<String, dynamic>>? doc =
+          await memoryDb.get(id: indexResponse.id, fromJsonT: (json) => json);
+      print(doc?.toJson((value) => value));
+      expect(doc, isNotNull);
+
+      //to ask - why Doc<DesignDoc>.fromJson cannot run?
+      Doc<DesignDoc>? doc2 = await memoryDb.get(
+          id: indexResponse.id, fromJsonT: (json) => DesignDoc.fromJson(json));
+      print(doc2?.toJson((value) => value.toJson()));
+      expect(doc2, isNotNull);
+    });
   });
 }

@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/exception.dart';
 import 'package:foodb/adapter/methods/all_docs.dart';
@@ -157,7 +157,6 @@ class KeyValueAdapter extends AbstractAdapter {
       ReadResult result =
           await db.read(sequenceTableName, startKey: request.since);
       for (MapEntry entry in result.docs.entries) {
-        print(entry);
         UpdateSequence update = UpdateSequence.fromJson(entry.value);
         streamController.sink.add(await _encodeUpdateSequence(update,
             includeDocs: request.includeDocs, style: request.style));
@@ -210,9 +209,42 @@ class KeyValueAdapter extends AbstractAdapter {
       String? ddoc,
       String? name,
       String type = 'json',
-      Map<String, Object>? partialFilterSelector}) {
-    // TODO: implement createIndex
-    throw UnimplementedError();
+      Map<String, Object>? partialFilterSelector,
+      bool? partitioned}) async {
+    String timeStamp = DateTime.now().toIso8601String();
+    String uniqueName = crypto.md5.convert(utf8.encode(timeStamp)).toString();
+    if (name == null) {
+      name = uniqueName;
+    }
+    if (ddoc == null) {
+      ddoc = "_design/$uniqueName";
+    }
+    if (partialFilterSelector == null) {
+      partialFilterSelector = {};
+    } else if (partialFilterSelector.length > 1) {
+      partialFilterSelector = {"\$and": partialFilterSelector};
+    }
+    DesignDoc designDoc = DesignDoc(language: "query", views: {
+      name: QueryDesignDocView(
+          map: QueryViewMapper(
+              partialFilterSelector: partialFilterSelector,
+              fields: Map.fromIterable(indexFields,
+                  key: (item) => item, value: (item) => "asc")),
+          reduce: "count",
+          options: QueryViewOptions(
+              partialFilterSelector: partialFilterSelector,
+              def: QueryViewOptionsDef(fields: indexFields)))
+    });
+
+    Doc<Map<String, dynamic>> doc =
+        Doc<Map<String, dynamic>>(id: ddoc, model: designDoc.toJson());
+
+    PutResponse putResponse = await put(doc: doc);
+    if (putResponse.ok) {
+      return IndexResponse(result: "created", id: ddoc, name: name);
+    } else {
+      throw AdapterException(error: "failed to put design doc");
+    }
   }
 
   @override
@@ -226,8 +258,6 @@ class KeyValueAdapter extends AbstractAdapter {
     if (winnerBeforeUpdate == null) {
       throw AdapterException(error: 'doc not found');
     }
-
-    //toask?: should be rev not winnerBeforeUpdate.rev??
     var result =
         await put(doc: Doc(id: id, model: {}, deleted: true, rev: rev));
 
@@ -524,21 +554,29 @@ class KeyValueAdapter extends AbstractAdapter {
             for (var result in resp.results) {
               var history = DocHistory.fromJson(
                   (await db.get(docTableName, id: result.id))!);
-              var viewDocMeta = ViewDocMeta.fromJson(
-                  (await db.get(viewIdTableName(viewName), id: history.id))!);
-              for (var key in viewDocMeta.keys) {
-                await db.delete(viewKeyTableName(viewName),
-                    id: ViewKey(id: history.id, key: key).toString());
+              Map<String, dynamic>? viewId =
+                  await db.get(viewIdTableName(viewName), id: history.id);
+              if (viewId != null) {
+                var viewDocMeta = ViewDocMeta.fromJson(viewId);
+                for (var key in viewDocMeta.keys) {
+                  await db.delete(viewKeyTableName(viewName), id: key);
+                }
+
+                await db.delete(viewIdTableName(viewName), id: history.id);
               }
-              var entries = _runMapper(view, history.id, history.winner);
-              for (var entry in entries) {
-                await db.put(viewKeyTableName(viewName),
-                    id: entry.key, object: {"v": entry.value});
+
+              if (history.winner != null) {
+                var entries = _runMapper(view, history.id, history.winner);
+                for (var entry in entries) {
+                  await db.put(viewKeyTableName(viewName),
+                      id: entry.key, object: {"v": entry.value});
+                }
+                await db.put(viewIdTableName(viewName),
+                    id: history.id,
+                    object:
+                        ViewDocMeta(keys: entries.map((e) => e.key).toList())
+                            .toJson());
               }
-              await db.put(viewIdTableName(viewName),
-                  id: history.id,
-                  object: ViewDocMeta(keys: entries.map((e) => e.key).toList())
-                      .toJson());
             }
             c.complete(resp.lastSeq);
           });

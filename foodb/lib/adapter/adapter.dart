@@ -104,7 +104,8 @@ abstract class AbstractAdapter {
       String? ddoc,
       String? name,
       String type = 'json',
-      Map<String, Object>? partialFilterSelector});
+      Map<String, Object>? partialFilterSelector,
+      bool? partitioned});
 
   Future<FindResponse<T>> find<T>(
       FindRequest findRequest, T Function(Map<String, dynamic>) toJsonT);

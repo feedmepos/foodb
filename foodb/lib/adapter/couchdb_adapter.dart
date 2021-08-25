@@ -220,19 +220,23 @@ class CouchdbAdapter extends AbstractAdapter {
       String? ddoc,
       String? name,
       String type = 'json',
-      Map<String, Object>? partialFilterSelector}) async {
+      Map<String, Object>? partialFilterSelector,
+      bool? partitioned}) async {
     Map<String, dynamic> body = {
       'index': {'fields': indexFields},
-      'type': type
+      'type': type,
     };
+    if (partitioned != null) {
+      body['partitioned'] = partitioned;
+    }
     if (ddoc != null) {
-      body.putIfAbsent('ddoc', () => ddoc);
+      body['ddoc'] = ddoc;
     }
     if (name != null) {
-      body.putIfAbsent('name', () => name);
+      body['name'] = name;
     }
     if (partialFilterSelector != null) {
-      body.putIfAbsent('partial_filter_selector', () => partialFilterSelector);
+      body['index']['partial_filter_selector'] = partialFilterSelector;
     }
     var response = (jsonDecode((await this.client.post(this.getUri('_index'),
             headers: {'Content-Type': 'application/json'},
