@@ -220,7 +220,7 @@ class CouchdbAdapter extends AbstractAdapter {
       String? ddoc,
       String? name,
       String type = 'json',
-      Map<String, Object>? partialFilterSelector,
+      Map<String, dynamic>? partialFilterSelector,
       bool? partitioned}) async {
     Map<String, dynamic> body = {
       'index': {'fields': indexFields},

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:crypto/crypto.dart' as crypto;
+import 'package:flutter/services.dart';
 import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/exception.dart';
 import 'package:foodb/adapter/methods/all_docs.dart';
@@ -209,37 +210,49 @@ class KeyValueAdapter extends AbstractAdapter {
       String? ddoc,
       String? name,
       String type = 'json',
-      Map<String, Object>? partialFilterSelector,
+      Map<String, dynamic>? partialFilterSelector,
       bool? partitioned}) async {
+    if (partialFilterSelector == null) {
+      partialFilterSelector = {};
+    } else {
+      partialFilterSelector =
+          PartialFilterSelector().rebuildSelector(partialFilterSelector);
+    }
     String timeStamp = DateTime.now().toIso8601String();
     String uniqueName = crypto.md5.convert(utf8.encode(timeStamp)).toString();
+
     if (name == null) {
       name = uniqueName;
     }
     if (ddoc == null) {
       ddoc = "_design/$uniqueName";
     }
-    if (partialFilterSelector == null) {
-      partialFilterSelector = {};
-    } else if (partialFilterSelector.length > 1) {
-      partialFilterSelector = {"\$and": partialFilterSelector};
+    Doc<DesignDoc>? doc =
+        await get(id: ddoc, fromJsonT: (value) => DesignDoc.fromJson(value));
+
+    QueryDesignDocView queryDesignDoc = QueryDesignDocView(
+        map: QueryViewMapper(
+            partialFilterSelector: partialFilterSelector,
+            fields: Map.fromIterable(indexFields,
+                key: (item) => item, value: (item) => "asc")),
+        reduce: "count",
+        options: QueryViewOptions(
+            def: QueryViewOptionsDef(
+                partialFilterSelector: partialFilterSelector,
+                fields: indexFields)));
+
+    if (doc == null) {
+      doc = new Doc<DesignDoc>(
+          id: ddoc,
+          model: DesignDoc(language: "query", views: {name: queryDesignDoc}));
+    } else {
+      doc.model.views[name] = queryDesignDoc;
     }
-    DesignDoc designDoc = DesignDoc(language: "query", views: {
-      name: QueryDesignDocView(
-          map: QueryViewMapper(
-              partialFilterSelector: partialFilterSelector,
-              fields: Map.fromIterable(indexFields,
-                  key: (item) => item, value: (item) => "asc")),
-          reduce: "count",
-          options: QueryViewOptions(
-              partialFilterSelector: partialFilterSelector,
-              def: QueryViewOptionsDef(fields: indexFields)))
-    });
+    Doc<Map<String, dynamic>> mappedDoc = Doc<Map<String, dynamic>>.fromJson(
+        doc.toJson((value) => value.toJson()),
+        (json) => json as Map<String, dynamic>);
 
-    Doc<Map<String, dynamic>> doc =
-        Doc<Map<String, dynamic>>(id: ddoc, model: designDoc.toJson());
-
-    PutResponse putResponse = await put(doc: doc);
+    PutResponse putResponse = await put(doc: mappedDoc);
     if (putResponse.ok) {
       return IndexResponse(result: "created", id: ddoc, name: name);
     } else {
@@ -598,6 +611,18 @@ class KeyValueAdapter extends AbstractAdapter {
         // TODO use runtime to run mapper
       } else if (view is QueryDesignDocView) {
         // TODO create dart mapper using query field
+        ///check if partial filter selector !=null
+        if (view.map.partialFilterSelector != null) {
+          view.map.partialFilterSelector?.entries.forEach((e) {
+            if (e.key == CombinationOperator.and) {
+            } else {}
+          });
+        }
+
+        /// check key got $sign => find its combination_operator
+        /// for each key-value stored in combination operators=> conditional-operators-argument, then call conditional operator func
+        /// if result = true, output
+
       } else if (view is AllDocDesignDocView) {
         return [
           MapEntry(ViewKey(id: id, key: id).toString(),

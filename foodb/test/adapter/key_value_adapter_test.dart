@@ -518,7 +518,7 @@ void main() async {
   });
   group("createIndex", () {
     final memoryDb = getMemoryAdapter();
-    test('with indexFields only', () async {
+    test('create with indexFields only', () async {
       IndexResponse indexResponse =
           await memoryDb.createIndex(indexFields: ["_id"]);
       expect(indexResponse, isNotNull);
@@ -529,13 +529,11 @@ void main() async {
       expect(doc, isNotNull);
     });
 
-    test('with indexFields and partial_filter_selector', () async {
+    test('create with indexFields and partial_filter_selector', () async {
       IndexResponse indexResponse = await memoryDb.createIndex(
         indexFields: ["_id"],
         partialFilterSelector: {
           "year": {"\$gt": 2010},
-          "limit": 10,
-          "skip": 0
         },
       );
       expect(indexResponse, isNotNull);
@@ -545,11 +543,41 @@ void main() async {
       print(doc?.toJson((value) => value));
       expect(doc, isNotNull);
 
-      //to ask - why Doc<DesignDoc>.fromJson cannot run?
       Doc<DesignDoc>? doc2 = await memoryDb.get(
           id: indexResponse.id, fromJsonT: (json) => DesignDoc.fromJson(json));
       print(doc2?.toJson((value) => value.toJson()));
       expect(doc2, isNotNull);
+    });
+
+    test('update design doc with new view', () async {
+      IndexResponse indexResponse = await memoryDb.createIndex(
+        indexFields: ["_id"],
+        ddoc: "_design/a",
+        partialFilterSelector: {
+          "year": {"\$gt": 2010},
+        },
+      );
+      expect(indexResponse, isNotNull);
+
+      Doc<Map<String, dynamic>>? doc =
+          await memoryDb.get(id: indexResponse.id, fromJsonT: (json) => json);
+      print(doc?.toJson((value) => value));
+      expect(doc, isNotNull);
+
+      IndexResponse indexResponse2 = await memoryDb.createIndex(
+        indexFields: ["_id"],
+        ddoc: "_design/a",
+        partialFilterSelector: {
+          "year": {"\$gt": 2010},
+        },
+      );
+      expect(indexResponse2, isNotNull);
+
+      Doc<DesignDoc>? docAfterUpdate = await memoryDb.get(
+          id: indexResponse2.id, fromJsonT: (json) => DesignDoc.fromJson(json));
+      print(docAfterUpdate?.toJson((value) => value.toJson()));
+      expect(docAfterUpdate, isNotNull);
+      expect(docAfterUpdate?.model.views.length, 2);
     });
   });
 }

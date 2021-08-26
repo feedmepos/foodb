@@ -1,6 +1,62 @@
+import 'package:foodb/adapter/methods/index.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'design_doc.g.dart';
+
+class PartialFilterSelector {
+  Map<String, dynamic> value;
+
+  PartialFilterSelector({this.value = const {}});
+
+  Map<String, dynamic> rebuildSelector(Map<String, dynamic> json) {
+    List<dynamic> subList = [];
+    json.entries.forEach((element) {
+      subList.add(DFS(Map.fromEntries([element])));
+    });
+    if (subList.length > 1)
+      this.value = {CombinationOperator.and: subList};
+    else {
+      this.value = subList.first;
+    }
+    return this.value;
+  }
+
+  Map<String, dynamic> DFS(Map<String, dynamic> json) {
+    for (MapEntry<String, dynamic> entry in json.entries) {
+      if (entry.key == CombinationOperator.and) {
+        List<dynamic> subList = [];
+        entry.value.forEach((e) {
+          subList.add(DFS(e));
+        });
+        if (this.value.length > 1) {
+          this.value = {
+            CombinationOperator.and: [
+              value,
+              {CombinationOperator.and: subList}
+            ]
+          };
+        } else {
+          this.value = {CombinationOperator.and: subList};
+        }
+
+        return this.value;
+      } else {
+        if (entry.value.length > 1) {
+          List<dynamic> subList = [];
+          entry.value.forEach((operator, arg) {
+            subList.add({
+              entry.key: {operator: arg}
+            });
+          });
+
+          return <String, dynamic>{CombinationOperator.and: subList};
+        }
+        return {entry.key: entry.value};
+      }
+    }
+    return this.value;
+  }
+}
 
 @JsonSerializable()
 class ViewDocMeta {
@@ -133,34 +189,36 @@ class QueryViewMapper {
 class QueryViewOptions {
   QueryViewOptionsDef def;
 
-  @JsonKey(name: "partial_filter_sector")
-  Map<String, dynamic>? partialFilterSelector;
-  QueryViewOptions({required this.def, this.partialFilterSelector});
+  QueryViewOptions({required this.def});
 
   factory QueryViewOptions.fromJson(Map<String, dynamic> json) =>
       QueryViewOptions(
         def: QueryViewOptionsDef.fromJson(json['def'] as Map<String, dynamic>),
+      );
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'def': def.toJson(),
+      };
+}
+
+class QueryViewOptionsDef {
+  List<String> fields;
+
+  @JsonKey(name: "partial_filter_sector")
+  Map<String, dynamic>? partialFilterSelector;
+
+  QueryViewOptionsDef({required this.fields, this.partialFilterSelector});
+
+  factory QueryViewOptionsDef.fromJson(Map<String, dynamic> json) =>
+      QueryViewOptionsDef(
+        fields:
+            (json['fields'] as List<dynamic>).map((e) => e as String).toList(),
         partialFilterSelector:
             (json['partial_filter_sector'] as Map<String, dynamic>?)?.map(
           (k, e) => MapEntry(k, e),
         ),
       );
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'def': def.toJson(),
-        'partial_filter_sector': partialFilterSelector,
-      };
-}
-
-class QueryViewOptionsDef {
-  List<String> fields;
-  QueryViewOptionsDef({required this.fields});
-
-  factory QueryViewOptionsDef.fromJson(Map<String, dynamic> json) =>
-      QueryViewOptionsDef(
-        fields:
-            (json['fields'] as List<dynamic>).map((e) => e as String).toList(),
-      );
-  Map<String, dynamic> toJson() => <String, dynamic>{
         'fields': fields,
+        'partial_filter_sector': partialFilterSelector,
       };
 }
