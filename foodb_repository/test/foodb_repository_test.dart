@@ -260,21 +260,22 @@ void main() async {
   test('read doc ', () async {
     UserRepo userRepo = UserRepo(Foodb(
         adapter: CouchdbAdapter(baseUri: Uri.parse(baseUri), dbName: dbName)));
-
-    Doc<UserModel>? doc =
-        await userRepo.read('sales_2021-08-10T13:50:09.658409');
+    Doc<UserModel>? created =
+        await userRepo.create(UserModel(name: "name", no: 100));
+    Doc<UserModel>? doc = await userRepo.read(created!.id);
     expect(doc?.model.name, isNotNull);
   });
 
   test('bulkdocs', () async {
     UserRepo userRepo = UserRepo(Foodb(
         adapter: CouchdbAdapter(baseUri: Uri.parse(baseUri), dbName: dbName)));
-    Doc<UserModel>? doc = await userRepo.read(
-      'sales_2021-08-12T12:17:50.252578',
-    );
+    Doc<UserModel>? created =
+        await userRepo.create(UserModel(name: "name", no: 100));
+    Doc<UserModel>? doc = await userRepo.read(created!.id);
+
     Doc<UserModel> newDoc = new Doc(
         id: doc!.id,
-        rev: Rev.fromString("2-${doc.rev.toString()!.split('-')[1]}"),
+        rev: Rev.fromString("2-${doc.rev.toString().split('-')[1]}"),
         model: doc.model,
         deleted: true,
         revisions: Revisions(start: 2, ids: [doc.rev!.md5, doc.rev!.md5]));
