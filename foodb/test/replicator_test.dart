@@ -2,6 +2,9 @@ import 'dart:io';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodb/adapter/couchdb_adapter.dart';
+import 'package:foodb/adapter/exception.dart';
+import 'package:foodb/adapter/in_memory_database.dart';
+import 'package:foodb/adapter/key_value_adapter.dart';
 import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/rev.dart';
@@ -20,12 +23,17 @@ void main() async {
         dbName: dbName ?? envDbName, baseUri: Uri.parse(baseUri));
   }
 
+  getMemoryAdapter() {
+    return KeyValueAdapter(dbName: 'test', db: InMemoryDatabase());
+  }
+
+  //Replicator Between CouchDb
   Replicator replicator = new Replicator(
       source: getCouchDbAdapter(), target: getCouchDbAdapter(dbName: "a-test"));
   Replicator replicator2 = new Replicator(
       source: getCouchDbAdapter(dbName: "a-test"), target: getCouchDbAdapter());
 
-  test('replicator 2', () async {
+  test('check replicator with 2 couchdb', () async {
     await getCouchDbAdapter(dbName: "a-test").destroy();
     await getCouchDbAdapter(dbName: "a-test").init();
 
@@ -46,7 +54,7 @@ void main() async {
         },
         onError: (error, retry) {
           print(error);
-          // retry();
+          retry();
         },
         onComplete: (result) {
           print(result);
@@ -54,7 +62,10 @@ void main() async {
         });
   });
 
-  test('replicator', () async {
+  test('check synchronization with 2 couchdb', () async {
+    await getCouchDbAdapter(dbName: "a-test").destroy();
+    await getCouchDbAdapter(dbName: "a-test").init();
+
     PutResponse putResponse = await getCouchDbAdapter(dbName: "adish").put(
       doc: Doc(
           id: "feedme",
@@ -164,18 +175,139 @@ void main() async {
           //if (count == 2)
           //fn3(error);
 
-          //retry();
+          retry();
         },
         onComplete: (result) {
           print("DONE HERE $result");
           fn(result);
         });
 
-    Future.delayed(Duration(seconds: 10)).then((value) => {
-          getCouchDbAdapter(dbName: "adish").put(
-              doc: Doc(
-                  id: "fn2 ultimately last last",
-                  model: {"name": "fueffd", "no": 999}))
+    // Future.delayed(Duration(seconds: 10)).then((value) => {
+    //       getCouchDbAdapter()
+    //           .put(doc: Doc(id: "fn2", model: {"name": "fueffd", "no": 999}))
+    //     });
+  });
+
+  test("check replicator from memoryDb to couchdb", () async {
+    final couchdb = getCouchDbAdapter(dbName: "a-test");
+    await couchdb.destroy();
+    await couchdb.init();
+
+    final memorydb = getMemoryAdapter();
+    await memorydb.put(doc: Doc(id: "1", model: {"name": "abc", "no": 123}));
+    await memorydb.put(
+        doc: Doc(
+            id: "1",
+            rev: Rev.fromString("1-b"),
+            model: {"name": "abc", "no": 123}),
+        newEdits: false);
+    await memorydb.put(doc: Doc(id: "2", model: {"name": "cde", "no": 124}));
+    await memorydb.put(doc: Doc(id: "3", model: {"name": "cde", "no": 125}));
+
+    Replicator replicator = new Replicator(source: memorydb, target: couchdb);
+
+    var fn = expectAsync1((result) {
+      print("in fn");
+      expect(result, "Completed");
+    });
+
+    // var fn = expectAsync1((result) {
+    //   print("in continuous");
+    //   replicator.cancelAll();
+
+    //   expect(result, equals("One Cycle Completed"));
+    // });
+
+    int count = 0;
+    replicator.replicate(
+        live: false,
+        timeout: Duration(milliseconds: 500),
+        onError: (e, retry) {
+          print(e);
+          retry();
+        },
+        onData: (data) {
+          print(data);
+          // if (data == "One Cycle Completed") ++count;
+          // if (count == 2) {
+          //   fn(data);
+          // }
+        },
+        onComplete: (result) {
+          print(result);
+          fn(result);
         });
+
+    await Future.delayed(Duration(seconds: 10)).then((value) => {
+          memorydb.put(doc: Doc(id: "test1", model: {"name": "a", "no": 999}))
+        });
+    await Future.delayed(Duration(seconds: 2)).then((value) => {
+          memorydb.put(doc: Doc(id: "test2", model: {"name": "b", "no": 999}))
+        });
+  });
+
+  test("check replicator from couchdb to memorydb", () async {
+    final couchdb = getCouchDbAdapter(dbName: "a-test");
+    final memorydb = getMemoryAdapter();
+
+    await couchdb.destroy();
+    await couchdb.init();
+    await couchdb.put(
+        doc: Doc(
+            id: "1",
+            rev: Rev.fromString("1-b"),
+            model: {"name": "abc", "no": 123}),
+        newEdits: false);
+
+    await couchdb.put(
+        doc: Doc(
+            id: "1",
+            rev: Rev.fromString("1-a"),
+            model: {"name": "abc", "no": 123}),
+        newEdits: false);
+    await couchdb.put(doc: Doc(id: "2", model: {"name": "cde", "no": 124}));
+    await couchdb.put(doc: Doc(id: "3", model: {"name": "cde", "no": 125}));
+
+    Replicator replicator = new Replicator(source: couchdb, target: memorydb);
+
+    // var fn = expectAsync1((result) {
+    //   print("in fn");
+    //   expect(result, "Completed");
+    // });
+
+    var fn = expectAsync1((result) {
+      print("in continuous");
+      replicator.cancelAll();
+
+      expect(result, equals("One Cycle Completed"));
+    });
+
+    int count = 0;
+    replicator.replicate(
+        live: true,
+        timeout: Duration(milliseconds: 500),
+        onError: (e, retry) {
+          print(e);
+          //retry();
+        },
+        onData: (data) {
+          print(data);
+          if (data == "One Cycle Completed") ++count;
+          if (count == 2) {
+            fn(data);
+          }
+        },
+        onComplete: (result) {
+          print(result);
+          //fn(result);
+        });
+    await Future.delayed(Duration(seconds: 5)).then((value) => {
+          couchdb.put(doc: Doc(id: "4", model: {"name": "a", "no": 999}))
+        });
+    await Future.delayed(Duration(seconds: 2)).then((value) => {
+          couchdb.put(doc: Doc(id: "5", model: {"name": "b", "no": 999}))
+        });
+    Future.delayed(Duration(seconds: 2))
+        .then(expectAsync1((value) => expect(1 + 1, 2)));
   });
 }

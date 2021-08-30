@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:crypto/crypto.dart' as crypto;
-import 'package:flutter/services.dart';
 import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/exception.dart';
 import 'package:foodb/adapter/methods/all_docs.dart';
@@ -13,6 +12,7 @@ import 'package:foodb/adapter/methods/explain.dart';
 import 'package:foodb/adapter/methods/find.dart';
 import 'package:foodb/adapter/methods/index.dart';
 import 'package:foodb/adapter/methods/info.dart';
+import 'package:foodb/adapter/methods/open_revs.dart';
 import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/adapter/methods/revs_diff.dart';
 import 'package:foodb/common/design_doc.dart';
@@ -117,6 +117,7 @@ class KeyValueAdapter extends AbstractAdapter {
       {required List<Doc<Map<String, dynamic>>> body,
       bool newEdits = false}) async {
     List<PutResponse> putResponses = [];
+    print("BULKDOCS $newEdits");
     for (var doc in body) {
       putResponses.add(await put(doc: doc, newEdits: newEdits));
     }
@@ -140,7 +141,10 @@ class KeyValueAdapter extends AbstractAdapter {
           DocHistory.fromJson((await db.get(docTableName, id: update.id))!);
 
       Map<String, dynamic>? winner = docs.winner
-          ?.toDoc<Map<String, dynamic>>(update.id, (json) => json)
+          ?.toDoc<Map<String, dynamic>>(
+            update.id,
+            (json) => json,
+          )
           .toJson((value) => value);
 
       changeResult["doc"] = winner;
@@ -199,7 +203,7 @@ class KeyValueAdapter extends AbstractAdapter {
         feed: request.feed,
         stream: streamController.stream,
         onCancel: () async {
-          await subscription.cancel();
+          await subscription?.cancel();
           await streamController.close();
         });
   }
@@ -290,8 +294,8 @@ class KeyValueAdapter extends AbstractAdapter {
 
   @override
   Future<EnsureFullCommitResponse> ensureFullCommit() {
-    // TODO: implement ensureFullCommit
-    throw UnimplementedError();
+    return Future.value(
+        EnsureFullCommitResponse(instanceStartTime: "0", ok: true));
   }
 
   @override
@@ -300,30 +304,21 @@ class KeyValueAdapter extends AbstractAdapter {
     throw UnimplementedError();
   }
 
-  @override
-  Future<List<Doc<T>>> getWithOpenRev<T>(
-      {required String id,
-      bool attachments = false,
-      bool attEncodingInfo = false,
-      List<String>? attsSince,
-      bool conflicts = false,
-      bool deletedConflicts = false,
-      bool latest = false,
-      bool localSeq = false,
-      bool meta = false,
-      required Object openRevs,
-      String? rev,
-      bool revs = false,
-      bool revsInfo = false,
-      required T Function(Map<String, dynamic> json) fromJsonT}) {
-    // TODO: implement getWithOpenRev
-    throw UnimplementedError();
+  Revisions? _getRevisions(
+      {required Rev rev, required DocHistory docHistory, required bool revs}) {
+    if (revs) {
+      return docHistory.getRevision(rev);
+    } else
+      return null;
   }
 
   @override
-  Future<GetInfoResponse> info() {
-    // TODO: implement info
-    throw UnimplementedError();
+  Future<GetInfoResponse> info() async {
+    return Future.value(GetInfoResponse(
+        instanceStartTime: "0",
+        updateSeq: (await db.last(sequenceTableName))?.key ??
+            _generateUpdateSequence(),
+        dbName: dbName));
   }
 
   @override
@@ -332,7 +327,7 @@ class KeyValueAdapter extends AbstractAdapter {
   }
 
   _validateUpdate(
-      {newEdits = true, InternalDoc? winnerBeforeUpdate, Rev? inputRev}) {
+      {bool newEdits = true, InternalDoc? winnerBeforeUpdate, Rev? inputRev}) {
     if (newEdits == true) {
       if (winnerBeforeUpdate != null) {
         if (inputRev == null || winnerBeforeUpdate.rev != inputRev) {
@@ -441,7 +436,7 @@ class KeyValueAdapter extends AbstractAdapter {
         : DocHistory.fromJson(history);
     var docJson = doc.toJson((value) => value);
     var winnerBeforeUpdate = docHistory.winner;
-
+    print("PUT $newEdits");
     // Validation
     _validateUpdate(
         newEdits: newEdits,
@@ -450,7 +445,7 @@ class KeyValueAdapter extends AbstractAdapter {
 
     // get new Rev
     Rev newRev = _generateNewRev(
-        docToEncode: doc.toJson((value) => value),
+        docToEncode: docJson,
         newEdits: newEdits,
         winnerBeforeUpdate: winnerBeforeUpdate,
         revisions: doc.revisions,
@@ -502,8 +497,11 @@ class KeyValueAdapter extends AbstractAdapter {
       {required Map<String, List<String>> body}) async {
     Map<String, RevsDiff> revsDiff = {};
     body.forEach((key, value) async {
-      DocHistory docHistory =
-          DocHistory.fromJson((await db.get(docTableName, id: key))!);
+      var result = await db.get(docTableName, id: key);
+      DocHistory docHistory = result != null
+          ? DocHistory.fromJson((await db.get(docTableName, id: key))!)
+          : new DocHistory(
+              id: key, docs: {}, revisions: RevisionTree(nodes: []));
       revsDiff[key] = docHistory.revsDiff(value);
     });
     return revsDiff;
@@ -545,6 +543,50 @@ class KeyValueAdapter extends AbstractAdapter {
     }
     var result = DocHistory.fromJson(json);
     return result.winner?.toDoc(id, fromJsonT);
+  }
+
+  @override
+  Future<List<Doc<T>>> getWithOpenRev<T>(
+      {required String id,
+      bool attachments = false,
+      bool attEncodingInfo = false,
+      List<String>? attsSince,
+      bool conflicts = false,
+      bool deletedConflicts = false,
+      bool latest = false,
+      bool localSeq = false,
+      bool meta = false,
+      required OpenRevs openRevs,
+      String? rev,
+      bool revs = false,
+      bool revsInfo = false,
+      required T Function(Map<String, dynamic> json) fromJsonT}) async {
+    //revs, open_revs done
+
+    var json = await db.get(docTableName, id: id);
+    if (json == null) {
+      return [];
+    }
+    var docHistory = DocHistory.fromJson(json);
+    if (openRevs.all) {
+      return docHistory.docs.values
+          .map((e) => e.toDoc(id, (json) => fromJsonT(json),
+              revisions: _getRevisions(
+                  rev: e.rev, docHistory: docHistory, revs: revs)))
+          .toList();
+    } else {
+      List<Doc<T>> list = [];
+      openRevs.revs.forEach((rev) {
+        if (docHistory.docs.containsKey(rev)) {
+          list.add(docHistory.docs[rev]!.toDoc(id, (json) => fromJsonT(json),
+              revisions: _getRevisions(
+                  rev: Rev.fromString(rev),
+                  docHistory: docHistory,
+                  revs: revs)));
+        }
+      });
+      return list;
+    }
   }
 
   Future<void> _generateView(Doc<DesignDoc> designDoc) async {

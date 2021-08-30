@@ -39,7 +39,7 @@ class CouchdbAdapter extends AbstractAdapter {
   }
 
   Client getClient() {
-    return Client();
+    return new Client();
   }
 
   Uri getUri(String path) {
@@ -78,16 +78,16 @@ class CouchdbAdapter extends AbstractAdapter {
 
   @override
   Future<ChangesStream> changesStream(ChangeRequest request) async {
-    var client = getClient();
+    var changeClient = getClient();
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_changes')));
     uriBuilder.queryParameters = convertToParams(request.toJson());
 
-    var res = await client.send(Request('get', uriBuilder.build()));
+    var res = await changeClient.send(Request('get', uriBuilder.build()));
     var streamedRes = res.stream.transform(utf8.decoder);
     var streamedResponse = ChangesStream(
         stream: streamedRes,
         onCancel: () {
-          client.close();
+          changeClient.close();
         },
         feed: request.feed);
     return streamedResponse;
@@ -141,6 +141,50 @@ class CouchdbAdapter extends AbstractAdapter {
   }
 
   @override
+  Future<List<Doc<T>>> getWithOpenRev<T>(
+      {required String id,
+      bool attachments = false,
+      bool attEncodingInfo = false,
+      List<String>? attsSince,
+      bool conflicts = false,
+      bool deletedConflicts = false,
+      bool latest = false,
+      bool localSeq = false,
+      bool meta = false,
+      required OpenRevs openRevs,
+      String? rev,
+      bool revs = false,
+      bool revsInfo = false,
+      required T Function(Map<String, dynamic> json) fromJsonT}) async {
+    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri(id)));
+    uriBuilder.queryParameters = convertToParams({
+      'revs': revs,
+      'conflicts': conflicts,
+      'deleted_conflicts': deletedConflicts,
+      'latest': latest,
+      'local_seq': localSeq,
+      'meta': meta,
+      'att_encoding_info': attEncodingInfo,
+      'attachments': attachments,
+      'atts_since': attsSince,
+      'rev': rev,
+      'open_revs': openRevs.getOpenRevs(),
+      'revs_info': revsInfo
+    });
+    var response = (await this
+            .client
+            .get(uriBuilder.build(), headers: {'Accept': 'application/json'}))
+        .body;
+    List<Doc<T>> results = jsonDecode(response)
+        .where((value) => value.containsKey("ok") == true)
+        .map<Doc<T>>((value) => Doc<T>.fromJson(
+            value["ok"], (json) => fromJsonT(json as Map<String, dynamic>)))
+        .toList();
+    print("results $results");
+    return results;
+  }
+
+  @override
   Future<GetInfoResponse> info() async {
     return GetInfoResponse.fromJson(
         jsonDecode((await this.client.get(this.getUri(''))).body));
@@ -180,8 +224,10 @@ class CouchdbAdapter extends AbstractAdapter {
         await this.client.put(uriBuilder.build(), body: jsonEncode(newBody));
 
     if (response.statusCode != 201) {
+      print(response.body);
       throw AdapterException(
-          error: 'Invalid status code', reason: response.statusCode.toString());
+          error: jsonDecode(response.body)["reason"],
+          reason: jsonDecode(response.body)["reason"]);
     }
     return PutResponse.fromJson(jsonDecode(response.body));
   }
@@ -286,48 +332,5 @@ class CouchdbAdapter extends AbstractAdapter {
   Future<bool> destroy() async {
     await this.client.delete(this.getUri(''));
     return true;
-  }
-
-  @override
-  Future<List<Doc<T>>> getWithOpenRev<T>(
-      {required String id,
-      bool attachments = false,
-      bool attEncodingInfo = false,
-      List<String>? attsSince,
-      bool conflicts = false,
-      bool deletedConflicts = false,
-      bool latest = false,
-      bool localSeq = false,
-      bool meta = false,
-      required OpenRevs openRevs,
-      String? rev,
-      bool revs = false,
-      bool revsInfo = false,
-      required T Function(Map<String, dynamic> json) fromJsonT}) async {
-    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri(id)));
-    uriBuilder.queryParameters = convertToParams({
-      'revs': revs,
-      'conflicts': conflicts,
-      'deleted_conflicts': deletedConflicts,
-      'latest': latest,
-      'local_seq': localSeq,
-      'meta': meta,
-      'att_encoding_info': attEncodingInfo,
-      'attachments': attachments,
-      'atts_since': attsSince,
-      'rev': rev,
-      'open_revs': openRevs.getOpenRevs(),
-      'revs_info': revsInfo
-    });
-    var response = (await this
-            .client
-            .get(uriBuilder.build(), headers: {'Accept': 'application/json'}))
-        .body;
-    List<Doc<T>> results = jsonDecode(response)
-        .where((value) => value.containsKey("ok") == true)
-        .map<Doc<T>>((value) => Doc<T>.fromJson(
-            value["ok"], (json) => fromJsonT(json as Map<String, dynamic>)))
-        .toList();
-    return results;
   }
 }

@@ -41,21 +41,18 @@ class ChangeResult {
 
 class ChangesStream {
   Stream<String> _stream;
-  //Client? _client;
   String _feed;
   Function? _onCancel;
   List<ChangeResult> _results = [];
   StreamSubscription? _subscription;
   ChangesStream({required stream, required feed, onCancel})
       : _stream = stream,
-        // _client = client,
         _onCancel = onCancel,
         _feed = feed;
 
   cancel() async {
-    if (_onCancel != null) await _onCancel!();
     if (_subscription != null) await _subscription!.cancel();
-    //if (_client != null) _client!.close();
+    if (_onCancel != null) await _onCancel!();
   }
 
   void listen(
@@ -73,6 +70,7 @@ class ChangesStream {
       var changeResults =
           splitted.where((element) => RegExp("^{.*},?\$").hasMatch(element));
       changeResults.forEach((element) {
+        print(element);
         var result = ChangeResult.fromJson(
             jsonDecode(element.replaceAll(RegExp(",\$"), "")));
 

@@ -66,8 +66,7 @@ abstract class AbstractAdapter {
     required String id,
   }) async {
     return get<DesignDoc>(
-        id: id,
-        fromJsonT: (json) => DesignDoc.fromJson(json as Map<String, dynamic>));
+        id: id, fromJsonT: (json) => DesignDoc.fromJson(json));
   }
 
   Future<List<Doc<DesignDoc>>> fetchAllDesignDocs() async {

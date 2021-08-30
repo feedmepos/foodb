@@ -85,9 +85,14 @@ class InternalDoc {
     );
   }
 
-  Doc<T> toDoc<T>(String id, T Function(Map<String, dynamic> json) fromT) {
+  Doc<T> toDoc<T>(String id, T Function(Map<String, dynamic> json) fromT,
+      {Revisions? revisions}) {
     return Doc(
-        id: id, model: fromT(this.data), rev: this.rev, deleted: this.deleted);
+        id: id,
+        model: fromT(this.data),
+        rev: this.rev,
+        deleted: this.deleted,
+        revisions: revisions);
   }
 }
 
@@ -119,6 +124,26 @@ class DocHistory {
     sortedLeaves.sort((a, b) => b.rev.compareTo(a.rev));
 
     return sortedLeaves.length > 0 ? sortedLeaves.first : null;
+  }
+
+  Revisions? getRevision(Rev rev) {
+    List<RevisionNode> nodes =
+        this.revisions.nodes.where((element) => element.rev == rev).toList();
+
+    if (nodes.length == 0) return null;
+    RevisionNode current = nodes[0];
+    Revisions revisions =
+        new Revisions(ids: [current.rev.md5], start: current.rev.index);
+
+    while (current.prevRev != null) {
+      revisions.ids.add(current.prevRev!.md5);
+      current = this
+          .revisions
+          .nodes
+          .where((element) => element.rev == rev)
+          .toList()[0];
+    }
+    return revisions;
   }
 
   RevsDiff revsDiff(List<String> body) {
