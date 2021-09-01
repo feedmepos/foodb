@@ -62,6 +62,8 @@ class KeyValueAdapter extends AbstractAdapter {
 
   String get docTableName => 'foodb_${dbName}_docs';
 
+  String get localDocTableName => 'foodb_${dbName}_';
+
   String get sequenceTableName => 'foodb_${dbName}_sequences';
 
   String get viewMetaTableName => 'foodb_${dbName}_viewmeta';
@@ -117,7 +119,6 @@ class KeyValueAdapter extends AbstractAdapter {
       {required List<Doc<Map<String, dynamic>>> body,
       bool newEdits = false}) async {
     List<PutResponse> putResponses = [];
-    print("BULKDOCS $newEdits");
     for (var doc in body) {
       putResponses.add(await put(doc: doc, newEdits: newEdits));
     }
@@ -157,7 +158,8 @@ class KeyValueAdapter extends AbstractAdapter {
     StreamController<String> streamController = StreamController();
     var subscription;
     // now get new changes
-    String lastSeq = (await db.read(sequenceTableName)).docs.keys.last;
+    String lastSeq =
+        (await db.last(sequenceTableName))?.key ?? _generateUpdateSequence();
     if (request.since != 'now') {
       ReadResult result =
           await db.read(sequenceTableName, startKey: request.since);
@@ -165,7 +167,7 @@ class KeyValueAdapter extends AbstractAdapter {
         UpdateSequence update = UpdateSequence.fromJson(entry.value);
         streamController.sink.add(await _encodeUpdateSequence(update,
             includeDocs: request.includeDocs, style: request.style));
-
+        lastSeq = update.seq;
         if (request.limit != null) {
           request.limit = request.limit! - 1;
           if (request.limit == 0) {
@@ -185,6 +187,7 @@ class KeyValueAdapter extends AbstractAdapter {
       } else if (request.feed == ChangeFeed.longpoll) {
         subscription = localChangeStreamController.stream.listen(null);
         subscription.onData((data) async {
+          lastSeq = data.seq;
           streamController.sink.add(await _encodeUpdateSequence(data,
               includeDocs: request.includeDocs, style: request.style));
           subscription.cancel();
@@ -428,6 +431,53 @@ class KeyValueAdapter extends AbstractAdapter {
   }
 
   @override
+  Future<PutResponse> putLocal(
+      {required Doc<Map<String, dynamic>> doc, bool newEdits = true}) async {
+    var history = await db.get(localDocTableName, id: doc.id);
+    DocHistory docHistory = history == null
+        ? DocHistory(id: doc.id, docs: {}, revisions: RevisionTree(nodes: []))
+        : DocHistory.fromJson(history);
+    var docJson = doc.toJson((value) => value);
+    var winnerBeforeUpdate = docHistory.winner;
+
+    // Validation
+    _validateUpdate(
+        newEdits: newEdits,
+        winnerBeforeUpdate: winnerBeforeUpdate,
+        inputRev: doc.rev);
+
+    // get new Rev
+    Rev newRev = _generateNewRev(
+        docToEncode: docJson,
+        newEdits: newEdits,
+        winnerBeforeUpdate: winnerBeforeUpdate,
+        revisions: doc.revisions,
+        inputRev: doc.rev);
+
+    // rebuild rivision tree
+    RevisionTree newRevisionTreeObject = _rebuildRevisionTree(
+        oldReivisions: docHistory.revisions,
+        newRev: newRev,
+        winnerBeforeUpdate: winnerBeforeUpdate,
+        inputRevision: doc.revisions,
+        newEdits: newEdits);
+
+    // create DocHistory Object
+    InternalDoc newDocObject = InternalDoc(
+        rev: newRev,
+        deleted: doc.deleted ?? false,
+        data: doc.deleted == true ? {} : doc.model);
+    DocHistory newDocHistoryObject = docHistory.copyWith(
+        docs: {...docHistory.docs, newDocObject.rev.toString(): newDocObject},
+        revisions: newRevisionTreeObject);
+
+    await db.put(docTableName,
+        id: doc.id, object: newDocHistoryObject.toJson());
+
+    return PutResponse(ok: true, id: doc.id, rev: newRev);
+  }
+
+  @override
   Future<PutResponse> put(
       {required Doc<Map<String, dynamic>> doc, bool newEdits = true}) async {
     var history = await db.get(docTableName, id: doc.id);
@@ -436,7 +486,7 @@ class KeyValueAdapter extends AbstractAdapter {
         : DocHistory.fromJson(history);
     var docJson = doc.toJson((value) => value);
     var winnerBeforeUpdate = docHistory.winner;
-    print("PUT $newEdits");
+
     // Validation
     _validateUpdate(
         newEdits: newEdits,
@@ -481,7 +531,7 @@ class KeyValueAdapter extends AbstractAdapter {
 
     // perform actual database operation
     if (winnerBeforeUpdate != null) {
-      await db.delete(sequenceTableName, id: winnerBeforeUpdate.localSeq);
+      await db.delete(sequenceTableName, id: winnerBeforeUpdate.localSeq!);
     }
     await db.put(sequenceTableName,
         id: newUpdateSeqObject.seq, object: newUpdateSeqObject.toJson());

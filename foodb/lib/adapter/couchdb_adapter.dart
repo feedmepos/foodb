@@ -203,6 +203,35 @@ class CouchdbAdapter extends AbstractAdapter {
   }
 
   @override
+  Future<PutResponse> putLocal(
+      {required Doc<Map<String, dynamic>> doc, bool newEdits = true}) async {
+    UriBuilder uriBuilder = new UriBuilder.fromUri(this.getUri(doc.id));
+    uriBuilder.queryParameters =
+        convertToParams({'new_edits': newEdits, "rev": doc.rev});
+
+    Map<String, dynamic> newBody = doc.model;
+
+    if (!newEdits) {
+      if (doc.rev == null) {
+        throw new AdapterException(
+            error: 'rev is required when newEdits is false');
+      }
+      if (doc.revisions != null) {
+        newBody['_revisions'] = doc.revisions!.toJson();
+      }
+    }
+    var response =
+        await this.client.put(uriBuilder.build(), body: jsonEncode(newBody));
+
+    if (response.statusCode != 201) {
+      throw AdapterException(
+          error: jsonDecode(response.body)["error"],
+          reason: jsonDecode(response.body)["reason"]);
+    }
+    return PutResponse.fromJson(jsonDecode(response.body));
+  }
+
+  @override
   Future<PutResponse> put(
       {required Doc<Map<String, dynamic>> doc, bool newEdits = true}) async {
     UriBuilder uriBuilder = new UriBuilder.fromUri(this.getUri(doc.id));
@@ -226,7 +255,7 @@ class CouchdbAdapter extends AbstractAdapter {
     if (response.statusCode != 201) {
       print(response.body);
       throw AdapterException(
-          error: jsonDecode(response.body)["reason"],
+          error: jsonDecode(response.body)["error"],
           reason: jsonDecode(response.body)["reason"]);
     }
     return PutResponse.fromJson(jsonDecode(response.body));

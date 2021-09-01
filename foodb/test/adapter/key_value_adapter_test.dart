@@ -438,7 +438,7 @@ void main() async {
     // });
 
     ChangesStream stream = await adapter
-        .changesStream(ChangeRequest(since: '0', feed: ChangeFeed.longpoll));
+        .changesStream(ChangeRequest(since: '0', feed: ChangeFeed.normal));
 
     int count = 0;
 
@@ -447,13 +447,14 @@ void main() async {
           print(result.toJson());
           ++count;
           // if (count == 1) fn(count, stream.cancel);
-        }, count: 3),
+        }, count: 2),
         onComplete: (response) {
           print(response.toJson());
           fn(response);
         });
 
-    adapter.put(doc: Doc(id: "e", model: {"name": "e", "no": 777}));
+    Future.delayed(Duration(seconds: 5)).then((value) =>
+        adapter.put(doc: Doc(id: "e", model: {"name": "e", "no": 777})));
   });
   test('read', () async {
     var adapter = getMemoryAdapter();

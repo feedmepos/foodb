@@ -161,10 +161,6 @@ class Replicator {
                 }
               } catch (error) {
                 await errorCallback(since: since, error: error);
-                // await this.cancel(since);
-                // onError(Exception(error), () {
-                //   _listenToNormalChanges(since: since, upperbound: upperbound);
-                // });
               }
             });
         this.onCancels[since] = () async {
@@ -173,10 +169,6 @@ class Replicator {
       });
     } catch (error) {
       await errorCallback(since: since, error: error);
-      // this.cancel(since);
-      // onError(Exception(error), () {
-      //   _listenToNormalChanges(since: since, upperbound: upperbound);
-      // });
     }
   }
 
@@ -319,24 +311,9 @@ class Replicator {
   Future<Map<String, List<String>>> readBatchOfChanges(
       List<ChangeResult> changeResults) async {
     Map<String, List<String>> changes = new Map();
-    changeResults.reversed.forEach((changeResult) {
-      if (changes.containsKey(changeResult.id)) {
-        if (changes[changeResult.id]?[0].split('-')[0] ==
-            changeResult.changes[0].rev.index.toString()) {
-          changes[changeResult.id]?.add(changeResult.changes[0].rev.toString());
-        }
-      } else {
-        List<String> revs = [changeResult.changes[0].rev.toString()];
-        if (changeResult.changes.length > 1) {
-          for (int i = 1; i < changeResult.changes.length; i++) {
-            if (int.parse(changeResult.changes[i].rev.index.toString()) ==
-                int.parse(revs.first.split('-')[0])) {
-              revs.add(changeResult.changes[i].rev.toString());
-            }
-          }
-        }
-        changes.putIfAbsent(changeResult.id, () => revs);
-      }
+    changeResults.forEach((changeResult) {
+      changes[changeResult.id] =
+          changeResult.changes.map((e) => e.rev.toString()).toList();
     });
     return changes;
   }
@@ -405,7 +382,7 @@ class Replicator {
     // throw AdapterException(error: "Replicator error");
 
     PutResponse putResponse =
-        await target.put(doc: newReplicationLog, newEdits: false);
+        await target.putLocal(doc: newReplicationLog, newEdits: false);
     return putResponse;
   }
 }

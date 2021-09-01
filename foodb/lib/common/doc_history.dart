@@ -58,12 +58,12 @@ class InternalDoc {
   @JsonKey(fromJson: RevFromJsonString, toJson: RevToJsonString)
   Rev rev;
   bool deleted;
-  String localSeq;
+  String? localSeq;
   Map<String, dynamic> data;
   InternalDoc({
     required this.rev,
     required this.deleted,
-    required this.localSeq,
+    this.localSeq,
     required this.data,
   });
 

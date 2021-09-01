@@ -82,6 +82,9 @@ abstract class AbstractAdapter {
   Future<PutResponse> put(
       {required Doc<Map<String, dynamic>> doc, bool newEdits = true});
 
+  Future<PutResponse> putLocal(
+      {required Doc<Map<String, dynamic>> doc, bool newEdits = true});
+
   Future<DeleteResponse> delete({required String id, required Rev rev});
 
   Future<Map<String, RevsDiff>> revsDiff(
@@ -93,7 +96,6 @@ abstract class AbstractAdapter {
   Future<EnsureFullCommitResponse> ensureFullCommit();
 
   Future<ChangesStream> changesStream(ChangeRequest request);
-  // Future<Stream<String>> changesStreamString(ChangeRequest request);
 
   Future<GetAllDocs<T>> allDocs<T>(GetAllDocsRequest allDocsRequest,
       T Function(Map<String, dynamic> json) fromJsonT);
