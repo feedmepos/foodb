@@ -44,7 +44,7 @@ abstract class KeyValueDatabase {
   Future<MapEntry<String, dynamic>?> last(String tableName);
 
   Future<ReadResult> read(String tableName,
-      {String? startKey, String? endKey, bool? desc});
+      {String? startkey, String? endkey, bool? desc});
 
   Future<int> tableSize(String tableName);
 }
@@ -86,12 +86,12 @@ class KeyValueAdapter extends AbstractAdapter {
         model: DesignDoc(views: {'_all_docs': AllDocDesignDocView()})));
 
     ReadResult result = await db.read(viewKeyTableName(viewName),
-        startKey: allDocsRequest.startKey,
-        endKey: allDocsRequest.endKey,
+        startkey: allDocsRequest.startkey,
+        endkey: allDocsRequest.endkey,
         desc: allDocsRequest.descending);
 
     Iterable<MapEntry<String, dynamic>> filteredResult = result.docs.entries;
-    // TODO: if startKey_docId or endKey_docId specified, then do another filter
+    // TODO: if startkey_docId or endkey_docId specified, then do another filter
 
     List<Row<T>> rows = [];
 
@@ -162,7 +162,7 @@ class KeyValueAdapter extends AbstractAdapter {
         (await db.last(sequenceTableName))?.key ?? _generateUpdateSequence();
     if (request.since != 'now') {
       ReadResult result =
-          await db.read(sequenceTableName, startKey: request.since);
+          await db.read(sequenceTableName, startkey: request.since);
       for (MapEntry entry in result.docs.entries) {
         UpdateSequence update = UpdateSequence.fromJson(entry.value);
         streamController.sink.add(await _encodeUpdateSequence(update,
@@ -654,7 +654,7 @@ class KeyValueAdapter extends AbstractAdapter {
           ChangeRequest(since: meta.lastSeq, feed: 'normal'));
       Completer<String> c = new Completer();
       stream.listen(
-          onResult: (result) => print(result),
+          onResult: (result) => {},
           onComplete: (resp) async {
             for (var result in resp.results) {
               var history = DocHistory.fromJson(

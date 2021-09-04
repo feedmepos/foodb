@@ -70,7 +70,6 @@ class ChangesStream {
       var changeResults =
           splitted.where((element) => RegExp("^{.*},?\$").hasMatch(element));
       changeResults.forEach((element) {
-        print(element);
         var result = ChangeResult.fromJson(
             jsonDecode(element.replaceAll(RegExp(",\$"), "")));
 

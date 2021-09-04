@@ -48,10 +48,8 @@ FindResponse<T> _$FindResponseFromJson<T>(
 ) {
   return FindResponse<T>(
     docs: (json['docs'] as List<dynamic>)
-        .map((e) => e == null
-            ? null
-            : Doc.fromJson(
-                e as Map<String, dynamic>, (value) => fromJsonT(value)))
+        .map((e) => Doc.fromJson(
+            e as Map<String, dynamic>, (value) => fromJsonT(value)))
         .toList(),
     executionStats: json['execution_stats'] == null
         ? null
@@ -68,7 +66,7 @@ Map<String, dynamic> _$FindResponseToJson<T>(
 ) =>
     <String, dynamic>{
       'docs': instance.docs
-          .map((e) => e?.toJson(
+          .map((e) => e.toJson(
                 (value) => toJsonT(value),
               ))
           .toList(),

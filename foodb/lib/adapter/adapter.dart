@@ -73,8 +73,8 @@ abstract class AbstractAdapter {
     GetAllDocs<DesignDoc> docs = await allDocs<DesignDoc>(
         GetAllDocsRequest(
             includeDocs: true,
-            startKey: "\"_design\"",
-            endKey: "\"_design\uffff\""),
+            startkey: "\"_design\"",
+            endkey: "\"_design\uffff\""),
         (json) => DesignDoc.fromJson(json));
     return docs.rows.map<Doc<DesignDoc>>((e) => e.doc!).toList();
   }

@@ -57,7 +57,6 @@ class CouchdbAdapter extends AbstractAdapter {
           'docs': body.map((e) {
             Map<String, dynamic> map = e.toJson((value) => value);
             map.removeWhere((key, value) => value == null);
-            print(map);
             return map;
           }).toList()
         })));
@@ -70,7 +69,6 @@ class CouchdbAdapter extends AbstractAdapter {
       }
       return BulkDocResponse(putResponses: putResponses);
     } else {
-      print(response.body);
       throw AdapterException(
           error: 'Invalid status code', reason: response.statusCode.toString());
     }
@@ -180,7 +178,6 @@ class CouchdbAdapter extends AbstractAdapter {
         .map<Doc<T>>((value) => Doc<T>.fromJson(
             value["ok"], (json) => fromJsonT(json as Map<String, dynamic>)))
         .toList();
-    print("results $results");
     return results;
   }
 
@@ -235,10 +232,11 @@ class CouchdbAdapter extends AbstractAdapter {
   Future<PutResponse> put(
       {required Doc<Map<String, dynamic>> doc, bool newEdits = true}) async {
     UriBuilder uriBuilder = new UriBuilder.fromUri(this.getUri(doc.id));
-    uriBuilder.queryParameters =
-        convertToParams({'new_edits': newEdits, "rev": doc.rev});
+    Map<String, dynamic> param = {'new_edits': newEdits};
+    if (doc.rev != null) param['rev'] = doc.rev!.toString();
+    uriBuilder.queryParameters = convertToParams(param);
 
-    Map<String, dynamic> newBody = doc.model;
+    Map<String, dynamic> newBody = doc.toJson((value) => value);
 
     if (!newEdits) {
       if (doc.rev == null) {
@@ -253,7 +251,6 @@ class CouchdbAdapter extends AbstractAdapter {
         await this.client.put(uriBuilder.build(), body: jsonEncode(newBody));
 
     if (response.statusCode != 201) {
-      print(response.body);
       throw AdapterException(
           error: jsonDecode(response.body)["error"],
           reason: jsonDecode(response.body)["reason"]);
@@ -283,7 +280,11 @@ class CouchdbAdapter extends AbstractAdapter {
   Future<GetAllDocs<T>> allDocs<T>(GetAllDocsRequest getAllDocsRequest,
       T Function(Map<String, dynamic> json) fromJsonT) async {
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_all_docs')));
-    uriBuilder.queryParameters = convertToParams(getAllDocsRequest.toJson());
+    var json = getAllDocsRequest.toJson();
+    if (json['startkey'] != null)
+      json['startkey'] = jsonEncode(json['startkey']);
+    if (json['endkey'] != null) json['endkey'] = jsonEncode(json['endkey']);
+    uriBuilder.queryParameters = convertToParams(json);
     return GetAllDocs<T>.fromJson(
         jsonDecode((await this.client.get(uriBuilder.build())).body),
         (a) => fromJsonT(a as Map<String, dynamic>));
@@ -343,7 +344,6 @@ class CouchdbAdapter extends AbstractAdapter {
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode(body)))
         .body);
-    print(response);
     return ExplainResponse.fromJson(response);
   }
 
