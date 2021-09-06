@@ -4,10 +4,13 @@ import 'dart:collection';
 import 'package:foodb/adapter/key_value_adapter.dart';
 
 typedef StoreObject = SplayTreeMap<String, dynamic>;
+typedef SequenceObject = SplayTreeMap<int, dynamic>;
 typedef Stores = Map<String, StoreObject?>;
+typedef Sequences = Map<String, SequenceObject?>;
 
 class InMemoryDatabase implements KeyValueDatabase {
   final Stores _stores = Stores();
+  final Sequences _sequences = Sequences();
 
   @override
   Future<bool> put(String tableName,
@@ -20,8 +23,25 @@ class InMemoryDatabase implements KeyValueDatabase {
   }
 
   @override
+  Future<bool> putSequence(String tableName,
+      {required int seq, required Map<String, dynamic> object}) async {
+    if (_sequences[tableName] == null) {
+      _sequences[tableName] = SplayTreeMap();
+    }
+    _sequences[tableName]!
+        .update(seq, (value) => object, ifAbsent: () => object);
+    return true;
+  }
+
+  @override
   Future<bool> delete(String tableName, {required String id}) async {
     _stores[tableName]?.remove(id);
+    return true;
+  }
+
+  @override
+  Future<bool> deleteSequence(String tableName, {required int seq}) async {
+    _sequences[tableName]?.remove(seq);
     return true;
   }
 
@@ -34,6 +54,11 @@ class InMemoryDatabase implements KeyValueDatabase {
   @override
   Future<MapEntry<String, dynamic>?> last(String tableName) async {
     return _stores[tableName]?.entries.last;
+  }
+
+  @override
+  Future<MapEntry<int, dynamic>?> lastSequence(String tableName) async {
+    return _sequences[tableName]?.entries.last;
   }
 
   @override
