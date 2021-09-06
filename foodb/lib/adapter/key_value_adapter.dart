@@ -77,7 +77,7 @@ class KeyValueAdapter extends AbstractAdapter {
       StreamController.broadcast();
 
   @override
-  Future<GetAllDocs<T>> allDocs<T>(GetAllDocsRequest allDocsRequest,
+  Future<GetAllDocsResponse<T>> allDocs<T>(GetAllDocsRequest allDocsRequest,
       T Function(Map<String, dynamic> json) fromJsonT) async {
     var viewName = _getViewName(designDocId: '_all_docs', viewId: '_all_docs');
 
@@ -93,11 +93,11 @@ class KeyValueAdapter extends AbstractAdapter {
     Iterable<MapEntry<String, dynamic>> filteredResult = result.docs.entries;
     // TODO: if startkey_docId or endkey_docId specified, then do another filter
 
-    List<Row<T>> rows = [];
+    List<AllDocRow<T>> rows = [];
 
     for (var e in filteredResult) {
       var key = ViewKey.fromString(e.key);
-      Row<T> row = Row<T>(
+      AllDocRow<T> row = AllDocRow<T>(
         id: key.id,
         key: key.key,
         value: AllDocRowValue.fromJson(e.value['v']),
@@ -110,7 +110,7 @@ class KeyValueAdapter extends AbstractAdapter {
       rows.add(row);
     }
 
-    return GetAllDocs(
+    return GetAllDocsResponse(
         offset: result.offset, totalRows: result.totalRows, rows: rows);
   }
 

@@ -15,7 +15,7 @@ class FoodbRepositoryConfig<T> {
   final List<String> indexKey;
   final T Function(Map<String, dynamic> json) fromJsonT;
   final Map<String, dynamic> Function(T instance) toJsonT;
-  final String Function()? idFunc;
+  final String Function(T)? idFunc;
   final int idSuffixCount;
   final String type;
   final bool singleDocMode;
@@ -56,11 +56,11 @@ class FoodbRepository<T> {
     return {typeKey: true};
   }
 
-  String generateNewId() {
+  String generateNewId(T payload) {
     var id = "${config.type}";
     if (!config.singleDocMode) {
       if (config.idFunc != null) {
-        id += "_${config.idFunc!()}";
+        id += "_${config.idFunc!(payload)}";
       } else {
         id += "_${new DateTime.now().toIso8601String()}";
         if (config.idSuffixCount > 0) {
@@ -106,28 +106,28 @@ class FoodbRepository<T> {
   }
 
   Future<List<Doc<T>>> all() async {
-    GetAllDocs<T> getAllDocs = await db.adapter.allDocs<T>(
+    GetAllDocsResponse<T> GetAllDocsResponse = await db.adapter.allDocs<T>(
         GetAllDocsRequest(
             includeDocs: true, startkey: queryKey, endkey: '$queryKey\uffff'),
         (value) => config.fromJsonT(value));
-    List<Row<T>?> rows = getAllDocs.rows;
+    List<Row<T>?> rows = GetAllDocsResponse.rows;
     return rows.map<Doc<T>>((e) => e!.doc!).toList();
   }
 
   Future<List<Doc<T>>> readBetween(DateTime from, DateTime to) async {
-    GetAllDocs<T> getAllDocs = await db.adapter.allDocs<T>(
+    GetAllDocsResponse<T> GetAllDocsResponse = await db.adapter.allDocs<T>(
         GetAllDocsRequest(
             includeDocs: true,
             startkey: "${queryKey}${from.toIso8601String()}",
             endkey: "${queryKey}${to.toIso8601String()}\ufff0"),
         (value) => config.fromJsonT(value));
-    List<Row<T>?> rows = getAllDocs.rows;
+    List<Row<T>?> rows = GetAllDocsResponse.rows;
     return rows.map<Doc<T>>((e) => e!.doc!).toList();
   }
 
   Future<PutResponse> create(T model) async {
     await this.verifyUnique(model: model);
-    String newId = generateNewId();
+    String newId = generateNewId(model);
     Doc<Map<String, dynamic>> newDoc =
         new Doc(id: newId, model: config.toJsonT(model));
     newDoc.model.addAll(defaultAttributes);

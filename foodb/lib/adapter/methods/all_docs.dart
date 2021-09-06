@@ -7,43 +7,44 @@ import 'package:json_annotation/json_annotation.dart';
 part 'all_docs.g.dart';
 
 @JsonSerializable(genericArgumentFactories: true, explicitToJson: true)
-class GetAllDocs<T> {
+class GetAllDocsResponse<T> {
   int offset;
 
   @JsonKey(name: 'total_rows')
   int totalRows;
 
-  List<Row<T>> rows;
+  List<AllDocRow<T>> rows;
 
   @JsonKey(name: 'update_seq')
   String? updateSeq;
 
-  GetAllDocs(
+  GetAllDocsResponse(
       {required this.offset,
       required this.totalRows,
       required this.rows,
       this.updateSeq});
 
-  factory GetAllDocs.fromJson(
+  factory GetAllDocsResponse.fromJson(
           Map<String, dynamic> json, T Function(Object? json) fromJsonT) =>
-      _$GetAllDocsFromJson(json, fromJsonT);
+      _$GetAllDocsResponseFromJson(json, fromJsonT);
   Map<String, dynamic> toJson(Object Function(T value) toJsonT) =>
-      _$GetAllDocsToJson(this, toJsonT);
+      _$GetAllDocsResponseToJson(this, toJsonT);
 }
 
 @JsonSerializable(genericArgumentFactories: true, explicitToJson: true)
-class Row<T> {
+class AllDocRow<T> {
   String id;
   String key;
   AllDocRowValue value;
   Doc<T>? doc;
 
-  Row({required this.id, required this.key, required this.value, this.doc});
-  factory Row.fromJson(
+  AllDocRow(
+      {required this.id, required this.key, required this.value, this.doc});
+  factory AllDocRow.fromJson(
           Map<String, dynamic> json, T Function(Object? json) fromJsonT) =>
-      _$RowFromJson(json, fromJsonT);
+      _$AllDocRowFromJson(json, fromJsonT);
   Map<String, dynamic> toJson(Object? Function(T value) toJsonT) =>
-      _$RowToJson(this, toJsonT);
+      _$AllDocRowToJson(this, toJsonT);
 }
 
 @JsonSerializable()

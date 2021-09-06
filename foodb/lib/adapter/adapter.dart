@@ -70,7 +70,7 @@ abstract class AbstractAdapter {
   }
 
   Future<List<Doc<DesignDoc>>> fetchAllDesignDocs() async {
-    GetAllDocs<DesignDoc> docs = await allDocs<DesignDoc>(
+    GetAllDocsResponse<DesignDoc> docs = await allDocs<DesignDoc>(
         GetAllDocsRequest(
             includeDocs: true,
             startkey: "\"_design\"",
@@ -97,7 +97,7 @@ abstract class AbstractAdapter {
 
   Future<ChangesStream> changesStream(ChangeRequest request);
 
-  Future<GetAllDocs<T>> allDocs<T>(GetAllDocsRequest allDocsRequest,
+  Future<GetAllDocsResponse<T>> allDocs<T>(GetAllDocsRequest allDocsRequest,
       T Function(Map<String, dynamic> json) fromJsonT);
 
   Future<IndexResponse> createIndex(

@@ -45,7 +45,7 @@ void main() async {
     });
     test("check _generateView by create a, b, c and then delete/update a, b",
         () async {
-      GetAllDocs<Map<String, dynamic>> docs =
+      GetAllDocsResponse<Map<String, dynamic>> docs =
           await adapter.allDocs(GetAllDocsRequest(), (json) => json);
       print(docs.toJson((value) => value));
       expect(docs.rows.length, equals(3));
@@ -57,7 +57,7 @@ void main() async {
               rev: Rev.fromString("1-b"),
               model: {"name": "a", "no": 999}));
 
-      GetAllDocs<Map<String, dynamic>> docsAfterChange =
+      GetAllDocsResponse<Map<String, dynamic>> docsAfterChange =
           await adapter.allDocs(GetAllDocsRequest(), (json) => json);
       print(docsAfterChange.toJson((value) => value));
       expect(docsAfterChange.rows.length, equals(2));

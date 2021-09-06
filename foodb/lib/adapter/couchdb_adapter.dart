@@ -277,7 +277,7 @@ class CouchdbAdapter extends AbstractAdapter {
   }
 
   @override
-  Future<GetAllDocs<T>> allDocs<T>(GetAllDocsRequest getAllDocsRequest,
+  Future<GetAllDocsResponse<T>> allDocs<T>(GetAllDocsRequest getAllDocsRequest,
       T Function(Map<String, dynamic> json) fromJsonT) async {
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_all_docs')));
     var json = getAllDocsRequest.toJson();
@@ -285,7 +285,7 @@ class CouchdbAdapter extends AbstractAdapter {
       json['startkey'] = jsonEncode(json['startkey']);
     if (json['endkey'] != null) json['endkey'] = jsonEncode(json['endkey']);
     uriBuilder.queryParameters = convertToParams(json);
-    return GetAllDocs<T>.fromJson(
+    return GetAllDocsResponse<T>.fromJson(
         jsonDecode((await this.client.get(uriBuilder.build())).body),
         (a) => fromJsonT(a as Map<String, dynamic>));
   }
