@@ -115,6 +115,6 @@ abstract class AbstractAdapter {
 
   Future<bool> init();
   Future<bool> destroy();
-  Future<List<DbRow<Map<String, dynamic>>>> view(String ddoc, String viewId,
+  Future<List<AllDocRow<Map<String, dynamic>>>> view(String ddoc, String viewId,
       {String? startKey, String? endKey, bool? desc});
 }

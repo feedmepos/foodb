@@ -162,14 +162,14 @@ class _MyHomePageState extends State<MyHomePage> {
                         startDesignDoc =
                             DateTime.now().millisecondsSinceEpoch.toString();
                       });
-                      List<DbRow<Map<String, dynamic>>> docs =
+                      List<AllDocRow<Map<String, dynamic>>> docs =
                           await foodb.adapter.view("name_doc", "name_index",
                               startKey: "l", endKey: "l\uffff");
                       setState(() {
                         endDesignDoc =
                             DateTime.now().millisecondsSinceEpoch.toString();
                       });
-                      for (DbRow doc in docs) {
+                      for (AllDocRow doc in docs) {
                         print(doc.toJson((value) => value));
                       }
                       print(docs.length);

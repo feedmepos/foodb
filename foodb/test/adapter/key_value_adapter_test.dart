@@ -677,7 +677,7 @@ void main() async {
     print(doc?.toJson((value) => value));
     expect(doc, isNotNull);
 
-    List<DbRow<Map<String, dynamic>>> result =
+    List<AllDocRow<Map<String, dynamic>>> result =
         await memoryDb.view("name_view", "name_index");
 
     expect(result.length, equals(2));
