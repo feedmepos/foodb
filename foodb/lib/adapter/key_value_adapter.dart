@@ -51,7 +51,7 @@ abstract class KeyValueDatabase {
   Future<MapEntry<int, dynamic>?> lastSequence(String tableName);
 
   Future<ReadResult> read(String tableName,
-      {String? startKey, String? endKey, bool? desc});
+      {String? startkey, String? endkey, bool? desc});
 
   Future<int> tableSize(String tableName);
 }
@@ -93,12 +93,13 @@ class KeyValueAdapter extends AbstractAdapter {
         model: DesignDoc(views: {'_all_docs': AllDocDesignDocView()})));
 
     ReadResult result = await db.read(viewKeyTableName(viewName),
-        startKey: allDocsRequest.startKey,
-        endKey: allDocsRequest.endKey,
+        startkey: allDocsRequest.startkey,
+        endkey: allDocsRequest.endkey,
         desc: allDocsRequest.descending);
 
     Iterable<MapEntry<String, dynamic>> filteredResult = result.docs.entries;
-    // TODO: if startKey_docId or endKey_docId specified, then do another filter
+    // TODO: if startkey_docId or endkey_docId specified, then do another filter
+
     List<Row<T>> rows = [];
 
     for (var e in filteredResult) {
@@ -167,7 +168,7 @@ class KeyValueAdapter extends AbstractAdapter {
     String lastSeq = (await db.last(sequenceTableName))?.key.toString() ?? "0";
     if (request.since != 'now') {
       ReadResult result =
-          await db.read(sequenceTableName, startKey: request.since);
+          await db.read(sequenceTableName, startkey: request.since);
       for (MapEntry entry in result.docs.entries) {
         UpdateSequence update = UpdateSequence.fromJson(entry.value);
         streamController.sink.add(await _encodeUpdateSequence(update,
@@ -654,7 +655,7 @@ class KeyValueAdapter extends AbstractAdapter {
       await _generateView(designDoc);
 
       ReadResult result = await db.read(viewKeyTableName(viewName),
-          startKey: startKey, endKey: endKey, desc: desc);
+          startkey: startKey, endkey: endKey, desc: desc);
       List<Row<Map<String, dynamic>>> rows = [];
 
       for (var e in result.docs.entries) {
@@ -692,7 +693,7 @@ class KeyValueAdapter extends AbstractAdapter {
           ChangeRequest(since: meta.lastSeq, feed: 'normal'));
       Completer<String> c = new Completer();
       stream.listen(
-          onResult: (result) => print("why ${result.toJson()}"),
+          onResult: (result) => {},
           onComplete: (resp) async {
             for (var result in resp.results) {
               var history = DocHistory.fromJson(

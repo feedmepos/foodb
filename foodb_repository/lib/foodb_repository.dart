@@ -10,45 +10,71 @@ import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/foodb.dart';
 
-abstract class FoodbRepository<T> {
+class FoodbRepositoryConfig<T> {
+  final List<String> uniqueKey;
+  final List<String> indexKey;
+  final T Function(Map<String, dynamic> json) fromJsonT;
+  final Map<String, dynamic> Function(T instance) toJsonT;
+  final String Function()? idFunc;
+  final int idSuffixCount;
+  final String type;
+  final bool singleDocMode;
+  FoodbRepositoryConfig(
+      {required this.fromJsonT,
+      required this.toJsonT,
+      required this.type,
+      this.uniqueKey = const [],
+      this.indexKey = const [],
+      this.idFunc,
+      this.singleDocMode = false,
+      this.idSuffixCount = 0});
+}
+
+class FoodbRepository<T> {
   Foodb db;
-
-  List<String> uniqueKey = [];
-  List<String> indexKey = [];
-
-  abstract T Function(Map<String, dynamic> json) fromJsonT;
-  abstract Map<String, dynamic> Function(T instance) toJsonT;
-  abstract String type;
+  final FoodbRepositoryConfig<T> config;
 
   FoodbRepository({
     required this.db,
+    required this.config,
   });
 
   var _chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
   Random _rnd = Random();
-
-  String getRandomString(int length) => String.fromCharCodes(Iterable.generate(
+  String _getRandomString(int length) => String.fromCharCodes(Iterable.generate(
       length, (_) => _chars.codeUnitAt(_rnd.nextInt(_chars.length))));
 
-  String getIdPrefix() {
-    return "${this.type}_";
+  get queryKey {
+    return "${config.type}_";
   }
 
-  String getIdSuffix() {
-    return '';
+  get typeKey {
+    return 'type_${config.type}';
   }
 
-  String generateNewId({String? id}) {
-    return "${this.getIdPrefix()}${id ?? new DateTime.now().toIso8601String()}${this.getIdSuffix()}";
+  Map<String, dynamic> get defaultAttributes {
+    return {typeKey: true};
   }
 
-  String getTypeKey({String? type}) {
-    return 'type_${type ?? this.type}';
+  String generateNewId() {
+    var id = "${config.type}";
+    if (!config.singleDocMode) {
+      if (config.idFunc != null) {
+        id += "_${config.idFunc!()}";
+      } else {
+        id += "_${new DateTime.now().toIso8601String()}";
+        if (config.idSuffixCount > 0) {
+          id += "_${_getRandomString(config.idSuffixCount)}";
+        }
+      }
+    }
+
+    return id;
   }
 
   Future<void> createIndex(field) async {
-    List<String> fields = [this.getTypeKey()];
-    if (field != this.getTypeKey()) {
+    List<String> fields = [typeKey];
+    if (field != typeKey()) {
       fields = [...fields, field];
     }
     var ddoc = fields.join("_");
@@ -56,17 +82,17 @@ abstract class FoodbRepository<T> {
   }
 
   Future<void> performIndex() async {
-    for (String key in indexKey) {
+    for (String key in config.indexKey) {
       await createIndex(key);
     }
-    for (String key in uniqueKey) {
+    for (String key in config.uniqueKey) {
       await createIndex(key);
     }
   }
 
   Future<void> verifyUnique({required T model, String? update}) async {
-    for (String key in uniqueKey) {
-      Map query = {key: toJsonT(model)[key]};
+    for (String key in config.uniqueKey) {
+      Map query = {key: config.toJsonT(model)[key]};
       if (update != null) {
         query.addAll({
           "_id": {"\$ne": update}
@@ -79,21 +105,11 @@ abstract class FoodbRepository<T> {
     }
   }
 
-  Map<String, dynamic> getDefaultAttributes() {
-    return {this.getTypeKey(): true};
-  }
-
-  String getRepoEvent() {
-    return "repo/${this.type}";
-  }
-
   Future<List<Doc<T>>> all() async {
     GetAllDocs<T> getAllDocs = await db.adapter.allDocs<T>(
         GetAllDocsRequest(
-            includeDocs: true,
-            startKeyDocId: "${getIdPrefix()}",
-            endKeyDocId: "${getIdPrefix()}\uffff"),
-        (value) => fromJsonT(value));
+            includeDocs: true, startkey: queryKey, endkey: '$queryKey\uffff'),
+        (value) => config.fromJsonT(value));
     List<Row<T>?> rows = getAllDocs.rows;
     return rows.map<Doc<T>>((e) => e!.doc!).toList();
   }
@@ -102,59 +118,55 @@ abstract class FoodbRepository<T> {
     GetAllDocs<T> getAllDocs = await db.adapter.allDocs<T>(
         GetAllDocsRequest(
             includeDocs: true,
-            startKeyDocId: "${getIdPrefix()}${from.toIso8601String()}",
-            endKeyDocId: "${getIdPrefix()}${to.toIso8601String()}\ufff0"),
-        (value) => fromJsonT(value));
+            startkey: "${queryKey}${from.toIso8601String()}",
+            endkey: "${queryKey}${to.toIso8601String()}\ufff0"),
+        (value) => config.fromJsonT(value));
     List<Row<T>?> rows = getAllDocs.rows;
     return rows.map<Doc<T>>((e) => e!.doc!).toList();
   }
 
-  Future<Doc<T>?> create(T model, {String? id}) async {
+  Future<PutResponse> create(T model) async {
     await this.verifyUnique(model: model);
-    String newId = generateNewId(id: id);
+    String newId = generateNewId();
     Doc<Map<String, dynamic>> newDoc =
-        new Doc(id: newId, model: toJsonT(model));
-    newDoc.model.addAll(getDefaultAttributes());
-    PutResponse putResponse = await db.adapter.put(doc: newDoc);
-
-    return putResponse.ok == true ? await read(newId) : null;
+        new Doc(id: newId, model: config.toJsonT(model));
+    newDoc.model.addAll(defaultAttributes);
+    return await db.adapter.put(doc: newDoc);
   }
 
-  Future<Doc<T>?> update(Doc<T> doc) async {
+  Future<PutResponse> update(Doc<T> doc) async {
     await this.verifyUnique(model: doc.model, update: doc.id);
     Doc<Map<String, dynamic>> newDoc =
-        Doc(model: toJsonT(doc.model), id: doc.id, rev: doc.rev);
-    newDoc.model.addAll(getDefaultAttributes());
-    PutResponse putResponse = await db.adapter.put(doc: newDoc);
-
-    return putResponse.ok == true ? await read(newDoc.id) : null;
+        Doc(model: config.toJsonT(doc.model), id: doc.id, rev: doc.rev);
+    newDoc.model.addAll(defaultAttributes);
+    return await db.adapter.put(doc: newDoc);
   }
 
   Future<DeleteResponse> delete(Doc<T> model) async {
     return await db.adapter.delete(id: model.id, rev: model.rev!);
   }
 
-  Future<Doc<T>?> read(String id) async {
+  Future<Doc<T>?> get(String id) async {
     return await db.adapter.get<T>(
       id: id,
-      fromJsonT: (value) => fromJsonT(value),
+      fromJsonT: (value) => config.fromJsonT(value),
     );
   }
 
-  Future<List<Doc<T>?>> find(FindRequest findRequest) async {
+  Future<List<Doc<T>>> find(FindRequest findRequest) async {
     findRequest.selector.addAll({
-      this.getTypeKey(): true,
+      typeKey: true,
     });
-    List<Doc<T>?> resp =
-        (await db.adapter.find<T>(findRequest, fromJsonT)).docs;
+    List<Doc<T>> resp =
+        (await db.adapter.find<T>(findRequest, config.fromJsonT)).docs;
     return resp;
   }
 
   Future<BulkDocResponse> bulkDocs(List<Doc<T>> docs) async {
     List<Doc<Map<String, dynamic>>> mappedDocs = [];
     for (Doc<T> doc in docs) {
-      var json = toJsonT(doc.model);
-      json.addAll(getDefaultAttributes());
+      var json = config.toJsonT(doc.model);
+      json.addAll(defaultAttributes);
       Doc<Map<String, dynamic>> newDoc = new Doc(
           id: doc.id,
           deleted: doc.deleted,

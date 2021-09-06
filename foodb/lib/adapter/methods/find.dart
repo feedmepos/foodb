@@ -47,7 +47,7 @@ class FindRequest {
 
 @JsonSerializable(genericArgumentFactories: true)
 class FindResponse<T> {
-  List<Doc<T>?> docs;
+  List<Doc<T>> docs;
 
   @JsonKey(name: 'execution_stats')
   ExecutionStats? executionStats;

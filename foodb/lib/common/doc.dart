@@ -57,13 +57,33 @@ class Doc<T> {
   }
   Map<String, dynamic> toJson(Object? Function(T value) toJsonT) {
     Map<String, dynamic> map = toJsonT(this.model) as Map<String, dynamic>;
-    map.addAll(<String, dynamic>{
+
+    final reservedMetaKey = [
+      '_id',
+      '_rev',
+      '_deleted',
+      '_revisions',
+      '_attachments',
+      '_conflicts',
+      '_deleted_conflicts',
+      '_revs_info',
+      '_local_seq'
+    ];
+
+    for (var key in reservedMetaKey) {
+      map.remove(key);
+    }
+
+    Map<String, dynamic> configurableMeta = {
       '_id': this.id,
       '_rev': RevToJsonString(this.rev),
       '_deleted': this.deleted,
       '_revisions': this.revisions?.toJson(),
-      '_local_seq': this.localSeq,
-    });
+    };
+
+    configurableMeta.removeWhere((key, value) => value == null);
+    map.addAll(configurableMeta);
+
     return map;
   }
 

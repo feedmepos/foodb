@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/rev.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -60,8 +62,7 @@ class GetAllDocsRequest {
   bool conflicts;
   bool descending;
 
-  @JsonKey(name: 'endkey')
-  String? endKey;
+  dynamic endkey;
 
   @JsonKey(name: 'endkey_docid')
   String? endKeyDocId;
@@ -89,8 +90,7 @@ class GetAllDocsRequest {
   bool sorted;
   bool stable;
   String? stale;
-  @JsonKey(name: 'startkey')
-  String? startKey;
+  dynamic startkey;
 
   @JsonKey(name: 'startkey_docid')
   String? startKeyDocId;
@@ -100,9 +100,9 @@ class GetAllDocsRequest {
   bool updateSeq;
 
   GetAllDocsRequest({
-    this.conflicts = true,
+    this.conflicts = false,
     this.descending = false,
-    this.endKey,
+    this.endkey,
     this.endKeyDocId,
     this.group = false,
     this.groupLevel,
@@ -118,7 +118,7 @@ class GetAllDocsRequest {
     this.sorted = true,
     this.stable = false,
     this.stale,
-    this.startKey,
+    this.startkey,
     this.startKeyDocId,
     this.update,
     this.updateSeq = false,

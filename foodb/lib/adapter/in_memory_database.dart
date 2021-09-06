@@ -63,18 +63,18 @@ class InMemoryDatabase implements KeyValueDatabase {
 
   @override
   Future<ReadResult> read(String tableName,
-      {String? startKey, String? endKey, bool? desc}) async {
+      {String? startkey, String? endkey, bool? desc}) async {
     var table = _stores[tableName];
     Map<String, dynamic> result = {};
     int offSet = 0;
     bool detectedDoc = false;
     if (table != null) {
       if (desc == true) {
-        if (startKey == null || endKey == null) {
+        if (startkey == null || endkey == null) {
           List<String> keys = table.keys.toList();
           for (int x = table.length - 1; x >= 0; x--) {
-            if ((startKey == null || keys[x].compareTo(startKey) <= 0) &&
-                (endKey == null || keys[x].compareTo(endKey) >= 0)) {
+            if ((startkey == null || keys[x].compareTo(startkey) <= 0) &&
+                (endkey == null || keys[x].compareTo(endkey) >= 0)) {
               result.putIfAbsent(keys[x], () => table[keys[x]]);
               detectedDoc = true;
             } else {
@@ -84,8 +84,8 @@ class InMemoryDatabase implements KeyValueDatabase {
         }
       } else {
         table.entries.forEach((element) {
-          if ((startKey == null || element.key.compareTo(startKey) >= 0) &&
-              (endKey == null || element.key.compareTo(endKey) <= 0)) {
+          if ((startkey == null || element.key.compareTo(startkey) >= 0) &&
+              (endkey == null || element.key.compareTo(endkey) <= 0)) {
             result.putIfAbsent(element.key, () => element.value);
             detectedDoc = true;
           } else if (detectedDoc == false) offSet++;
