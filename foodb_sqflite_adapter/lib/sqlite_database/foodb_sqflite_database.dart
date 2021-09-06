@@ -123,16 +123,15 @@ class SqliteDatabase implements KeyValueDatabase {
 
   @override
   Future<ReadResult> read(String tableName,
-      {String? startKey, String? endKey, bool? desc}) async {
+      {String? startkey, String? endkey, bool? desc}) async {
     final db = await dbProvider.database;
     createTableIfNotExist(tableName, db);
     List<Map<String, dynamic>> result = [];
 
-    if (startKey != null || endKey != null) {
+    if (startkey != null || endkey != null) {
       result = await db.query(tableName,
           orderBy: "key ${desc == true ? "DESC" : "ASC"}",
-          where: 'key BETWEEN "${startKey ?? ""}" AND "${endKey ?? "\uffff"}"');
-      print("filtered_result $result");
+          where: 'key BETWEEN "${startkey ?? ""}" AND "${endkey ?? "\uffff"}"');
     } else {
       result = await db.query(
         tableName,
@@ -161,5 +160,29 @@ class SqliteDatabase implements KeyValueDatabase {
   Future<void> createTableIfNotExist(String tableName, Database db) async {
     await db.execute(
         "CREATE TABLE IF NOT EXISTS $tableName (key TEXT PRIMARY KEY, value TEXT )");
+  }
+
+  @override
+  Future<Map<int, dynamic>> readSequence(String tableName,
+      {int? startkey, int? endkey, bool? desc}) async {
+    final db = await dbProvider.database;
+    createTableIfNotExist(tableName, db);
+    List<Map<int, dynamic>> result = [];
+
+    if (startkey != null || endkey != null) {
+      result = await db.query(tableName,
+          orderBy: "key ${desc == true ? "DESC" : "ASC"}",
+          where: 'key BETWEEN "${startkey ?? ""}" AND "${endkey ?? "\uffff"}"');
+    } else {
+      result = await db.query(
+        tableName,
+        orderBy: "key ${desc == true ? "DESC" : "ASC"}",
+      );
+    }
+
+    Map<String, dynamic> docs = Map.fromIterable(result,
+        key: (e) => e["key"], value: (e) => jsonDecode(e["value"]));
+
+    return docs;
   }
 }
