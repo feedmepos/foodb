@@ -10,12 +10,15 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  objectbox: ^1.2.0
+  objectbox_flutter_libs: any
   foodb:
     path: ../foodb
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  objectbox_generator: any
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

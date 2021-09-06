@@ -37,14 +37,24 @@ abstract class KeyValueDatabase {
   Future<bool> put(String tableName,
       {required String id, required Map<String, dynamic> object});
 
+  Future<bool> putSequence(String tableName,
+      {required int seq, required Map<String, dynamic> object});
+
   Future<bool> delete(String tableName, {required String id});
+
+  Future<bool> deleteSequence(String tableName, {required int seq});
 
   Future<Map<String, dynamic>?> get(String tableName, {required String id});
 
   Future<MapEntry<String, dynamic>?> last(String tableName);
 
+  Future<MapEntry<int, dynamic>?> lastSequence(String tableName);
+
   Future<ReadResult> read(String tableName,
       {String? startkey, String? endkey, bool? desc});
+
+  Future<Map<int, dynamic>> readSequence(String tableName,
+      {int? startkey, int? endkey, bool? desc});
 
   Future<int> tableSize(String tableName);
 }
@@ -159,11 +169,11 @@ class KeyValueAdapter extends AbstractAdapter {
     var subscription;
     // now get new changes
     String lastSeq =
-        (await db.last(sequenceTableName))?.key ?? _generateUpdateSequence();
+        (await db.lastSequence(sequenceTableName))?.key.toString() ?? "0";
     if (request.since != 'now') {
-      ReadResult result =
-          await db.read(sequenceTableName, startkey: request.since);
-      for (MapEntry entry in result.docs.entries) {
+      Map<int, dynamic> result = await db.readSequence(sequenceTableName,
+          startkey: int.parse(request.since));
+      for (MapEntry entry in result.entries) {
         UpdateSequence update = UpdateSequence.fromJson(entry.value);
         streamController.sink.add(await _encodeUpdateSequence(update,
             includeDocs: request.includeDocs, style: request.style));
@@ -319,8 +329,8 @@ class KeyValueAdapter extends AbstractAdapter {
   Future<GetInfoResponse> info() async {
     return Future.value(GetInfoResponse(
         instanceStartTime: "0",
-        updateSeq: (await db.last(sequenceTableName))?.key ??
-            _generateUpdateSequence(),
+        updateSeq:
+            (await db.lastSequence(sequenceTableName))?.key.toString() ?? "0",
         dbName: dbName));
   }
 
@@ -406,12 +416,12 @@ class KeyValueAdapter extends AbstractAdapter {
         nodes: mappedRevision.values.map((e) => e).toList());
   }
 
-  _generateUpdateSequence({
-    String? lastKey,
-  }) {
-    var lastSeq = lastKey ?? '0-1';
-    return '${int.parse(lastSeq.split('-')[0]) + 1}-1';
-  }
+  // _generateUpdateSequence({
+  //   int? lastKey,
+  // }) {
+  //   var lastSeq = lastKey ?? '0-1';
+  //   return '${int.parse(lastSeq.split('-')[0]) + 1}-1';
+  // }
 
   InternalDoc? _retrieveDocBeforeUpdate({
     newEdits = true,
@@ -486,7 +496,9 @@ class KeyValueAdapter extends AbstractAdapter {
         : DocHistory.fromJson(history);
     var docJson = doc.toJson((value) => value);
     var winnerBeforeUpdate = docHistory.winner;
-
+    if (winnerBeforeUpdate == null) {
+      print("New Doc ${doc.id}${winnerBeforeUpdate == null}");
+    }
     // Validation
     _validateUpdate(
         newEdits: newEdits,
@@ -510,14 +522,14 @@ class KeyValueAdapter extends AbstractAdapter {
         newEdits: newEdits);
 
     // create updateSequence object
-    var newUpdateSeq = _generateUpdateSequence(
-        lastKey: (await db.last(sequenceTableName))?.key);
+    var newUpdateSeq =
+        ((await db.lastSequence(sequenceTableName))?.key ?? 0) + 1;
 
     // create DocHistory Object
     InternalDoc newDocObject = InternalDoc(
         rev: newRev,
         deleted: doc.deleted ?? false,
-        localSeq: newUpdateSeq,
+        localSeq: newUpdateSeq.toString(),
         data: doc.deleted == true ? {} : doc.model);
     DocHistory newDocHistoryObject = docHistory.copyWith(
         docs: {...docHistory.docs, newDocObject.rev.toString(): newDocObject},
@@ -525,20 +537,21 @@ class KeyValueAdapter extends AbstractAdapter {
 
     UpdateSequence newUpdateSeqObject = UpdateSequence(
         id: doc.id,
-        seq: newUpdateSeq,
+        seq: newUpdateSeq.toString(),
         winnerRev: newDocHistoryObject.winner?.rev ?? newDocObject.rev,
         allLeafRev: newDocHistoryObject.leafDocs.map((e) => e.rev).toList());
 
     // perform actual database operation
     if (winnerBeforeUpdate != null) {
-      await db.delete(sequenceTableName, id: winnerBeforeUpdate.localSeq!);
+      await db.deleteSequence(sequenceTableName,
+          seq: int.parse(winnerBeforeUpdate.localSeq!));
     }
-    await db.put(sequenceTableName,
-        id: newUpdateSeqObject.seq, object: newUpdateSeqObject.toJson());
+    await db.putSequence(sequenceTableName,
+        seq: newUpdateSeq, object: newUpdateSeqObject.toJson());
     await db.put(docTableName,
         id: doc.id, object: newDocHistoryObject.toJson());
     localChangeStreamController.sink.add(newUpdateSeqObject);
-
+    print("${doc.id} ${newUpdateSeqObject.toJson()}");
     return PutResponse(ok: true, id: doc.id, rev: newRev);
   }
 
@@ -639,6 +652,38 @@ class KeyValueAdapter extends AbstractAdapter {
     }
   }
 
+  Future<List<AllDocRow<Map<String, dynamic>>>> view(String ddoc, String viewId,
+      {String? startKey, String? endKey, bool? desc}) async {
+    var viewName = _getViewName(designDocId: ddoc, viewId: viewId);
+    Doc<DesignDoc>? designDoc =
+        await get(id: ddoc, fromJsonT: (value) => DesignDoc.fromJson(value));
+    if (designDoc != null) {
+      await _generateView(designDoc);
+
+      ReadResult result = await db.read(viewKeyTableName(viewName),
+          startkey: startKey, endkey: endKey, desc: desc);
+      List<AllDocRow<Map<String, dynamic>>> rows = [];
+
+      for (var e in result.docs.entries) {
+        var key = ViewKey.fromString(e.key);
+        DocHistory docs =
+            DocHistory.fromJson((await db.get(docTableName, id: key.id))!);
+
+        AllDocRow<Map<String, dynamic>> row = AllDocRow<Map<String, dynamic>>(
+            id: key.id,
+            key: key.key,
+            value: AllDocRowValue.fromJson(e.value['v']),
+            doc: docs.winner!
+                .toDoc<Map<String, dynamic>>(docs.id, (value) => value));
+        rows.add(row);
+      }
+
+      return rows;
+    } else {
+      throw AdapterException(error: "Design Doc Not Exists");
+    }
+  }
+
   Future<void> _generateView(Doc<DesignDoc> designDoc) async {
     for (var e in designDoc.model.views.entries) {
       var view = e.value;
@@ -666,21 +711,22 @@ class KeyValueAdapter extends AbstractAdapter {
                 for (var key in viewDocMeta.keys) {
                   await db.delete(viewKeyTableName(viewName), id: key);
                 }
-
                 await db.delete(viewIdTableName(viewName), id: history.id);
               }
 
               if (history.winner != null) {
                 var entries = _runMapper(view, history.id, history.winner);
-                for (var entry in entries) {
-                  await db.put(viewKeyTableName(viewName),
-                      id: entry.key, object: {"v": entry.value});
+                if (entries != null) {
+                  for (var entry in entries) {
+                    await db.put(viewKeyTableName(viewName),
+                        id: entry.key, object: {"v": entry.value});
+                  }
+                  await db.put(viewIdTableName(viewName),
+                      id: history.id,
+                      object:
+                          ViewDocMeta(keys: entries.map((e) => e.key).toList())
+                              .toJson());
                 }
-                await db.put(viewIdTableName(viewName),
-                    id: history.id,
-                    object:
-                        ViewDocMeta(keys: entries.map((e) => e.key).toList())
-                            .toJson());
               }
             }
             c.complete(resp.lastSeq);
@@ -692,7 +738,7 @@ class KeyValueAdapter extends AbstractAdapter {
     }
   }
 
-  List<MapEntry<String, dynamic>> _runMapper(
+  List<MapEntry<String, dynamic>>? _runMapper(
       AbstracDesignDocView view, String id, InternalDoc? doc) {
     if (doc != null) {
       if (view is JSDesignDocView) {
@@ -704,17 +750,24 @@ class KeyValueAdapter extends AbstractAdapter {
       } else if (view is QueryDesignDocView) {
         // TODO create dart mapper using query field
         ///check if partial filter selector !=null
-        if (view.map.partialFilterSelector != null) {
-          view.map.partialFilterSelector?.entries.forEach((e) {
-            if (e.key == CombinationOperator.and) {
-            } else {}
-          });
-        }
-
         /// check key got $sign => find its combination_operator
         /// for each key-value stored in combination operators=> conditional-operators-argument, then call conditional operator func
         /// if result = true, output
+        String key = '';
+        bool isValid = true;
 
+        view.map.fields.keys.forEach((e) {
+          key = key + "_" + e;
+          isValid = doc.data.containsKey(e) || e == "_id";
+        });
+        if (isValid == true) {
+          return [
+            MapEntry(ViewKey(id: id, key: key).toString(),
+                AllDocRowValue(rev: doc.rev).toJson())
+          ];
+        } else {
+          return null;
+        }
       } else if (view is AllDocDesignDocView) {
         return [
           MapEntry(ViewKey(id: id, key: id).toString(),

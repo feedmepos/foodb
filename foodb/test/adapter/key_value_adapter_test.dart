@@ -1,3 +1,5 @@
+import 'dart:math';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/exception.dart';
@@ -12,10 +14,14 @@ import 'package:foodb/common/design_doc.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/doc_history.dart';
 import 'package:foodb/common/rev.dart';
+import 'package:path/path.dart' as p;
+import 'package:crypto/crypto.dart' as crypto;
 
 void main() async {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  await dotenv.load(fileName: ".env");
+  String dbName = dotenv.env['IN_MEMORY_DB_NAME'] as String;
   getMemoryAdapter() {
     return KeyValueAdapter(dbName: 'test', db: InMemoryDatabase());
   }
@@ -61,6 +67,73 @@ void main() async {
           await adapter.allDocs(GetAllDocsRequest(), (json) => json);
       print(docsAfterChange.toJson((value) => value));
       expect(docsAfterChange.rows.length, equals(2));
+    });
+
+    test("check allDocs with startKey and endKey", () async {
+      GetAllDocs<Map<String, dynamic>> docs = await adapter.allDocs(
+          GetAllDocsRequest(startkey: "a", endkey: "b\uffff"), (json) => json);
+      print(docs.toJson((value) => value));
+      expect(docs.rows.length, equals(2));
+    });
+
+    test("allDocs after over 100 put doc", () async {
+      final adapter = getMemoryAdapter();
+      List<String> list = [
+        'a',
+        'b',
+        'c',
+        'd',
+        'e',
+        'f',
+        'g',
+        'h',
+        'i',
+        'j',
+        'k',
+        'm',
+        'n',
+        'o',
+        'p',
+        'q',
+        'r',
+        's',
+        't',
+        'u',
+        'v',
+        'w',
+        'x',
+        'y',
+        'z'
+      ];
+      for (String i in list) {
+        for (int y = 0; y < 5; y++) {
+          String id2 = "$i$y";
+          for (int x = 0; x < 10; x++) {
+            await adapter.put(
+                doc: Doc(
+                    id: id2,
+                    model: {"name": "wth", "no": 99},
+                    rev: Rev.fromString("$y-$x")),
+                newEdits: false);
+          }
+        }
+      }
+
+      for (int y = 0; y < 5; y++) {
+        String id2 = "l$y";
+        for (int x = 0; x < 10; x++) {
+          await adapter.put(
+              doc: Doc(
+                  id: id2,
+                  model: {"name": "wth", "no": 99},
+                  rev: Rev.fromString("$y-$x")),
+              newEdits: false);
+        }
+      }
+      GetAllDocs getAllDocs = await adapter.allDocs(
+          GetAllDocsRequest(startkey: "l", endkey: "l\uffff"), (json) => json);
+      expect(getAllDocs.rows.length, equals(5));
+      expect(getAllDocs.totalRows, equals(130));
     });
   });
   test('revsDiff', () async {
@@ -144,7 +217,7 @@ void main() async {
     });
 
     test('put 2 different revision tree', () async {
-      final memoryDb = getMemoryAdapter();
+      final memoryDb = await getMemoryAdapter();
       await memoryDb.put(
           doc: Doc(id: "id", rev: Rev.fromString("1-a"), model: {}),
           newEdits: false);
@@ -163,7 +236,7 @@ void main() async {
     test(
         'update doc with newedit =false and revisions connecting to its ancestors',
         () async {
-      final memoryDb = getMemoryAdapter();
+      final memoryDb = await getMemoryAdapter();
       await memoryDb.put(
           doc: Doc(id: "id", rev: Rev.fromString("1-a"), model: {}),
           newEdits: false);
@@ -196,7 +269,7 @@ void main() async {
     test(
         "put 1-a. 2-a, 3-a, then put 3-a > 2-a > 1-a reivision, then put 3-a > 2-b > 1-b, should remain 3-a > 2-a > 1-a",
         () async {
-      final memoryDb = getMemoryAdapter();
+      final memoryDb = await getMemoryAdapter();
 
       await memoryDb.put(
           doc: Doc(id: "a", rev: Rev.fromString("1-a"), model: {}),
@@ -580,5 +653,33 @@ void main() async {
       expect(docAfterUpdate, isNotNull);
       expect(docAfterUpdate?.model.views.length, 2);
     });
+  });
+
+  String generateRandomString(int len) {
+    var r = Random(DateTime.now().millisecond);
+    const _chars = 'abcdefghijklmnopqrstuvwxyz1234567890';
+    return List.generate(len, (index) => _chars[r.nextInt(_chars.length)])
+        .join();
+  }
+
+  test("view", () async {
+    final memoryDb = getMemoryAdapter();
+    await memoryDb.put(doc: Doc(id: "a", model: {"name": "a", "no": 99}));
+    await memoryDb.put(doc: Doc(id: "b", model: {"name": "b", "no": 77}));
+
+    //"-" is not allowed as index name
+    IndexResponse indexResponse = await memoryDb.createIndex(
+        indexFields: ["name", "no"], ddoc: "name_view", name: "name_index");
+    expect(indexResponse, isNotNull);
+
+    Doc<Map<String, dynamic>>? doc =
+        await memoryDb.get(id: indexResponse.id, fromJsonT: (json) => json);
+    print(doc?.toJson((value) => value));
+    expect(doc, isNotNull);
+
+    List<DbRow<Map<String, dynamic>>> result =
+        await memoryDb.view("name_view", "name_index");
+
+    expect(result.length, equals(2));
   });
 }

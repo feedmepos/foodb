@@ -106,22 +106,22 @@ class FoodbRepository<T> {
   }
 
   Future<List<Doc<T>>> all() async {
-    GetAllDocsResponse<T> GetAllDocsResponse = await db.adapter.allDocs<T>(
+    GetAllDocsResponse<T> resp = await db.adapter.allDocs<T>(
         GetAllDocsRequest(
             includeDocs: true, startkey: queryKey, endkey: '$queryKey\uffff'),
         (value) => config.fromJsonT(value));
-    List<Row<T>?> rows = GetAllDocsResponse.rows;
+    List<AllDocRow<T>?> rows = resp.rows;
     return rows.map<Doc<T>>((e) => e!.doc!).toList();
   }
 
   Future<List<Doc<T>>> readBetween(DateTime from, DateTime to) async {
-    GetAllDocsResponse<T> GetAllDocsResponse = await db.adapter.allDocs<T>(
+    GetAllDocsResponse<T> resp = await db.adapter.allDocs<T>(
         GetAllDocsRequest(
             includeDocs: true,
             startkey: "${queryKey}${from.toIso8601String()}",
             endkey: "${queryKey}${to.toIso8601String()}\ufff0"),
         (value) => config.fromJsonT(value));
-    List<Row<T>?> rows = GetAllDocsResponse.rows;
+    List<AllDocRow<T>?> rows = resp.rows;
     return rows.map<Doc<T>>((e) => e!.doc!).toList();
   }
 
