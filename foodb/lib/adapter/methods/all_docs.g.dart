@@ -14,7 +14,7 @@ GetAllDocs<T> _$GetAllDocsFromJson<T>(
     offset: json['offset'] as int,
     totalRows: json['total_rows'] as int,
     rows: (json['rows'] as List<dynamic>)
-        .map((e) => Row.fromJson(
+        .map((e) => DbRow.fromJson(
             e as Map<String, dynamic>, (value) => fromJsonT(value)))
         .toList(),
     updateSeq: json['update_seq'] as String?,
@@ -36,11 +36,11 @@ Map<String, dynamic> _$GetAllDocsToJson<T>(
       'update_seq': instance.updateSeq,
     };
 
-Row<T> _$RowFromJson<T>(
+DbRow<T> _$RowFromJson<T>(
   Map<String, dynamic> json,
   T Function(Object? json) fromJsonT,
 ) {
-  return Row<T>(
+  return DbRow<T>(
     id: json['id'] as String,
     key: json['key'] as String,
     value: AllDocRowValue.fromJson(json['value'] as Map<String, dynamic>),
@@ -52,7 +52,7 @@ Row<T> _$RowFromJson<T>(
 }
 
 Map<String, dynamic> _$RowToJson<T>(
-  Row<T> instance,
+  DbRow<T> instance,
   Object? Function(T value) toJsonT,
 ) =>
     <String, dynamic>{

@@ -13,7 +13,7 @@ class GetAllDocs<T> {
   @JsonKey(name: 'total_rows')
   int totalRows;
 
-  List<Row<T>> rows;
+  List<DbRow<T>> rows;
 
   @JsonKey(name: 'update_seq')
   String? updateSeq;
@@ -32,14 +32,14 @@ class GetAllDocs<T> {
 }
 
 @JsonSerializable(genericArgumentFactories: true, explicitToJson: true)
-class Row<T> {
+class DbRow<T> {
   String id;
   String key;
   AllDocRowValue value;
   Doc<T>? doc;
 
-  Row({required this.id, required this.key, required this.value, this.doc});
-  factory Row.fromJson(
+  DbRow({required this.id, required this.key, required this.value, this.doc});
+  factory DbRow.fromJson(
           Map<String, dynamic> json, T Function(Object? json) fromJsonT) =>
       _$RowFromJson(json, fromJsonT);
   Map<String, dynamic> toJson(Object? Function(T value) toJsonT) =>

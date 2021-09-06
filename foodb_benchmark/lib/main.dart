@@ -1,7 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:foodb/adapter/key_value_adapter.dart';
-import 'package:foodb/adapter/methods/all_docs.dart' as all_docs;
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/rev.dart';
 import 'package:foodb/foodb.dart';
@@ -79,10 +78,10 @@ class _MyHomePageState extends State<MyHomePage> {
                               DateTime.now().millisecondsSinceEpoch.toString();
                         });
 
-                        all_docs.GetAllDocs<Map<String, dynamic>> allDocs =
+                        GetAllDocs<Map<String, dynamic>> allDocs =
                             await foodb.adapter.allDocs<Map<String, dynamic>>(
-                                all_docs.GetAllDocsRequest(
-                                    startKey: "l", endKey: "l\uffff"),
+                                GetAllDocsRequest(
+                                    startkey: "l", endkey: "l\uffff"),
                                 (json) => json);
                         setState(() {
                           end100Get =
@@ -163,14 +162,14 @@ class _MyHomePageState extends State<MyHomePage> {
                         startDesignDoc =
                             DateTime.now().millisecondsSinceEpoch.toString();
                       });
-                      List<all_docs.Row<Map<String, dynamic>>> docs =
+                      List<DbRow<Map<String, dynamic>>> docs =
                           await foodb.adapter.view("name_doc", "name_index",
                               startKey: "l", endKey: "l\uffff");
                       setState(() {
                         endDesignDoc =
                             DateTime.now().millisecondsSinceEpoch.toString();
                       });
-                      for (all_docs.Row doc in docs) {
+                      for (DbRow doc in docs) {
                         print(doc.toJson((value) => value));
                       }
                       print(docs.length);
@@ -227,7 +226,7 @@ class _MyHomePageState extends State<MyHomePage> {
       'z'
     ];
     for (String char in list) {
-      for (int y = 0; y < 1; y++) {
+      for (int y = 0; y < 396; y++) {
         String id = "${char}_$y";
         for (int x = 0; x < 10; x++) {
           await foodb.adapter.put(
@@ -240,7 +239,7 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     }
 
-    for (int y = 0; y < 5; y++) {
+    for (int y = 0; y < 100; y++) {
       String id = "l_$y";
       for (int x = 0; x < 10; x++) {
         await foodb.adapter.put(

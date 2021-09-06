@@ -110,7 +110,7 @@ class FoodbRepository<T> {
         GetAllDocsRequest(
             includeDocs: true, startkey: queryKey, endkey: '$queryKey\uffff'),
         (value) => config.fromJsonT(value));
-    List<Row<T>?> rows = getAllDocs.rows;
+    List<DbRow<T>?> rows = getAllDocs.rows;
     return rows.map<Doc<T>>((e) => e!.doc!).toList();
   }
 
@@ -121,7 +121,7 @@ class FoodbRepository<T> {
             startkey: "${queryKey}${from.toIso8601String()}",
             endkey: "${queryKey}${to.toIso8601String()}\ufff0"),
         (value) => config.fromJsonT(value));
-    List<Row<T>?> rows = getAllDocs.rows;
+    List<DbRow<T>?> rows = getAllDocs.rows;
     return rows.map<Doc<T>>((e) => e!.doc!).toList();
   }
 

@@ -375,7 +375,7 @@ class CouchdbAdapter extends AbstractAdapter {
   }
 
   @override
-  Future<List<Row<Map<String, dynamic>>>> view(String ddoc, String viewId,
+  Future<List<DbRow<Map<String, dynamic>>>> view(String ddoc, String viewId,
       {String? startKey, String? endKey, bool? desc}) {
     // TODO: implement view
     throw UnimplementedError();
