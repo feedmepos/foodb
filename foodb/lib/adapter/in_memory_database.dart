@@ -97,6 +97,40 @@ class InMemoryDatabase implements KeyValueDatabase {
   }
 
   @override
+  Future<Map<int, dynamic>> readSequence(String tableName,
+      {int? startkey, int? endkey, bool? desc}) async {
+    var table = _sequences[tableName];
+    Map<int, dynamic> result = {};
+    int offSet = 0;
+    bool detectedDoc = false;
+    if (table != null) {
+      if (desc == true) {
+        if (startkey == null || endkey == null) {
+          List<int> keys = table.keys.toList();
+          for (int x = table.length - 1; x >= 0; x--) {
+            if ((startkey == null || keys[x].compareTo(startkey) <= 0) &&
+                (endkey == null || keys[x].compareTo(endkey) >= 0)) {
+              result.putIfAbsent(keys[x], () => table[keys[x]]);
+              detectedDoc = true;
+            } else {
+              if (detectedDoc == false) offSet++;
+            }
+          }
+        }
+      } else {
+        table.entries.forEach((element) {
+          if ((startkey == null || element.key.compareTo(startkey) >= 0) &&
+              (endkey == null || element.key.compareTo(endkey) <= 0)) {
+            result.putIfAbsent(element.key, () => element.value);
+            detectedDoc = true;
+          } else if (detectedDoc == false) offSet++;
+        });
+      }
+    }
+    return result;
+  }
+
+  @override
   Future<int> tableSize(String tableName) async {
     return _stores[tableName]?.length ?? 0;
   }

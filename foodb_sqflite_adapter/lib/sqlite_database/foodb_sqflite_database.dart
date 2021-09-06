@@ -167,7 +167,7 @@ class SqliteDatabase implements KeyValueDatabase {
       {int? startkey, int? endkey, bool? desc}) async {
     final db = await dbProvider.database;
     createTableIfNotExist(tableName, db);
-    List<Map<int, dynamic>> result = [];
+    List<Map<String, dynamic>> result = [];
 
     if (startkey != null || endkey != null) {
       result = await db.query(tableName,
@@ -180,7 +180,7 @@ class SqliteDatabase implements KeyValueDatabase {
       );
     }
 
-    Map<String, dynamic> docs = Map.fromIterable(result,
+    Map<int, dynamic> docs = Map.fromIterable(result,
         key: (e) => e["key"], value: (e) => jsonDecode(e["value"]));
 
     return docs;

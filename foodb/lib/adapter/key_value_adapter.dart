@@ -53,6 +53,9 @@ abstract class KeyValueDatabase {
   Future<ReadResult> read(String tableName,
       {String? startkey, String? endkey, bool? desc});
 
+  Future<Map<int, dynamic>> readSequence(String tableName,
+      {int? startkey, int? endkey, bool? desc});
+
   Future<int> tableSize(String tableName);
 }
 
@@ -100,11 +103,11 @@ class KeyValueAdapter extends AbstractAdapter {
     Iterable<MapEntry<String, dynamic>> filteredResult = result.docs.entries;
     // TODO: if startkey_docId or endkey_docId specified, then do another filter
 
-    List<Row<T>> rows = [];
+    List<DbRow<T>> rows = [];
 
     for (var e in filteredResult) {
       var key = ViewKey.fromString(e.key);
-      Row<T> row = Row<T>(
+      DbRow<T> row = DbRow<T>(
         id: key.id,
         key: key.key,
         value: AllDocRowValue.fromJson(e.value['v']),
@@ -165,11 +168,12 @@ class KeyValueAdapter extends AbstractAdapter {
     StreamController<String> streamController = StreamController();
     var subscription;
     // now get new changes
-    String lastSeq = (await db.last(sequenceTableName))?.key.toString() ?? "0";
+    String lastSeq =
+        (await db.lastSequence(sequenceTableName))?.key.toString() ?? "0";
     if (request.since != 'now') {
-      ReadResult result =
-          await db.read(sequenceTableName, startkey: request.since);
-      for (MapEntry entry in result.docs.entries) {
+      Map<int, dynamic> result = await db.readSequence(sequenceTableName,
+          startkey: int.parse(request.since));
+      for (MapEntry entry in result.entries) {
         UpdateSequence update = UpdateSequence.fromJson(entry.value);
         streamController.sink.add(await _encodeUpdateSequence(update,
             includeDocs: request.includeDocs, style: request.style));
@@ -518,7 +522,8 @@ class KeyValueAdapter extends AbstractAdapter {
         newEdits: newEdits);
 
     // create updateSequence object
-    var newUpdateSeq = (await db.lastSequence(sequenceTableName))?.key ?? 0 + 1;
+    var newUpdateSeq =
+        ((await db.lastSequence(sequenceTableName))?.key ?? 0) + 1;
 
     // create DocHistory Object
     InternalDoc newDocObject = InternalDoc(
@@ -538,10 +543,11 @@ class KeyValueAdapter extends AbstractAdapter {
 
     // perform actual database operation
     if (winnerBeforeUpdate != null) {
-      await db.delete(sequenceTableName, id: winnerBeforeUpdate.localSeq!);
+      await db.deleteSequence(sequenceTableName,
+          seq: int.parse(winnerBeforeUpdate.localSeq!));
     }
-    await db.put(sequenceTableName,
-        id: newUpdateSeqObject.seq, object: newUpdateSeqObject.toJson());
+    await db.putSequence(sequenceTableName,
+        seq: newUpdateSeq, object: newUpdateSeqObject.toJson());
     await db.put(docTableName,
         id: doc.id, object: newDocHistoryObject.toJson());
     localChangeStreamController.sink.add(newUpdateSeqObject);
@@ -646,7 +652,7 @@ class KeyValueAdapter extends AbstractAdapter {
     }
   }
 
-  Future<List<Row<Map<String, dynamic>>>> view(String ddoc, String viewId,
+  Future<List<DbRow<Map<String, dynamic>>>> view(String ddoc, String viewId,
       {String? startKey, String? endKey, bool? desc}) async {
     var viewName = _getViewName(designDocId: ddoc, viewId: viewId);
     Doc<DesignDoc>? designDoc =
@@ -656,14 +662,14 @@ class KeyValueAdapter extends AbstractAdapter {
 
       ReadResult result = await db.read(viewKeyTableName(viewName),
           startkey: startKey, endkey: endKey, desc: desc);
-      List<Row<Map<String, dynamic>>> rows = [];
+      List<DbRow<Map<String, dynamic>>> rows = [];
 
       for (var e in result.docs.entries) {
         var key = ViewKey.fromString(e.key);
         DocHistory docs =
             DocHistory.fromJson((await db.get(docTableName, id: key.id))!);
 
-        Row<Map<String, dynamic>> row = Row<Map<String, dynamic>>(
+        DbRow<Map<String, dynamic>> row = DbRow<Map<String, dynamic>>(
             id: key.id,
             key: key.key,
             value: AllDocRowValue.fromJson(e.value['v']),
