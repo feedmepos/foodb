@@ -55,7 +55,7 @@ void main() async {
             id: "bc",
             model: {"name": "abc", "no": 123}).toJson((value) => value));
     ReadResult readResult =
-        await sqlDb.read("doc_table", startKey: "a", endKey: "a\uffff");
+        await sqlDb.read("doc_table", startkey: "a", endkey: "a\uffff");
     expect(readResult.docs.length, equals(2));
   });
   test("read by only startkey / only endkey", () async {
@@ -76,7 +76,7 @@ void main() async {
             id: "bc",
             model: {"name": "abc", "no": 123}).toJson((value) => value));
     ReadResult readResult =
-        await sqlDb.read("doc_table", startKey: "l", endKey: "l\uffff");
+        await sqlDb.read("doc_table", startkey: "l", endkey: "l\uffff");
     expect(readResult.docs.length, equals(2));
   });
 }

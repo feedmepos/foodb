@@ -71,9 +71,69 @@ void main() async {
 
     test("check allDocs with startKey and endKey", () async {
       GetAllDocs<Map<String, dynamic>> docs = await adapter.allDocs(
-          GetAllDocsRequest(startKey: "a", endKey: "b\uffff"), (json) => json);
+          GetAllDocsRequest(startkey: "a", endkey: "b\uffff"), (json) => json);
       print(docs.toJson((value) => value));
       expect(docs.rows.length, equals(2));
+    });
+
+    test("allDocs after over 100 put doc", () async {
+      final adapter = getMemoryAdapter();
+      List<String> list = [
+        'a',
+        'b',
+        'c',
+        'd',
+        'e',
+        'f',
+        'g',
+        'h',
+        'i',
+        'j',
+        'k',
+        'm',
+        'n',
+        'o',
+        'p',
+        'q',
+        'r',
+        's',
+        't',
+        'u',
+        'v',
+        'w',
+        'x',
+        'y',
+        'z'
+      ];
+      for (String i in list) {
+        for (int y = 0; y < 5; y++) {
+          String id2 = "$i$y";
+          for (int x = 0; x < 10; x++) {
+            await adapter.put(
+                doc: Doc(
+                    id: id2,
+                    model: {"name": "wth", "no": 99},
+                    rev: Rev.fromString("$y-$x")),
+                newEdits: false);
+          }
+        }
+      }
+
+      for (int y = 0; y < 5; y++) {
+        String id2 = "l$y";
+        for (int x = 0; x < 10; x++) {
+          await adapter.put(
+              doc: Doc(
+                  id: id2,
+                  model: {"name": "wth", "no": 99},
+                  rev: Rev.fromString("$y-$x")),
+              newEdits: false);
+        }
+      }
+      GetAllDocs getAllDocs = await adapter.allDocs(
+          GetAllDocsRequest(startkey: "l", endkey: "l\uffff"), (json) => json);
+      expect(getAllDocs.rows.length, equals(5));
+      expect(getAllDocs.totalRows, equals(130));
     });
   });
   test('revsDiff', () async {
@@ -602,66 +662,6 @@ void main() async {
         .join();
   }
 
-  test("allDocs after put 5 docs with Sqlite", () async {
-    final adapter = getMemoryAdapter();
-    List<String> list = [
-      'a',
-      'b',
-      'c',
-      'd',
-      'e',
-      'f',
-      'g',
-      'h',
-      'i',
-      'j',
-      'k',
-      'm',
-      'n',
-      'o',
-      'p',
-      'q',
-      'r',
-      's',
-      't',
-      'u',
-      'v',
-      'w',
-      'x',
-      'y',
-      'z'
-    ];
-    for (String i in list) {
-      for (int y = 0; y < 5; y++) {
-        String id2 = "$i$y";
-        for (int x = 0; x < 10; x++) {
-          await adapter.put(
-              doc: Doc(
-                  id: id2,
-                  model: {"name": "wth", "no": 99},
-                  rev: Rev.fromString("$y-$x")),
-              newEdits: false);
-        }
-      }
-    }
-
-    for (int y = 0; y < 5; y++) {
-      String id2 = "l$y";
-      for (int x = 0; x < 10; x++) {
-        await adapter.put(
-            doc: Doc(
-                id: id2,
-                model: {"name": "wth", "no": 99},
-                rev: Rev.fromString("$y-$x")),
-            newEdits: false);
-      }
-    }
-    GetAllDocs getAllDocs = await adapter.allDocs(
-        GetAllDocsRequest(startKey: "l", endKey: "l\uffff"), (json) => json);
-    expect(getAllDocs.rows.length, equals(5));
-    expect(getAllDocs.totalRows, equals(125));
-  });
-
   test("view", () async {
     final memoryDb = getMemoryAdapter();
     await memoryDb.put(doc: Doc(id: "a", model: {"name": "a", "no": 99}));
@@ -677,7 +677,7 @@ void main() async {
     print(doc?.toJson((value) => value));
     expect(doc, isNotNull);
 
-    List<Row<Map<String, dynamic>>> result =
+    List<DbRow<Map<String, dynamic>>> result =
         await memoryDb.view("name_view", "name_index");
 
     expect(result.length, equals(2));
