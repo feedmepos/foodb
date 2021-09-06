@@ -74,6 +74,17 @@ class CouchdbAdapter extends AbstractAdapter {
     }
   }
 
+  Future<Stream> changesStreamTemp(ChangeRequest request) async {
+    var changeClient = getClient();
+    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_changes')));
+    uriBuilder.queryParameters = convertToParams(request.toJson());
+
+    var res = await changeClient.send(Request('get', uriBuilder.build()));
+    var streamedRes = res.stream.transform(utf8.decoder);
+
+    return streamedRes;
+  }
+
   @override
   Future<ChangesStream> changesStream(ChangeRequest request) async {
     var changeClient = getClient();
@@ -361,5 +372,12 @@ class CouchdbAdapter extends AbstractAdapter {
   Future<bool> destroy() async {
     await this.client.delete(this.getUri(''));
     return true;
+  }
+
+  @override
+  Future<List<Row<Map<String, dynamic>>>> view(String ddoc, String viewId,
+      {String? startKey, String? endKey, bool? desc}) {
+    // TODO: implement view
+    throw UnimplementedError();
   }
 }

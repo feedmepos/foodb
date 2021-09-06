@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/rendering.dart';
 import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/common/rev.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -59,23 +60,30 @@ class ChangesStream {
       {Function(ChangeResponse)? onComplete,
       Function(ChangeResult)? onResult,
       Function? onHearbeat}) {
+    String cache = "";
     _subscription = _stream.listen((event) {
       // is heartbeat
       if (event.trim() == '') {
         if (onHearbeat != null) onHearbeat();
       }
-
-      var splitted = event.split('\n').map((e) => e.trim());
+      cache = cache + event;
+      var splitted = cache.split('\n').map((e) => e.trim());
       // is result
       var changeResults =
           splitted.where((element) => RegExp("^{.*},?\$").hasMatch(element));
-      changeResults.forEach((element) {
-        var result = ChangeResult.fromJson(
-            jsonDecode(element.replaceAll(RegExp(",\$"), "")));
+      try {
+        changeResults.forEach((element) {
+          print(element);
+          var result = ChangeResult.fromJson(
+              jsonDecode(element.replaceAll(RegExp(",\$"), "")));
 
-        if (_feed != ChangeFeed.continuous) _results.add(result);
-        if (onResult != null) onResult(result);
-      });
+          if (_feed != ChangeFeed.continuous) _results.add(result);
+          if (onResult != null) onResult(result);
+          cache = "";
+        });
+      } catch (e) {
+        print(e);
+      }
 
       // is completed
       splitted.forEach((element) {

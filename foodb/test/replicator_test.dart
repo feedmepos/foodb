@@ -6,7 +6,6 @@ import 'package:foodb/adapter/couchdb_adapter.dart';
 import 'package:foodb/adapter/exception.dart';
 import 'package:foodb/adapter/in_memory_database.dart';
 import 'package:foodb/adapter/key_value_adapter.dart';
-import 'package:foodb/adapter/methods/all_docs.dart';
 import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/common/doc.dart';
@@ -20,14 +19,15 @@ void main() async {
   await dotenv.load(fileName: ".env");
   String envDbName = dotenv.env['COUCHDB_DB_NAME'] as String;
   String baseUri = dotenv.env['COUCHDB_BASE_URI'] as String;
+  String dbName = dotenv.env['SQLITE_DB_NAME'] as String;
 
   getCouchDbAdapter({String? dbName}) {
     return new CouchdbAdapter(
         dbName: dbName ?? envDbName, baseUri: Uri.parse(baseUri));
   }
 
-  getMemoryAdapter() {
-    return KeyValueAdapter(dbName: 'test', db: InMemoryDatabase());
+  getMemoryAdapter() async {
+    return KeyValueAdapter(dbName: dbName, db: InMemoryDatabase());
   }
 
   //Replicator Between CouchDb
@@ -194,7 +194,7 @@ void main() async {
     await couchdb.destroy();
     await couchdb.init();
 
-    final memorydb = getMemoryAdapter();
+    final memorydb = await getMemoryAdapter();
     await memorydb.put(doc: Doc(id: "1", model: {"name": "abc", "no": 123}));
     await memorydb.put(
         doc: Doc(
@@ -248,7 +248,7 @@ void main() async {
   });
   test("check replicator from couchdb to memorydb", () async {
     final couchdb = getCouchDbAdapter(dbName: "a-test");
-    final memorydb = getMemoryAdapter();
+    final memorydb = await getMemoryAdapter();
 
     await couchdb.destroy();
     await couchdb.init();
@@ -308,14 +308,14 @@ void main() async {
           couchdb.put(doc: Doc(id: "5", model: {"name": "b", "no": 999}))
         });
 
-    print((await memorydb.allDocs(GetAllDocsRequest(), (json) => json))
-        .toJson((value) => value));
+    // print((await memorydb.allDocs(GetAllDocsRequest(), (json) => json))
+    //     .toJson((value) => value));
 
     Future.delayed(Duration(seconds: 2))
         .then(expectAsync1((value) => expect(1 + 1, 2)));
   });
   test("check replicator from couchdb to memorydb with changeStream", () async {
-    final memorydb = getMemoryAdapter();
+    final memorydb = await getMemoryAdapter();
     final couchdb = getCouchDbAdapter(dbName: "a-test");
 
     await couchdb.destroy();
@@ -421,7 +421,7 @@ void main() async {
     await couchdb.destroy();
     await couchdb.init();
 
-    final memorydb = getMemoryAdapter();
+    final memorydb = await getMemoryAdapter();
     await memorydb.put(
         doc: Doc(
             id: "1",

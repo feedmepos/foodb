@@ -1,8 +1,7 @@
-import 'package:foodb/common/doc.dart';
-import 'package:json_annotation/json_annotation.dart';
-
 import 'package:foodb/adapter/methods/revs_diff.dart';
+import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/rev.dart';
+import 'package:json_annotation/json_annotation.dart';
 
 part 'doc_history.g.dart';
 
@@ -101,14 +100,11 @@ class DocHistory {
   String id;
   Map<String, InternalDoc> docs;
   RevisionTree revisions;
-
-  DocHistory({required this.id, required this.docs, required this.revisions});
-
-  // Iterable<InternalDoc> get leafDocs {
-  //   return revisions.nodes
-  //       .where((element) => element.nextRev == null)
-  //       .map((e) => docs[e.rev]!);
-  // }
+  DocHistory({
+    required this.id,
+    required this.docs,
+    required this.revisions,
+  });
 
   Iterable<InternalDoc> get leafDocs {
     Map<String, InternalDoc> leaf = Map.from(docs);

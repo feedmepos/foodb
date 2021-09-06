@@ -11,7 +11,7 @@ UpdateSequence _$UpdateSequenceFromJson(Map<String, dynamic> json) {
     seq: json['seq'] as String,
     id: json['id'] as String,
     winnerRev: RevFromJsonString(json['winnerRev'] as String?),
-    allLeafRev: ListOfRevFromJsonString(json['allLeafRev'] as List<String>),
+    allLeafRev: ListOfRevFromJsonString(json['allLeafRev'] as List),
   );
 }
 

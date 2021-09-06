@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:foodb/common/rev.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:objectbox/objectbox.dart';
 
 part 'doc.g.dart';
 
