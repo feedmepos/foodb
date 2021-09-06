@@ -1,6 +1,5 @@
 import 'package:foodb/common/rev.dart';
 import 'package:json_annotation/json_annotation.dart';
-import 'package:objectbox/objectbox.dart';
 
 part 'delete.g.dart';
 
