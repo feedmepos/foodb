@@ -45,7 +45,7 @@ class FoodbRepository<T> {
       length, (_) => _chars.codeUnitAt(_rnd.nextInt(_chars.length))));
 
   get queryKey {
-    return "${config.type}_";
+    return config.type;
   }
 
   get typeKey {
