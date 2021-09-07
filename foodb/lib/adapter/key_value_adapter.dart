@@ -496,9 +496,7 @@ class KeyValueAdapter extends AbstractAdapter {
         : DocHistory.fromJson(history);
     var docJson = doc.toJson((value) => value);
     var winnerBeforeUpdate = docHistory.winner;
-    if (winnerBeforeUpdate == null) {
-      print("New Doc ${doc.id}${winnerBeforeUpdate == null}");
-    }
+
     // Validation
     _validateUpdate(
         newEdits: newEdits,
@@ -551,7 +549,7 @@ class KeyValueAdapter extends AbstractAdapter {
     await db.put(docTableName,
         id: doc.id, object: newDocHistoryObject.toJson());
     localChangeStreamController.sink.add(newUpdateSeqObject);
-    print("${doc.id} ${newUpdateSeqObject.toJson()}");
+
     return PutResponse(ok: true, id: doc.id, rev: newRev);
   }
 
@@ -748,18 +746,24 @@ class KeyValueAdapter extends AbstractAdapter {
         jsRuntime?.evaluate(view.map);
         // TODO use runtime to run mapper
       } else if (view is QueryDesignDocView) {
-        // TODO create dart mapper using query field
         ///check if partial filter selector !=null
         /// check key got $sign => find its combination_operator
         /// for each key-value stored in combination operators=> conditional-operators-argument, then call conditional operator func
         /// if result = true, output
+
         String key = '';
         bool isValid = true;
 
-        view.map.fields.keys.forEach((e) {
-          key = key + "_" + e;
-          isValid = doc.data.containsKey(e) || e == "_id";
-        });
+        for (String field in view.map.fields.keys) {
+          if (doc.data.containsKey(field)) {
+            key = key + "_" + doc.data[field].toString();
+          } else if (field == "id") {
+            key = key + "_" + id;
+          } else {
+            isValid = false;
+            break;
+          }
+        }
         if (isValid == true) {
           return [
             MapEntry(ViewKey(id: id, key: key).toString(),
