@@ -39,10 +39,14 @@ class _MyHomePageState extends State<MyHomePage> {
   String startTime = "No Started Yet";
   String endTime = "No Ended Yet";
   String end100Get = "No 100 Get Yet";
+  String start100GetAgain = "No Started Yet";
+  String end100GetAgain = "No Ended Yet";
   String start1Put = "No Started Yet";
   String end1Put = "No Ended Yet";
   String startDesignDoc = "No Started Yet";
   String endDesignDoc = "No Ended Yet";
+  String startDesignDocAgain = "No Started Yet";
+  String endDesignDocAgain = "No Ended Yet";
 
   String generateRandomString(int len) {
     var r = Random(DateTime.now().millisecond);
@@ -87,11 +91,32 @@ class _MyHomePageState extends State<MyHomePage> {
                           end100Get =
                               DateTime.now().millisecondsSinceEpoch.toString();
                         });
-                        print("All Docs Length: ${allDocs.rows.length}");
+                        print("alldocs1 Length: ${allDocs.rows.length}");
                         for (int x = 0; x < allDocs.rows.length; x++) {
-                          print(allDocs.rows[x].toJson((value) => value));
+                          print(
+                              "alldocs1 ${allDocs.rows[x].toJson((value) => value)}");
                         }
-                        print(allDocs.toJson((value) => value));
+                        print("alldocs1 ${allDocs.toJson((value) => value)}");
+                        setState(() {
+                          start100GetAgain =
+                              DateTime.now().millisecondsSinceEpoch.toString();
+                        });
+
+                        GetAllDocs<Map<String, dynamic>> allDocs2 =
+                            await foodb.adapter.allDocs<Map<String, dynamic>>(
+                                GetAllDocsRequest(
+                                    startkey: "l", endkey: "l\uffff"),
+                                (json) => json);
+                        setState(() {
+                          end100GetAgain =
+                              DateTime.now().millisecondsSinceEpoch.toString();
+                        });
+                        print("alldocs2 Length: ${allDocs2.rows.length}");
+                        for (int x = 0; x < allDocs2.rows.length; x++) {
+                          print(
+                              "alldocs2 ${allDocs2.rows[x].toJson((value) => value)}");
+                        }
+                        print("alldocs2 ${allDocs2.toJson((value) => value)}");
                       }
                     },
                     child: Container(
@@ -106,6 +131,18 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 Row(
                   children: [Text("100 Get End Time"), Text(end100Get)],
+                ),
+                Row(
+                  children: [
+                    Text("100 Get Start Time Again"),
+                    Text(start100GetAgain)
+                  ],
+                ),
+                Row(
+                  children: [
+                    Text("100 Get End Time Again"),
+                    Text(end100GetAgain)
+                  ],
                 ),
               ],
             )),
@@ -153,7 +190,7 @@ class _MyHomePageState extends State<MyHomePage> {
             children: <Widget>[
               TextButton(
                   onPressed: () async {
-                    if (startDesignDoc == "No Started Yet") {
+                    if (startDesignDoc == "No Started Yet" || 1 == 1) {
                       await foodb.adapter.createIndex(
                           indexFields: ["name", "no"],
                           ddoc: "name_doc",
@@ -163,16 +200,41 @@ class _MyHomePageState extends State<MyHomePage> {
                             DateTime.now().millisecondsSinceEpoch.toString();
                       });
                       List<DbRow<Map<String, dynamic>>> docs =
-                          await foodb.adapter.view("name_doc", "name_index",
-                              startKey: "l", endKey: "l\uffff");
+                          await foodb.adapter.view(
+                        "name_doc",
+                        "name_index",
+                        startKey: "_wth_99_\$foodb_l",
+                        endKey: "_wth_99_\$foodb_l\uffff",
+                      );
                       setState(() {
                         endDesignDoc =
                             DateTime.now().millisecondsSinceEpoch.toString();
                       });
                       for (DbRow doc in docs) {
-                        print(doc.toJson((value) => value));
+                        print("designdocone ${doc.toJson((value) => value)}");
                       }
-                      print(docs.length);
+                      print("designdocone ${docs.length}");
+
+                      setState(() {
+                        startDesignDocAgain =
+                            DateTime.now().millisecondsSinceEpoch.toString();
+                      });
+                      List<DbRow<Map<String, dynamic>>> docs2 =
+                          await foodb.adapter.view(
+                        "name_doc",
+                        "name_index",
+                        startKey: "_wth_99_\$foodb_l",
+                        endKey: "_wth_99_\$foodb_l\uffff",
+                      );
+                      setState(() {
+                        endDesignDocAgain =
+                            DateTime.now().millisecondsSinceEpoch.toString();
+                      });
+
+                      for (DbRow doc in docs2) {
+                        print("designdocagain ${doc.toJson((value) => value)}");
+                      }
+                      print("designdocagain ${docs2.length}");
                     }
                   },
                   child: Container(
@@ -189,6 +251,18 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               Row(
                 children: [Text("End Design All Docs"), Text(endDesignDoc)],
+              ),
+              Row(
+                children: [
+                  Text("Start Design All Docs Again"),
+                  Text(startDesignDocAgain)
+                ],
+              ),
+              Row(
+                children: [
+                  Text("End Design All Docs Again"),
+                  Text(endDesignDocAgain)
+                ],
               ),
             ],
           ),
@@ -226,7 +300,7 @@ class _MyHomePageState extends State<MyHomePage> {
       'z'
     ];
     for (String char in list) {
-      for (int y = 0; y < 396; y++) {
+      for (int y = 0; y < 40; y++) {
         String id = "${char}_$y";
         for (int x = 0; x < 10; x++) {
           await foodb.adapter.put(
@@ -239,7 +313,7 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     }
 
-    for (int y = 0; y < 100; y++) {
+    for (int y = 0; y < 10; y++) {
       String id = "l_$y";
       for (int x = 0; x < 10; x++) {
         await foodb.adapter.put(
