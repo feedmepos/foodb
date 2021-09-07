@@ -87,7 +87,7 @@ class KeyValueAdapter extends AbstractAdapter {
       StreamController.broadcast();
 
   @override
-  Future<GetAllDocs<T>> allDocs<T>(GetAllDocsRequest allDocsRequest,
+  Future<GetAllDocsResponse<T>> allDocs<T>(GetAllDocsRequest allDocsRequest,
       T Function(Map<String, dynamic> json) fromJsonT) async {
     var viewName = _getViewName(designDocId: '_all_docs', viewId: '_all_docs');
 
@@ -103,11 +103,11 @@ class KeyValueAdapter extends AbstractAdapter {
     Iterable<MapEntry<String, dynamic>> filteredResult = result.docs.entries;
     // TODO: if startkey_docId or endkey_docId specified, then do another filter
 
-    List<DbRow<T>> rows = [];
+    List<AllDocRow<T>> rows = [];
 
     for (var e in filteredResult) {
       var key = ViewKey.fromString(e.key);
-      DbRow<T> row = DbRow<T>(
+      AllDocRow<T> row = AllDocRow<T>(
         id: key.id,
         key: key.key,
         value: AllDocRowValue.fromJson(e.value['v']),
@@ -120,7 +120,7 @@ class KeyValueAdapter extends AbstractAdapter {
       rows.add(row);
     }
 
-    return GetAllDocs(
+    return GetAllDocsResponse(
         offset: result.offset, totalRows: result.totalRows, rows: rows);
   }
 
@@ -650,7 +650,7 @@ class KeyValueAdapter extends AbstractAdapter {
     }
   }
 
-  Future<List<DbRow<Map<String, dynamic>>>> view(String ddoc, String viewId,
+  Future<List<AllDocRow<Map<String, dynamic>>>> view(String ddoc, String viewId,
       {String? startKey, String? endKey, bool? desc}) async {
     var viewName = _getViewName(designDocId: ddoc, viewId: viewId);
     Doc<DesignDoc>? designDoc =
@@ -660,14 +660,14 @@ class KeyValueAdapter extends AbstractAdapter {
 
       ReadResult result = await db.read(viewKeyTableName(viewName),
           startkey: startKey, endkey: endKey, desc: desc);
-      List<DbRow<Map<String, dynamic>>> rows = [];
+      List<AllDocRow<Map<String, dynamic>>> rows = [];
 
       for (var e in result.docs.entries) {
         var key = ViewKey.fromString(e.key);
         DocHistory docs =
             DocHistory.fromJson((await db.get(docTableName, id: key.id))!);
 
-        DbRow<Map<String, dynamic>> row = DbRow<Map<String, dynamic>>(
+        AllDocRow<Map<String, dynamic>> row = AllDocRow<Map<String, dynamic>>(
             id: key.id,
             key: key.key,
             value: AllDocRowValue.fromJson(e.value['v']),

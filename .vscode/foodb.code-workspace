@@ -5,17 +5,21 @@
       "path": "../"
     },
     {
-      "name": "foodb_objectbox_adapter",
-      "path": "../foodb_objectbox_adapter"
-    },
-    {
       "name": "foodb",
       "path": "../foodb"
     },
     {
-      "name": "foodb_repository",
-      "path": "../foodb_repository"
+      "name": "foodb_benchmark",
+      "path": "../foodb_benchmark"
     },
+    {
+      "name": "foodb_objectbox_adapter",
+      "path": "../foodb_objectbox_adapter"
+    },
+    {
+      "name": "foodb_sqflite_adapter",
+      "path": "../foodb_sqflite_adapter"
+    }
   ],
   "settings": {
     "dart.allowTestsOutsideTestFolder": true,
@@ -23,7 +27,8 @@
       "foodb_core/": true,
       "foodb/": true,
       "foodb_objectbox_adapter/": true,
-      "foodb_repository/": true,
+      "foodb_sqflite_adapter/": true,
+      "foodb_benchmark/": true,
     }
   }
 }

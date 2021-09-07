@@ -6,23 +6,23 @@ part of 'all_docs.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-GetAllDocs<T> _$GetAllDocsFromJson<T>(
+GetAllDocsResponse<T> _$GetAllDocsResponseFromJson<T>(
   Map<String, dynamic> json,
   T Function(Object? json) fromJsonT,
 ) {
-  return GetAllDocs<T>(
+  return GetAllDocsResponse<T>(
     offset: json['offset'] as int,
     totalRows: json['total_rows'] as int,
     rows: (json['rows'] as List<dynamic>)
-        .map((e) => DbRow.fromJson(
+        .map((e) => AllDocRow.fromJson(
             e as Map<String, dynamic>, (value) => fromJsonT(value)))
         .toList(),
     updateSeq: json['update_seq'] as String?,
   );
 }
 
-Map<String, dynamic> _$GetAllDocsToJson<T>(
-  GetAllDocs<T> instance,
+Map<String, dynamic> _$GetAllDocsResponseToJson<T>(
+  GetAllDocsResponse<T> instance,
   Object? Function(T value) toJsonT,
 ) =>
     <String, dynamic>{
@@ -36,11 +36,11 @@ Map<String, dynamic> _$GetAllDocsToJson<T>(
       'update_seq': instance.updateSeq,
     };
 
-DbRow<T> _$RowFromJson<T>(
+AllDocRow<T> _$AllDocRowFromJson<T>(
   Map<String, dynamic> json,
   T Function(Object? json) fromJsonT,
 ) {
-  return DbRow<T>(
+  return AllDocRow<T>(
     id: json['id'] as String,
     key: json['key'] as String,
     value: AllDocRowValue.fromJson(json['value'] as Map<String, dynamic>),
@@ -51,8 +51,8 @@ DbRow<T> _$RowFromJson<T>(
   );
 }
 
-Map<String, dynamic> _$RowToJson<T>(
-  DbRow<T> instance,
+Map<String, dynamic> _$AllDocRowToJson<T>(
+  AllDocRow<T> instance,
   Object? Function(T value) toJsonT,
 ) =>
     <String, dynamic>{
