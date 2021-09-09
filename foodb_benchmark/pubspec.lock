@@ -101,11 +101,11 @@ packages:
       path: "../foodb"
       relative: true
     source: path
-    version: "0.0.1"
-  foodb_sqflite_adapter:
+    version: "0.0.2"
+  foodb_sqlite_adapter:
     dependency: "direct main"
     description:
-      path: "../foodb_sqflite_adapter"
+      path: "../foodb_sqlite_adapter"
       relative: true
     source: path
     version: "0.0.1"

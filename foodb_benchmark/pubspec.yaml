@@ -29,8 +29,8 @@ dependencies:
   cupertino_icons: ^1.0.2
   foodb:
     path: ../foodb
-  foodb_sqflite_adapter:
-    path: ../foodb_sqflite_adapter
+  foodb_sqlite_adapter:
+    path: ../foodb_sqlite_adapter
 
 dev_dependencies:
   flutter_test:

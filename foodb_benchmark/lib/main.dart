@@ -4,8 +4,8 @@ import 'package:foodb/adapter/key_value_adapter.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/rev.dart';
 import 'package:foodb/foodb.dart';
-import 'package:foodb_sqflite_adapter/sqlite_database/foodb_sqflite_database.dart';
-import 'package:foodb_sqflite_adapter/sqlite_database/sqlite_provider.dart';
+import 'package:foodb_sqlite_adapter/foodb_sqlite_database.dart';
+import 'package:foodb_sqlite_adapter/sqlite_provider.dart';
 
 void main() {
   runApp(MyApp());
@@ -200,12 +200,11 @@ class _MyHomePageState extends State<MyHomePage> {
                             DateTime.now().millisecondsSinceEpoch.toString();
                       });
                       List<AllDocRow<Map<String, dynamic>>> docs =
-                          await foodb.adapter.view(
-                        "name_doc",
-                        "name_index",
-                        startKey: "_wth_99_\$foodb_l",
-                        endKey: "_wth_99_\$foodb_l\uffff",
-                      );
+                          await foodb.adapter.view("name_doc", "name_index",
+                              startKey: "_wtf_88",
+                              endKey: "_wtf_88\uffff",
+                              startKeyDocId: "l",
+                              endKeyDocId: "l\uffff");
                       setState(() {
                         endDesignDoc =
                             DateTime.now().millisecondsSinceEpoch.toString();
@@ -220,12 +219,11 @@ class _MyHomePageState extends State<MyHomePage> {
                             DateTime.now().millisecondsSinceEpoch.toString();
                       });
                       List<AllDocRow<Map<String, dynamic>>> docs2 =
-                          await foodb.adapter.view(
-                        "name_doc",
-                        "name_index",
-                        startKey: "_wth_99_\$foodb_l",
-                        endKey: "_wth_99_\$foodb_l\uffff",
-                      );
+                          await foodb.adapter.view("name_doc", "name_index",
+                              startKey: "_wtf_88",
+                              endKey: "_wtf_88\uffff",
+                              startKeyDocId: "l",
+                              endKeyDocId: "l\uffff");
                       setState(() {
                         endDesignDocAgain =
                             DateTime.now().millisecondsSinceEpoch.toString();
@@ -300,7 +298,7 @@ class _MyHomePageState extends State<MyHomePage> {
       'z'
     ];
     for (String char in list) {
-      for (int y = 0; y < 40; y++) {
+      for (int y = 0; y < 10; y++) {
         String id = "${char}_$y";
         for (int x = 0; x < 10; x++) {
           await foodb.adapter.put(
@@ -311,15 +309,39 @@ class _MyHomePageState extends State<MyHomePage> {
               newEdits: false);
         }
       }
+
+      for (int y = 0; y < 4; y++) {
+        String id = "${char}__$y";
+        for (int x = 0; x < 10; x++) {
+          await foodb.adapter.put(
+              doc: Doc(
+                  id: id,
+                  model: {"name": "wtf", "no": 88},
+                  rev: Rev.fromString("1-$x")),
+              newEdits: false);
+        }
+      }
     }
 
-    for (int y = 0; y < 10; y++) {
+    for (int y = 0; y < 8; y++) {
       String id = "l_$y";
       for (int x = 0; x < 10; x++) {
         await foodb.adapter.put(
             doc: Doc(
                 id: id,
                 model: {"name": "wth", "no": 99},
+                rev: Rev.fromString("$y-$x")),
+            newEdits: false);
+      }
+    }
+
+    for (int y = 0; y < 2; y++) {
+      String id = "l__$y";
+      for (int x = 0; x < 10; x++) {
+        await foodb.adapter.put(
+            doc: Doc(
+                id: id,
+                model: {"name": "wtf", "no": 88},
                 rev: Rev.fromString("$y-$x")),
             newEdits: false);
       }
