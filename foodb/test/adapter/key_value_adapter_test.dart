@@ -6,6 +6,7 @@ import 'package:foodb/adapter/exception.dart';
 import 'package:foodb/adapter/in_memory_database.dart';
 import 'package:foodb/adapter/key_value_adapter.dart';
 import 'package:foodb/adapter/methods/all_docs.dart';
+import 'package:foodb/adapter/methods/bulk_docs.dart';
 import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/adapter/methods/delete.dart';
 import 'package:foodb/adapter/methods/index.dart';
@@ -14,22 +15,22 @@ import 'package:foodb/common/design_doc.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/doc_history.dart';
 import 'package:foodb/common/rev.dart';
-import 'package:path/path.dart' as p;
-import 'package:crypto/crypto.dart' as crypto;
 
 void main() async {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   await dotenv.load(fileName: ".env");
   String dbName = dotenv.env['IN_MEMORY_DB_NAME'] as String;
+
   getMemoryAdapter() {
-    return KeyValueAdapter(dbName: 'test', db: InMemoryDatabase());
+    return KeyValueAdapter(dbName: dbName, db: InMemoryDatabase());
   }
 
   group('allDocs', () {
     var adapter = getMemoryAdapter();
 
     setUp(() async {
+      adapter = getMemoryAdapter();
       await adapter.put(
           doc: Doc<Map<String, dynamic>>(
               id: "a",
@@ -51,8 +52,8 @@ void main() async {
     });
     test("check _generateView by create a, b, c and then delete/update a, b",
         () async {
-      GetAllDocsResponse<Map<String, dynamic>> docs =
-          await adapter.allDocs(GetAllDocsRequest(), (json) => json);
+      GetAllDocsResponse<Map<String, dynamic>> docs = await adapter
+          .allDocs<Map<String, dynamic>>(GetAllDocsRequest(), (json) => json);
       print(docs.toJson((value) => value));
       expect(docs.rows.length, equals(3));
 
@@ -70,7 +71,7 @@ void main() async {
     });
 
     test("check allDocs with startKey and endKey", () async {
-      GetAllDocs<Map<String, dynamic>> docs = await adapter.allDocs(
+      GetAllDocsResponse<Map<String, dynamic>> docs = await adapter.allDocs(
           GetAllDocsRequest(startkey: "a", endkey: "b\uffff"), (json) => json);
       print(docs.toJson((value) => value));
       expect(docs.rows.length, equals(2));
@@ -130,7 +131,7 @@ void main() async {
               newEdits: false);
         }
       }
-      GetAllDocs getAllDocs = await adapter.allDocs(
+      GetAllDocsResponse getAllDocs = await adapter.allDocs(
           GetAllDocsRequest(startkey: "l", endkey: "l\uffff"), (json) => json);
       expect(getAllDocs.rows.length, equals(5));
       expect(getAllDocs.totalRows, equals(130));
@@ -140,7 +141,7 @@ void main() async {
     final adapter = getMemoryAdapter();
 
     await adapter.db.put(adapter.docTableName,
-        id: 'a',
+        key: 'a',
         object: DocHistory(
             id: 'a',
             docs: {
@@ -179,7 +180,7 @@ void main() async {
       "a": ["1-a", "4-c", "1-c", "4-d", "5-e"]
     });
     DocHistory docHistory = new DocHistory.fromJson(
-        (await adapter.db.get(adapter.docTableName, id: "a"))!);
+        (await adapter.db.get(adapter.docTableName, key: "a"))!);
 
     expect(docHistory.docs.length, equals(4));
 
@@ -210,7 +211,7 @@ void main() async {
       await memoryDb.put(
           doc: Doc(id: "id", rev: Rev.fromString("1-a"), model: {}),
           newEdits: false);
-      var result = await memoryDb.db.get(memoryDb.docTableName, id: 'id');
+      var result = await memoryDb.db.get(memoryDb.docTableName, key: 'id');
       var docHistory = DocHistory.fromJson(result!);
       expect(docHistory.docs.length, 1);
       expect(docHistory.leafDocs.length, 1);
@@ -225,7 +226,7 @@ void main() async {
           doc: Doc(id: "id", rev: Rev.fromString("2-b"), model: {}),
           newEdits: false);
       DocHistory docHistory = DocHistory.fromJson(
-          (await memoryDb.db.get(memoryDb.docTableName, id: "id"))!);
+          (await memoryDb.db.get(memoryDb.docTableName, key: "id"))!);
       //2b rev no stored inside
       for (InternalDoc doc in docHistory.leafDocs) {
         print(doc.rev);
@@ -256,7 +257,7 @@ void main() async {
           newEdits: false);
 
       DocHistory docHistory = DocHistory.fromJson(
-          (await memoryDb.db.get(memoryDb.docTableName, id: "id"))!);
+          (await memoryDb.db.get(memoryDb.docTableName, key: "id"))!);
 
       for (InternalDoc doc in docHistory.leafDocs) {
         print(doc.rev);
@@ -282,7 +283,7 @@ void main() async {
           newEdits: false);
 
       DocHistory history = DocHistory.fromJson(
-          (await memoryDb.db.get(memoryDb.docTableName, id: "a"))!);
+          (await memoryDb.db.get(memoryDb.docTableName, key: "a"))!);
 
       expect(history.leafDocs.length, equals(3));
       expect(history.docs.length, equals(3));
@@ -296,7 +297,7 @@ void main() async {
           newEdits: false);
 
       DocHistory historyAfterRevChg = DocHistory.fromJson(
-          (await memoryDb.db.get(memoryDb.docTableName, id: "a"))!);
+          (await memoryDb.db.get(memoryDb.docTableName, key: "a"))!);
 
       expect(historyAfterRevChg.leafDocs.length, equals(1));
       expect(historyAfterRevChg.docs.length, equals(3));
@@ -322,7 +323,7 @@ void main() async {
           newEdits: false);
 
       DocHistory historyAfterSecChg = DocHistory.fromJson(
-          (await memoryDb.db.get(memoryDb.docTableName, id: "a"))!);
+          (await memoryDb.db.get(memoryDb.docTableName, key: "a"))!);
 
       RevisionNode currNode = historyAfterSecChg.revisions.nodes
           .where((element) => element.rev == Rev.fromString("3-a"))
@@ -355,7 +356,7 @@ void main() async {
           doc: Doc(id: "a", rev: Rev.fromString("1-a"), model: {}));
 
       DocHistory history = DocHistory.fromJson(
-          (await memoryDb.db.get(memoryDb.docTableName, id: "a"))!);
+          (await memoryDb.db.get(memoryDb.docTableName, key: "a"))!);
       expect(history.leafDocs.length, 1);
       expect(history.docs.length, 2);
       expect(history.winner?.rev, isNot(Rev.fromString("1-a")));
@@ -406,12 +407,12 @@ void main() async {
               model: {}),
           newEdits: false);
       DocHistory history = DocHistory.fromJson(
-          (await memoryDb.db.get(memoryDb.docTableName, id: "a"))!);
+          (await memoryDb.db.get(memoryDb.docTableName, key: "a"))!);
       expect(history.leafDocs.length, 2);
 
       await memoryDb.delete(id: "a", rev: Rev.fromString("2-c"));
       DocHistory historyAfterDelete = DocHistory.fromJson(
-          (await memoryDb.db.get(memoryDb.docTableName, id: "a"))!);
+          (await memoryDb.db.get(memoryDb.docTableName, key: "a"))!);
       print(historyAfterDelete.winner?.rev.toString());
       expect(historyAfterDelete.leafDocs.length, 2);
     });
@@ -428,11 +429,15 @@ void main() async {
           newEdits: false);
     });
     test('bulkdocs with newEdits =true', () async {
-      await memoryDb.bulkDocs(body: [
+      BulkDocResponse bulkDocsResponse = await memoryDb.bulkDocs(body: [
         Doc(id: "a", rev: Rev.fromString("1-a"), model: {}),
         Doc(id: "b", rev: Rev.fromString("1-b"), deleted: true, model: {}),
         Doc(id: "c", model: {})
       ], newEdits: true);
+
+      expect(bulkDocsResponse.putResponses[0].ok, true);
+      expect(bulkDocsResponse.putResponses[1].ok, true);
+      expect(bulkDocsResponse.putResponses[2].ok, true);
 
       Doc<Map<String, dynamic>>? doc1 =
           await memoryDb.get(id: "a", fromJsonT: (value) => value);
@@ -448,7 +453,7 @@ void main() async {
     });
 
     test('bulkdocs with newEdits = false', () async {
-      await memoryDb.bulkDocs(body: [
+      BulkDocResponse bulkDocsResponse = await memoryDb.bulkDocs(body: [
         Doc(
             id: "a",
             rev: Rev.fromString("2-a"),
@@ -468,6 +473,10 @@ void main() async {
             revisions: Revisions(ids: ['d', 'c'], start: 3))
       ], newEdits: false);
 
+      expect(bulkDocsResponse.putResponses[0].ok, true);
+      expect(bulkDocsResponse.putResponses[1].ok, true);
+      expect(bulkDocsResponse.putResponses[2].ok, true);
+
       Doc<Map<String, dynamic>>? doc1 =
           await memoryDb.get(id: "a", fromJsonT: (value) => value);
       expect(doc1?.rev?.index, 2);
@@ -485,7 +494,7 @@ void main() async {
       expect(doc4?.rev.toString(), "3-d");
 
       DocHistory history = DocHistory.fromJson(
-          (await memoryDb.db.get(memoryDb.docTableName, id: "d"))!);
+          (await memoryDb.db.get(memoryDb.docTableName, key: "d"))!);
       expect(history.leafDocs.length, 1);
       expect(history.docs.length, 1);
     });
@@ -532,7 +541,7 @@ void main() async {
   test('read', () async {
     var adapter = getMemoryAdapter();
     await adapter.db.put(adapter.docTableName,
-        id: 'a',
+        key: 'a',
         object: DocHistory(
             id: 'a',
             docs: {
@@ -568,7 +577,7 @@ void main() async {
             ])).toJson());
     ;
     await adapter.db.put(adapter.docTableName,
-        id: 'b',
+        key: 'b',
         object: DocHistory(
             id: 'b',
             docs: {
@@ -582,9 +591,9 @@ void main() async {
                 nodes: [RevisionNode(rev: Rev.fromString('1-a'))])).toJson());
 
     await adapter.db
-        .put(adapter.sequenceTableName, id: '4', object: {"id": 'b'});
+        .put(adapter.sequenceTableName, key: '4', object: {"id": 'b'});
     await adapter.db
-        .put(adapter.sequenceTableName, id: '5', object: {"id": 'a'});
+        .put(adapter.sequenceTableName, key: '5', object: {"id": 'a'});
 
     ReadResult result = await adapter.db.read(adapter.docTableName);
     print(result);
@@ -677,9 +686,23 @@ void main() async {
     print(doc?.toJson((value) => value));
     expect(doc, isNotNull);
 
-    List<AllDocRow<Map<String, dynamic>>> result =
-        await memoryDb.view("name_view", "name_index");
+    List<AllDocRow<Map<String, dynamic>>> result = await memoryDb.view(
+        "name_view", "name_index",
+        startKey: "_a_99",
+        endKey: "_a_99\uffff",
+        startKeyDocId: "a",
+        endKeyDocId: "a\uffff");
 
-    expect(result.length, equals(2));
+    await memoryDb.put(doc: Doc(id: "c", model: {"name": "c", "no": 55}));
+
+    List<AllDocRow<Map<String, dynamic>>> result2 = await memoryDb.view(
+        "name_view", "name_index",
+        startKey: "_a_99",
+        endKey: "_a_99\uffff",
+        startKeyDocId: "a",
+        endKeyDocId: "a\uffff");
+
+    expect(result.length, equals(1));
+    expect(result2.length, equals(1));
   });
 }

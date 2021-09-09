@@ -114,7 +114,13 @@ abstract class AbstractAdapter {
   Future<ExplainResponse> explain(FindRequest findRequest);
 
   Future<bool> init();
+
   Future<bool> destroy();
+
   Future<List<AllDocRow<Map<String, dynamic>>>> view(String ddoc, String viewId,
-      {String? startKey, String? endKey, bool? desc});
+      {String? startKey,
+      String? endKey,
+      bool? desc,
+      String? startKeyDocId,
+      String? endKeyDocId});
 }
