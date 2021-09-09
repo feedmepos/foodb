@@ -1,4 +1,4 @@
-# foodb_sqflite_adapter
+# foodb_sqlite_adapter
 
 A new Flutter package project.
 
