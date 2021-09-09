@@ -78,7 +78,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               DateTime.now().millisecondsSinceEpoch.toString();
                         });
 
-                        GetAllDocs<Map<String, dynamic>> allDocs =
+                        GetAllDocsResponse<Map<String, dynamic>> allDocs =
                             await foodb.adapter.allDocs<Map<String, dynamic>>(
                                 GetAllDocsRequest(
                                     startkey: "l", endkey: "l\uffff"),

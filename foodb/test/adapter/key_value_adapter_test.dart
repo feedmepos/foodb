@@ -70,7 +70,7 @@ void main() async {
     });
 
     test("check allDocs with startKey and endKey", () async {
-      GetAllDocs<Map<String, dynamic>> docs = await adapter.allDocs(
+      GetAllDocsResponse<Map<String, dynamic>> docs = await adapter.allDocs(
           GetAllDocsRequest(startkey: "a", endkey: "b\uffff"), (json) => json);
       print(docs.toJson((value) => value));
       expect(docs.rows.length, equals(2));
@@ -130,7 +130,7 @@ void main() async {
               newEdits: false);
         }
       }
-      GetAllDocs getAllDocs = await adapter.allDocs(
+      GetAllDocsResponse getAllDocs = await adapter.allDocs(
           GetAllDocsRequest(startkey: "l", endkey: "l\uffff"), (json) => json);
       expect(getAllDocs.rows.length, equals(5));
       expect(getAllDocs.totalRows, equals(130));
