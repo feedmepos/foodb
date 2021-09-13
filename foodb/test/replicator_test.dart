@@ -27,7 +27,7 @@ void main() async {
   }
 
   getMemoryAdapter() async {
-    return KeyValueAdapter(dbName: dbName, db: InMemoryDatabase());
+    // return KeyValueAdapter(dbName: dbName, db: InMemoryDatabase());
   }
 
   //Replicator Between CouchDb
