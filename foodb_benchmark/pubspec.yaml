@@ -31,6 +31,8 @@ dependencies:
     path: ../foodb
   foodb_sqlite_adapter:
     path: ../foodb_sqlite_adapter
+  foodb_objectbox_adapter:
+    path: ../foodb_objectbox_adapter
 
 dev_dependencies:
   flutter_test:

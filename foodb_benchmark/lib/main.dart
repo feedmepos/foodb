@@ -4,8 +4,7 @@ import 'package:foodb/adapter/key_value_adapter.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/rev.dart';
 import 'package:foodb/foodb.dart';
-import 'package:foodb_sqlite_adapter/foodb_sqlite_database.dart';
-import 'package:foodb_sqlite_adapter/sqlite_provider.dart';
+import 'package:foodb_objectbox_adapter/foodb_objectbox_adapter.dart';
 
 void main() {
   runApp(MyApp());
@@ -34,8 +33,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  Foodb foodb = new Foodb(
-      adapter: KeyValueAdapter(dbName: "a", db: SqliteDatabase(dbName: "a")));
+  Foodb foodb =
+      new Foodb(adapter: KeyValueAdapter(dbName: "a", db: ObjectBox()));
   String startTime = "No Started Yet";
   String endTime = "No Ended Yet";
   String end100Get = "No 100 Get Yet";
@@ -70,7 +69,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 TextButton(
                     onPressed: () async {
                       if (startTime == "No Started Yet") {
-                        await SqliteProvider(dbName: "a").removeDatabase();
+                        await foodb.adapter.destroy();
+                        Stopwatch stopwatch = new Stopwatch();
+                        stopwatch.start();
                         setState(() {
                           startTime =
                               DateTime.now().millisecondsSinceEpoch.toString();
@@ -81,6 +82,8 @@ class _MyHomePageState extends State<MyHomePage> {
                           endTime =
                               DateTime.now().millisecondsSinceEpoch.toString();
                         });
+                        stopwatch.stop();
+                        print("stopwatch ${stopwatch.elapsedMilliseconds}");
 
                         GetAllDocsResponse<Map<String, dynamic>> allDocs =
                             await foodb.adapter.allDocs<Map<String, dynamic>>(
@@ -298,7 +301,7 @@ class _MyHomePageState extends State<MyHomePage> {
       'z'
     ];
     for (String char in list) {
-      for (int y = 0; y < 10; y++) {
+      for (int y = 0; y < 36; y++) {
         String id = "${char}_$y";
         for (int x = 0; x < 10; x++) {
           await foodb.adapter.put(

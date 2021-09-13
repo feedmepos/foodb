@@ -102,6 +102,13 @@ packages:
       relative: true
     source: path
     version: "0.0.2"
+  foodb_objectbox_adapter:
+    dependency: "direct main"
+    description:
+      path: "../foodb_objectbox_adapter"
+      relative: true
+    source: path
+    version: "0.0.1"
   foodb_sqlite_adapter:
     dependency: "direct main"
     description:
@@ -144,6 +151,20 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.3.0"
+  objectbox:
+    dependency: transitive
+    description:
+      name: objectbox
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.2.0"
+  objectbox_flutter_libs:
+    dependency: transitive
+    description:
+      name: objectbox_flutter_libs
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.2.0"
   path:
     dependency: transitive
     description:
