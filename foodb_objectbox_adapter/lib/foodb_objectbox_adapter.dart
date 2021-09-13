@@ -1,3 +1,461 @@
 library foodb_objectbox_adapter;
 
-import 'package:foodb/adapter/adapter.dart';
+import 'dart:convert';
+import 'package:foodb/adapter/exception.dart';
+import 'package:foodb/adapter/key_value_adapter.dart';
+import 'package:foodb_objectbox_adapter/object_box_entity.dart';
+import 'package:foodb_objectbox_adapter/objectbox.g.dart';
+
+const int int64MaxValue = 9223372036854775807;
+
+abstract class BaseObjectType {
+  abstract Box box;
+  ObjectBoxEntity formObject(String key, Map<String, dynamic> value);
+  ObjectBoxEntity? getObjectByKey(key);
+  ObjectBoxEntity? getLastObject();
+  List<ObjectBoxEntity> readObjectBetween(
+      String? startkey, String? endkey, bool? descending);
+}
+
+class DocObjectType extends BaseObjectType {
+  @override
+  late Box box;
+
+  DocObjectType({required Store store}) {
+    box = store.box<DocObject>();
+  }
+
+  @override
+  DocObject formObject(String key, Map<String, dynamic> value) {
+    return DocObject(key: key, value: jsonEncode(value));
+  }
+
+  @override
+  DocObject? getObjectByKey(key) {
+    var list = box.query(DocObject_.key.equals(key)).build().find();
+    if (list.length > 0) return list[0];
+    return null;
+  }
+
+  @override
+  List<DocObject> readObjectBetween(
+      String? startkey, String? endkey, bool? descending) {
+    Query query = (box.query(DocObject_.key
+            .greaterOrEqual(startkey ?? "")
+            .and(DocObject_.key.lessOrEqual(endkey ?? "\uffff")))
+          ..order(DocObject_.key,
+              flags: (descending == true) ? Order.descending : 0))
+        .build();
+
+    return query.find().map<DocObject>((e) => e).toList();
+  }
+
+  @override
+  DocObject? getLastObject() {
+    Query query =
+        (box.query()..order(DocObject_.key, flags: Order.descending)).build();
+    query.limit = 1;
+    var docs = query.find();
+    if (docs.length > 0) {
+      return docs[0];
+    }
+    return null;
+  }
+}
+
+class LocalDocObjectType extends BaseObjectType {
+  @override
+  late Box box;
+
+  LocalDocObjectType({required Store store}) {
+    box = store.box<LocalDocObject>();
+  }
+
+  @override
+  LocalDocObject formObject(String key, Map<String, dynamic> value) {
+    return LocalDocObject(key: key, value: jsonEncode(value));
+  }
+
+  @override
+  LocalDocObject? getObjectByKey(key) {
+    var list = box.query(LocalDocObject_.key.equals(key)).build().find();
+    if (list.length > 0) return list[0];
+    return null;
+  }
+
+  @override
+  List<LocalDocObject> readObjectBetween(
+      String? startkey, String? endkey, bool? descending) {
+    Query query = (box.query(LocalDocObject_.key
+            .greaterOrEqual(startkey ?? "")
+            .and(LocalDocObject_.key.lessOrEqual(endkey ?? "\uffff")))
+          ..order(LocalDocObject_.key,
+              flags: (descending == true) ? Order.descending : 0))
+        .build();
+
+    return query.find().map<LocalDocObject>((e) => e).toList();
+  }
+
+  @override
+  LocalDocObject? getLastObject() {
+    Query query = (box.query()
+          ..order(LocalDocObject_.key, flags: Order.descending))
+        .build();
+    query.limit = 1;
+    var docs = query.find();
+    if (docs.length > 0) {
+      return docs[0];
+    }
+    return null;
+  }
+}
+
+class SequenceObjectType extends BaseObjectType {
+  @override
+  late Box box;
+
+  SequenceObjectType({required Store store}) {
+    box = store.box<SequenceObject>();
+  }
+
+  @override
+  SequenceObject formObject(String key, Map<String, dynamic> value) {
+    return SequenceObject(
+        id: int.parse(key), key: key, value: jsonEncode(value));
+  }
+
+  @override
+  SequenceObject? getObjectByKey(key) {
+    return box.get(int.parse(key));
+  }
+
+  @override
+  List<SequenceObject> readObjectBetween(
+      String? startkey, String? endkey, bool? descending) {
+    Query query = (box.query(SequenceObject_.id
+            .greaterOrEqual(int.parse(startkey ?? "0"))
+            .and(SequenceObject_.id
+                .lessOrEqual(int.parse(endkey ?? "$int64MaxValue"))))
+          ..order(SequenceObject_.id,
+              flags: (descending == true) ? Order.descending : 0))
+        .build();
+
+    return query.find().map<SequenceObject>((e) => e).toList();
+  }
+
+  @override
+  SequenceObject? getLastObject() {
+    Query query = (box.query()
+          ..order(SequenceObject_.id, flags: Order.descending))
+        .build();
+    var docs = (query..limit = 1).find();
+    if (docs.length > 0) {
+      return docs[0];
+    }
+    return null;
+  }
+}
+
+class ViewMetaObjectType extends BaseObjectType {
+  @override
+  late Box box;
+
+  ViewMetaObjectType({required Store store}) {
+    box = store.box<ViewMetaObject>();
+  }
+
+  @override
+  ViewMetaObject formObject(String key, Map<String, dynamic> value) {
+    return ViewMetaObject(key: key, value: jsonEncode(value));
+  }
+
+  @override
+  ViewMetaObject? getObjectByKey(key) {
+    var list = box.query(ViewMetaObject_.key.equals(key)).build().find();
+    if (list.length > 0) return list[0];
+    return null;
+  }
+
+  @override
+  List<ViewMetaObject> readObjectBetween(
+      String? startkey, String? endkey, bool? descending) {
+    Query query = (box.query(ViewMetaObject_.key
+            .greaterOrEqual(startkey ?? "")
+            .and(ViewMetaObject_.key.lessOrEqual(endkey ?? "\uffff")))
+          ..order(ViewMetaObject_.key,
+              flags: (descending == true) ? Order.descending : 0))
+        .build();
+
+    return query.find().map<ViewMetaObject>((e) => e).toList();
+  }
+
+  @override
+  ViewMetaObject? getLastObject() {
+    Query query = (box.query()
+          ..order(ViewMetaObject_.key, flags: Order.descending))
+        .build();
+    var docs = (query..limit = 1).find();
+    if (docs.length > 0) {
+      return docs[0];
+    }
+    return null;
+  }
+}
+
+class ViewIdObjectType extends BaseObjectType {
+  @override
+  late Box box;
+  String tableName;
+
+  ViewIdObjectType({required Store store, required this.tableName}) {
+    box = store.box<ViewIdObject>();
+  }
+
+  @override
+  ViewIdObject formObject(String key, Map<String, dynamic> value) {
+    return ViewIdObject(key: "${tableName}_${key}", value: jsonEncode(value));
+  }
+
+  @override
+  ViewIdObject? getObjectByKey(key) {
+    var list = box
+        .query(ViewIdObject_.key.equals("${tableName}_${key}"))
+        .build()
+        .find();
+    if (list.length > 0) return list[0];
+    return null;
+  }
+
+  @override
+  List<ViewIdObject> readObjectBetween(
+      String? startkey, String? endkey, bool? descending) {
+    Query query = (box.query(ViewIdObject_.key
+            .greaterOrEqual("${tableName}_${startkey ?? ""}")
+            .and(ViewIdObject_.key
+                .lessOrEqual("${tableName}_${endkey ?? "\uffff"}")))
+          ..order(ViewIdObject_.key,
+              flags: (descending == true) ? Order.descending : 0))
+        .build();
+
+    return query.find().map<ViewIdObject>((e) => e).toList();
+  }
+
+  @override
+  ViewIdObject? getLastObject() {
+    Query query = (box.query(ViewIdObject_.key.startsWith(tableName))
+          ..order(ViewIdObject_.key, flags: Order.descending))
+        .build();
+    var docs = (query..limit = 1).find();
+    if (docs.length > 0) {
+      return docs[0];
+    }
+    return null;
+  }
+}
+
+class ViewKeyObjectType extends BaseObjectType {
+  @override
+  late Box box;
+  String tableName;
+
+  ViewKeyObjectType({required Store store, required this.tableName}) {
+    box = store.box<ViewKeyObject>();
+  }
+
+  @override
+  ViewKeyObject formObject(String key, Map<String, dynamic> value) {
+    return ViewKeyObject(key: "${tableName}_${key}", value: jsonEncode(value));
+  }
+
+  @override
+  ViewKeyObject? getObjectByKey(key) {
+    var list = box
+        .query(ViewKeyObject_.key.equals("${tableName}_${key}"))
+        .build()
+        .find();
+    if (list.length > 0) return list[0];
+    return null;
+  }
+
+  @override
+  List<ViewKeyObject> readObjectBetween(
+      String? startkey, String? endkey, bool? descending) {
+    Query query = (box.query(ViewKeyObject_.key
+            .greaterOrEqual("${tableName}_${startkey ?? ""}")
+            .and(ViewKeyObject_.key
+                .lessOrEqual("${tableName}_${endkey ?? "\uffff"}")))
+          ..order(ViewKeyObject_.key,
+              flags: (descending == true) ? Order.descending : 0))
+        .build();
+
+    return query.find().map<ViewKeyObject>((e) => e).toList();
+  }
+
+  @override
+  ViewKeyObject? getLastObject() {
+    Query query = (box.query(ViewKeyObject_.key.startsWith(tableName))
+          ..order(ViewKeyObject_.key, flags: Order.descending))
+        .build();
+    var docs = (query..limit = 1).find();
+    if (docs.length > 0) {
+      return docs[0];
+    }
+    return null;
+  }
+}
+
+class ObjectBoxDatabaseSession extends KeyValueDatabaseSession {
+  @override
+  var batch;
+
+  ObjectBoxDatabaseSession({required this.batch});
+}
+
+class ObjectBox implements KeyValueDatabase {
+  static Store? _store;
+  List<List<Object?>> batchResult = [];
+
+  Future<BaseObjectType> getObjectType(AbstractDataType type) async {
+    await _iniDatabase();
+    switch (type.runtimeType) {
+      case DocDataType:
+        return DocObjectType(store: _store!);
+      case LocalDocDataType:
+        return LocalDocObjectType(store: _store!);
+      case SequenceDataType:
+        return SequenceObjectType(store: _store!);
+      case ViewMetaDataType:
+        return ViewMetaObjectType(store: _store!);
+      case ViewIdDataType:
+        return ViewIdObjectType(store: _store!, tableName: type.type);
+      case ViewKeyDataType:
+        return ViewKeyObjectType(store: _store!, tableName: type.type);
+      default:
+        throw AdapterException(error: "Invalid DataType");
+    }
+  }
+
+  Future<void> _iniDatabase() async {
+    if (_store == null) {
+      _store = await openStore();
+    }
+  }
+
+  @override
+  Future<void> batchInsert(AbstractDataType type,
+      {required String key,
+      required Map<String, dynamic> object,
+      KeyValueDatabaseSession? session}) async {
+    BaseObjectType objectType = await getObjectType(type);
+    ObjectBoxEntity entity = objectType.formObject(key, object);
+    objectType.box.put(entity);
+  }
+
+  @override
+  Future<void> batchUpdate(AbstractDataType type,
+      {required String key,
+      required Map<String, dynamic> object,
+      KeyValueDatabaseSession? session}) async {
+    BaseObjectType objectType = await getObjectType(type);
+    ObjectBoxEntity? entity = objectType.getObjectByKey(key);
+    entity!.doc = object;
+    objectType.box.put(entity);
+  }
+
+  @override
+  Future<bool> delete(AbstractDataType type,
+      {required String key, KeyValueDatabaseSession? session}) async {
+    BaseObjectType objectType = await getObjectType(type);
+    ObjectBoxEntity? entity = objectType.getObjectByKey(key);
+    if (entity != null) {
+      objectType.box.remove(entity.id);
+    }
+    return true;
+  }
+
+  @override
+  Future<Map<String, dynamic>?> get(AbstractDataType type,
+      {required String key}) async {
+    BaseObjectType objectType = await getObjectType(type);
+    return objectType.getObjectByKey(key)?.doc;
+  }
+
+  @override
+  Future<MapEntry<String, dynamic>?> last(AbstractDataType type) async {
+    BaseObjectType objectType = await getObjectType(type);
+    ObjectBoxEntity? entity = objectType.getLastObject();
+
+    return entity != null ? MapEntry(entity.key!, entity.doc) : null;
+  }
+
+  @override
+  Future<bool> put(AbstractDataType type,
+      {required key,
+      required Map<String, dynamic> object,
+      KeyValueDatabaseSession? session}) async {
+    BaseObjectType objectType = await getObjectType(type);
+    ObjectBoxEntity? entity = objectType.getObjectByKey(key);
+    if (entity != null) {
+      entity.doc = object;
+    } else {
+      entity = objectType.formObject(key, object);
+    }
+    objectType.box.put(entity);
+    return true;
+  }
+
+  //toask : offset no need to implement?
+  @override
+  Future<ReadResult> read(AbstractDataType type,
+      {String? startkey, String? endkey, bool? desc}) async {
+    BaseObjectType objectType = await getObjectType(type);
+    List<ObjectBoxEntity> entities =
+        objectType.readObjectBetween(startkey, endkey, desc);
+    return ReadResult(
+        docs:
+            Map.fromIterable(entities, key: (e) => e.key, value: (e) => e.doc),
+        offset: 0,
+        totalRows: await tableSize(type));
+  }
+
+  @override
+  Future<List<Object?>> runInSession(
+      Function(KeyValueDatabaseSession session) runInTx) async {
+    // batchResult.add([]);
+    // ObjectBoxDatabaseSession session =
+    //     new ObjectBoxDatabaseSession(batch: batchResult.length - 1);
+    // _store!.runInTransaction(TxMode.write, () async {
+    //   await runInTx(session);
+    // }).then((value) => batchResult[session.batch]);
+    // throw AdapterException(error: "Failed in Transaction");
+
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<int> tableSize(AbstractDataType type) async {
+    BaseObjectType objectType = await getObjectType(type);
+    return objectType.box.count();
+  }
+
+  @override
+  Future<bool> deleteTable(AbstractDataType type) async {
+    BaseObjectType objectType = await getObjectType(type);
+    objectType.box.removeAll();
+    return true;
+  }
+
+  @override
+  Future<bool> deleteDatabase() async {
+    await _iniDatabase();
+    _store!.runInTransaction(TxMode.write, () {
+      _store!.box<DocObject>().removeAll();
+      _store!.box<LocalDocObject>().removeAll();
+      _store!.box<SequenceObject>().removeAll();
+      _store!.box<ViewMetaObject>().removeAll();
+      _store!.box<ViewKeyObject>().removeAll();
+      _store!.box<ViewIdObject>().removeAll();
+    });
+    return Future.value(true);
+  }
+}
