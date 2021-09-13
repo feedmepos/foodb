@@ -9,9 +9,11 @@ part of 'find.dart';
 FindRequest _$FindRequestFromJson(Map<String, dynamic> json) {
   return FindRequest(
     selector: json['selector'] as Map<String, dynamic>,
-    limit: json['limit'] as int,
+    limit: json['limit'] as int?,
     skip: json['skip'] as int?,
-    sort: (json['sort'] as List<dynamic>?)?.map((e) => e as Object).toList(),
+    sort: (json['sort'] as List<dynamic>?)
+        ?.map((e) => Map<String, String>.from(e as Map))
+        .toList(),
     fields:
         (json['fields'] as List<dynamic>?)?.map((e) => e as String).toList(),
     useIndex: json['use_index'],

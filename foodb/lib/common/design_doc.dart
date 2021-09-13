@@ -1,17 +1,18 @@
+import 'dart:ffi';
+
 import 'package:foodb/adapter/methods/index.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'design_doc.g.dart';
 
 class PartialFilterSelector {
-  Map<String, dynamic> value;
+  Map<String, dynamic> value = {};
+  Set<String> keys = {};
 
-  PartialFilterSelector({this.value = const {}});
-
-  Map<String, dynamic> rebuildSelector(Map<String, dynamic> json) {
+  Map<String, dynamic> generateSelector(Map<String, dynamic> json) {
     List<dynamic> subList = [];
     json.entries.forEach((element) {
-      subList.add(DFS(Map.fromEntries([element])));
+      subList.add(_rebuildDFS(Map.fromEntries([element])));
     });
     if (subList.length > 1)
       this.value = {CombinationOperator.and: subList};
@@ -21,12 +22,12 @@ class PartialFilterSelector {
     return this.value;
   }
 
-  Map<String, dynamic> DFS(Map<String, dynamic> json) {
+  Map<String, dynamic> _rebuildDFS(Map<String, dynamic> json) {
     for (MapEntry<String, dynamic> entry in json.entries) {
       if (entry.key == CombinationOperator.and) {
         List<dynamic> subList = [];
         entry.value.forEach((e) {
-          subList.add(DFS(e));
+          subList.add(_rebuildDFS(e));
         });
         if (this.value.length > 1) {
           this.value = {
@@ -44,6 +45,7 @@ class PartialFilterSelector {
         if (entry.value.length > 1) {
           List<dynamic> subList = [];
           entry.value.forEach((operator, arg) {
+            this.keys.add(entry.key);
             subList.add({
               entry.key: {operator: arg}
             });
@@ -51,10 +53,24 @@ class PartialFilterSelector {
 
           return <String, dynamic>{CombinationOperator.and: subList};
         }
+        this.keys.add(entry.key);
         return {entry.key: entry.value};
       }
     }
     return this.value;
+  }
+}
+
+class SelectorDecomposer {
+  Map<String, dynamic> value = {};
+  Set<String> keys = {};
+
+  Map<String, dynamic> decomposeSelector(Map<String, dynamic> json) {
+    return value;
+  }
+
+  Map<String, dynamic> _decomposeDFS(Map<String, dynamic> json) {
+    return value;
   }
 }
 

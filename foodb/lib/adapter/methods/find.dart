@@ -6,10 +6,10 @@ part 'find.g.dart';
 
 @JsonSerializable()
 class FindRequest {
-  Map<dynamic, dynamic> selector;
-  int limit;
+  Map<String, dynamic> selector;
+  int? limit;
   int? skip;
-  List<Object>? sort;
+  List<Map<String, String>>? sort;
   List<String>? fields;
 
   @JsonKey(name: 'use_index')

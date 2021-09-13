@@ -10,6 +10,7 @@ import 'package:foodb/adapter/methods/all_docs.dart';
 import 'package:foodb/adapter/methods/bulk_docs.dart';
 import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/adapter/methods/delete.dart';
+import 'package:foodb/adapter/methods/explain.dart';
 import 'package:foodb/adapter/methods/find.dart';
 import 'package:foodb/adapter/methods/index.dart';
 import 'package:foodb/adapter/methods/put.dart';
@@ -242,10 +243,25 @@ void main() async {
         await couchDb.find<Map<String, dynamic>>(
             FindRequest(selector: {
               '_id': {'\$regex': '^user'}
-            }),
+            }, sort: [
+              {"_id": "asc"}
+            ]),
             (json) => json);
     print(findResponse.docs);
     expect(findResponse.docs.length > 0, isTrue);
+  });
+
+  test('explain()', () async {
+    final CouchdbAdapter couchDb = getCouchDbAdapter();
+    await couchDb.createIndex(indexFields: ['_id']);
+    ExplainResponse explainResponse =
+        await couchDb.explain(FindRequest(selector: {
+      '_id': {'\$regex': '^user'}
+    }, sort: [
+      {"_id": "asc"}
+    ]));
+    print(explainResponse.toJson());
+    expect(explainResponse, isNotNull);
   });
 
   test('EnsureFullCommit In CouchDB adish', () async {
