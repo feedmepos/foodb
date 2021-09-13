@@ -91,9 +91,7 @@ class CouchdbAdapter extends AbstractAdapter {
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_changes')));
     uriBuilder.queryParameters = convertToParams(request.toJson());
 
-    var res = await changeClient
-        .send(Request('get', uriBuilder.build()))
-        .timeout(Duration(milliseconds: request.heartbeat + 100));
+    var res = await changeClient.send(Request('get', uriBuilder.build()));
     var streamedRes = res.stream.transform(utf8.decoder);
     var streamedResponse = ChangesStream(
         stream: streamedRes,
