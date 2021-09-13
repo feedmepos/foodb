@@ -1,3 +1,6 @@
+## 0.0.5
+* revert fix on change stream timeout
+
 ## 0.0.4
 * fix change stream timeout
 
