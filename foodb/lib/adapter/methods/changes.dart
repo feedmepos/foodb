@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/rendering.dart';
 import 'package:foodb/adapter/adapter.dart';
+import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/rev.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -25,7 +26,7 @@ class ChangeResult {
   String seq;
   bool? deleted;
   List<ChangeResultRev> changes;
-  Map<String, dynamic>? doc;
+  Doc<Map<String, dynamic>>? doc;
 
   ChangeResult({
     required this.id,

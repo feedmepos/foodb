@@ -25,7 +25,10 @@ ChangeResult _$ChangeResultFromJson(Map<String, dynamic> json) {
     changes: (json['changes'] as List<dynamic>)
         .map((e) => ChangeResultRev.fromJson(e as Map<String, dynamic>))
         .toList(),
-    doc: json['doc'] as Map<String, dynamic>?,
+    doc: json['doc'] == null
+        ? null
+        : Doc.fromJson(json['doc'] as Map<String, dynamic>,
+            (value) => value as Map<String, dynamic>),
   );
 }
 
@@ -35,7 +38,9 @@ Map<String, dynamic> _$ChangeResultToJson(ChangeResult instance) =>
       'seq': instance.seq,
       'deleted': instance.deleted,
       'changes': instance.changes.map((e) => e.toJson()).toList(),
-      'doc': instance.doc,
+      'doc': instance.doc?.toJson(
+        (value) => value,
+      ),
     };
 
 ChangeResponse _$ChangeResponseFromJson(Map<String, dynamic> json) {

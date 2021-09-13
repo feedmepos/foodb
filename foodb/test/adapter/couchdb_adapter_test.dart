@@ -3170,4 +3170,17 @@ void main() async {
             rev: Rev.fromString("525-bec841cd19a920a10dab9bb0c176e5c6"),
             model: json));
   });
+
+  test("change stream timeout", () async {
+    final CouchdbAdapter couchDb = getCouchDbAdapter();
+    final fn = expectAsync1((result) {
+      print(result);
+    });
+    couchDb
+        .changesStream(ChangeRequest(
+            feed: ChangeFeed.longpoll, includeDocs: true, timeout: 300))
+        .then((value) => value.listen(onResult: fn));
+    await Future.delayed(Duration(seconds: 1000));
+    await couchDb.put(doc: Doc(id: "a", model: {}));
+  });
 }
