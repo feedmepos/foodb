@@ -90,6 +90,13 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_dotenv:
+    dependency: "direct main"
+    description:
+      name: flutter_dotenv
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "5.0.2"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -101,7 +108,7 @@ packages:
       path: "../foodb"
       relative: true
     source: path
-    version: "0.0.2"
+    version: "0.0.5"
   foodb_objectbox_adapter:
     dependency: "direct main"
     description:

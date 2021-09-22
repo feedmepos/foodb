@@ -4,6 +4,7 @@ import 'package:foodb/adapter/key_value_adapter.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/rev.dart';
 import 'package:foodb/foodb.dart';
+import 'package:foodb_benchmark/replicator.dart';
 import 'package:foodb_objectbox_adapter/foodb_objectbox_adapter.dart';
 
 void main() {
@@ -268,6 +269,12 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
           ),
         ),
+        TextButton(
+            onPressed: () {
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => ReplicatorPage()));
+            },
+            child: Text('Go Replicator'))
       ]),
     );
   }
