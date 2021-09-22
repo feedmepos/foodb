@@ -25,8 +25,6 @@ import 'package:foodb/common/update_sequence.dart';
 import 'package:foodb/common/view_meta.dart';
 import 'package:meta/meta.dart';
 
-enum BatchExecuteType { DELETE, INSERT, UPDATE, PUT }
-
 class ReadResult {
   int totalRows;
   int offset;
@@ -36,10 +34,6 @@ class ReadResult {
     required this.offset,
     required this.docs,
   });
-}
-
-abstract class KeyValueDatabaseSession {
-  abstract var batch;
 }
 
 abstract class AbstractDataType {
@@ -74,41 +68,58 @@ class ViewKeyDataType extends AbstractDataType {
 }
 
 abstract class KeyValueDatabase {
-  Future<List<Object?>> runInSession(Function(KeyValueDatabaseSession session));
-
+  @protected
   Future<bool> put(AbstractDataType type,
-      {required key,
-      required Map<String, dynamic> object,
-      KeyValueDatabaseSession? session});
+      {required String key, required Map<String, dynamic> object});
 
-  Future<bool> delete(AbstractDataType type,
-      {required String key, KeyValueDatabaseSession? session});
+  @protected
+  Future<bool> putMany(AbstractDataType type,
+      {required Map<String, dynamic> objects});
 
+  @protected
+  Future<bool> delete(AbstractDataType type, {required String key});
+
+  @protected
+  Future<bool> deleteMany(AbstractDataType type, {required List<String> keys});
+
+  @protected
   Future<bool> deleteTable(AbstractDataType type);
 
+  @protected
   Future<bool> deleteDatabase();
 
+  @protected
   Future<Map<String, dynamic>?> get(AbstractDataType type,
       {required String key});
 
+  @protected
+  Future<Map<String, dynamic>> getMany(AbstractDataType type,
+      {required List<String> keys});
+
+  @protected
   Future<MapEntry<String, dynamic>?> last(AbstractDataType type);
 
+  @protected
   Future<ReadResult> read(AbstractDataType type,
       {String? startkey, String? endkey, bool? desc});
 
+  @protected
   Future<int> tableSize(AbstractDataType type);
 
   @protected
-  Future<void> batchInsert(AbstractDataType type,
-      {required String key,
-      required Map<String, dynamic> object,
-      KeyValueDatabaseSession? session});
+  Future<void> insert(AbstractDataType type,
+      {required String key, required Map<String, dynamic> object});
 
   @protected
-  Future<void> batchUpdate(AbstractDataType type,
-      {required String key,
-      required Map<String, dynamic> object,
-      KeyValueDatabaseSession? session});
+  Future<void> insertMany(AbstractDataType type,
+      {required Map<String, dynamic> objects});
+
+  @protected
+  Future<void> update(
+    AbstractDataType type, {
+    required String key,
+    required Map<String, dynamic> object,
+  });
 }
 
 abstract class JSRuntime {
@@ -121,19 +132,6 @@ class KeyValueAdapter extends AbstractAdapter {
 
   KeyValueAdapter({required dbName, required this.db, this.jsRuntime})
       : super(dbName: dbName);
-
-  // String get docTableName => 'foodb_${dbName}_docs';
-
-  // String get localDocTableName => 'foodb_${dbName}_local';
-
-  // String get sequenceTableName => 'foodb_${dbName}_sequences';
-
-  // String get viewMetaTableName => 'foodb_${dbName}_viewmeta';
-
-  // String viewIdTableName(String viewName) =>
-  //     'foodb_${dbName}_view_id_${viewName}';
-  // String viewKeyTableName(String viewName) =>
-  //     'foodb_${dbName}_view_key_${viewName}';
 
   StreamController<UpdateSequence> localChangeStreamController =
       StreamController.broadcast();
@@ -166,7 +164,11 @@ class KeyValueAdapter extends AbstractAdapter {
 
     List<AllDocRow<T>> rows = [];
     Iterable<MapEntry<String, dynamic>> filteredResult = result.docs.entries;
-
+    Map<String, dynamic>? mappedDocs;
+    if (allDocsRequest.includeDocs) {
+      mappedDocs = await db.getMany(DocDataType(),
+          keys: result.docs.keys.map((e) => ViewKey.fromString(e).id).toList());
+    }
     for (var e in filteredResult) {
       var key = ViewKey.fromString(e.key);
       AllDocRow<T> row = AllDocRow<T>(
@@ -175,8 +177,7 @@ class KeyValueAdapter extends AbstractAdapter {
         value: AllDocRowValue.fromJson(e.value['v']),
       );
       if (allDocsRequest.includeDocs) {
-        DocHistory docs =
-            DocHistory.fromJson((await db.get(DocDataType(), key: key.id))!);
+        DocHistory docs = DocHistory.fromJson(mappedDocs![key.id]);
         row.doc = docs.winner!.toDoc<T>(docs.id, fromJsonT);
       }
       rows.add(row);
@@ -187,18 +188,27 @@ class KeyValueAdapter extends AbstractAdapter {
   }
 
   @override
+  Future<Map<String, List<Doc<T>>>> bulkGet<T>(
+      {required List<Map<String, dynamic>> body,
+      bool revs = false,
+      bool latest = false,
+      required T Function(Map<String, dynamic> json) fromJsonT}) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<BulkDocResponse> bulkDocs(
       {required List<Doc<Map<String, dynamic>>> body,
       bool newEdits = false}) async {
-    List<BatchExecuteType> types = [];
     List<PutResponse> putResponses = [];
 
-    //List<Object?> result = await db.runInSession((session) async {
-    // create updateSequence object
     int newUpdateSeq =
         int.parse((await db.last(SequenceDataType()))?.key ?? "0");
 
-    for (var doc in body) {
+    List<String> deletedSequences = [];
+    Map<String, dynamic> insertedSequences = {};
+
+    await Future.forEach(body, (Doc<Map<String, dynamic>> doc) async {
       var history = await db.get(DocDataType(), key: doc.id);
       DocHistory docHistory = history == null
           ? DocHistory(id: doc.id, docs: {}, revisions: RevisionTree(nodes: []))
@@ -249,35 +259,25 @@ class KeyValueAdapter extends AbstractAdapter {
 
       // perform actual database operation
       if (winnerBeforeUpdate != null) {
+        // deletedSequences.add(winnerBeforeUpdate.localSeq!);
         await db.delete(SequenceDataType(), key: winnerBeforeUpdate.localSeq!);
-        types.add(BatchExecuteType.DELETE);
       }
-      await db.batchInsert(
-        SequenceDataType(),
-        key: newUpdateSeq.toString(),
-        object: newUpdateSeqObject.toJson(),
-      );
-      types.add(BatchExecuteType.INSERT);
+      //insertedSequences[newUpdateSeq.toString()] = newUpdateSeqObject.toJson();
+      await db.insert(SequenceDataType(), key: newUpdateSeq.toString(), object:  newUpdateSeqObject.toJson());
 
-      await db.put(
+      bool ok = await db.put(
         DocDataType(),
         key: doc.id,
         object: newDocHistoryObject.toJson(),
       );
-      localChangeStreamController.sink.add(newUpdateSeqObject);
-      types.add(BatchExecuteType.PUT);
 
-      putResponses
-          .add(PutResponse(ok: true, id: doc.id, rev: newDocObject.rev));
-    }
-    // });
-    //int index = 0;
-    // for (int i = 0; i < types.length; i++) {
-    //   if (types[i] == BatchExecuteType.PUT && result[i] != null) {
-    //     putResponses[index].ok = true;
-    //     index++;
-    //   }
-    // }
+      localChangeStreamController.sink.add(newUpdateSeqObject);
+
+      putResponses.add(PutResponse(ok: ok, id: doc.id, rev: newDocObject.rev));
+    });
+    //await db.deleteMany(SequenceDataType(), keys: deletedSequences);
+   // await db.insertMany(SequenceDataType(), objects: insertedSequences);
+
     return BulkDocResponse(putResponses: putResponses);
   }
 
@@ -561,30 +561,6 @@ class KeyValueAdapter extends AbstractAdapter {
         nodes: mappedRevision.values.map((e) => e).toList());
   }
 
-  // _generateUpdateSequence({
-  //   int? lastKey,
-  // }) {
-  //   var lastSeq = lastKey ?? '0-1';
-  //   return '${int.parse(lastSeq.split('-')[0]) + 1}-1';
-  // }
-
-  // InternalDoc? _retrieveDocBeforeUpdate({
-  //   newEdits = true,
-  //   required DocHistory docHistory,
-  //   Revisions? revisions,
-  // }) {
-  //   if (newEdits == true) {
-  //     return docHistory.winner;
-  //   } else {
-  //     if (revisions != null && revisions.ids.length > 1) {
-  //       return docHistory.docs[
-  //           Rev(index: revisions.start - 1, md5: revisions.ids[1]).toString()];
-  //     } else {
-  //       return null;
-  //     }
-  //   }
-  // }
-
   @override
   Future<PutResponse> putLocal(
       {required Doc<Map<String, dynamic>> doc, bool newEdits = true}) async {
@@ -685,14 +661,13 @@ class KeyValueAdapter extends AbstractAdapter {
         allLeafRev: newDocHistoryObject.leafDocs.map((e) => e.rev).toList());
 
     // perform actual database operation
-    //  await db.runInSession((session) async {
     if (winnerBeforeUpdate != null) {
       await db.delete(
         SequenceDataType(),
         key: winnerBeforeUpdate.localSeq!,
       );
     }
-    await db.batchInsert(
+    await db.insert(
       SequenceDataType(),
       key: newUpdateSeq.toString(),
       object: newUpdateSeqObject.toJson(),
@@ -705,7 +680,6 @@ class KeyValueAdapter extends AbstractAdapter {
     );
 
     localChangeStreamController.sink.add(newUpdateSeqObject);
-    //});
     return PutResponse(ok: true, id: doc.id, rev: newRev);
   }
 
@@ -713,13 +687,13 @@ class KeyValueAdapter extends AbstractAdapter {
   Future<Map<String, RevsDiff>> revsDiff(
       {required Map<String, List<String>> body}) async {
     Map<String, RevsDiff> revsDiff = {};
-    body.forEach((key, value) async {
+    await Future.forEach(body.keys, (String key) async {
       var result = await db.get(DocDataType(), key: key);
       DocHistory docHistory = result != null
           ? DocHistory.fromJson((await db.get(DocDataType(), key: key))!)
           : new DocHistory(
               id: key, docs: {}, revisions: RevisionTree(nodes: []));
-      revsDiff[key] = docHistory.revsDiff(value);
+      revsDiff[key] = docHistory.revsDiff(body[key]!);
     });
     return revsDiff;
   }
@@ -880,13 +854,13 @@ class KeyValueAdapter extends AbstractAdapter {
       }
       List<AllDocRow<Map<String, dynamic>>> rows = [];
 
-      // ReadResult readResult = await db.read(DocDataType());
+      Map<String, dynamic> map = await db.getMany(DocDataType(),
+          keys: result.docs.entries
+              .map<String>((e) => ViewKey.fromString(e.key).id)
+              .toList());
       for (var e in result.docs.entries) {
-        var key = ViewKey.fromString(e.key);
-        //DocHistory docs = DocHistory.fromJson(readResult.docs[key.id]);
-        DocHistory docs =
-            DocHistory.fromJson((await db.get(DocDataType(), key: key.id))!);
-
+        ViewKey key = ViewKey.fromString(e.key);
+        DocHistory docs = DocHistory.fromJson(map[key.id]);
         AllDocRow<Map<String, dynamic>> row = AllDocRow<Map<String, dynamic>>(
             id: key.id,
             key: key.key,
@@ -920,49 +894,51 @@ class KeyValueAdapter extends AbstractAdapter {
       stream.listen(
           onResult: (result) => {},
           onComplete: (resp) async {
-            //   await db.runInSession((session) async {
-            for (var result in resp.results) {
-              var history = DocHistory.fromJson(
-                  (await db.get(DocDataType(), key: result.id))!);
+            List<String> keys = resp.results.map((e) => e.id).toList();
+            Map<String, dynamic> mapResults =
+                await db.getMany(DocDataType(), keys: keys);
+            for (var id in keys) {
+              var history = DocHistory.fromJson(mapResults[id]);
               Map<String, dynamic>? viewId =
                   await db.get(ViewIdDataType(type: viewName), key: history.id);
               if (viewId != null) {
-                var viewDocMeta = ViewDocMeta.fromJson(viewId);
+                List<String> keysForDelete = [];
 
+                var viewDocMeta = ViewDocMeta.fromJson(viewId);
                 for (var key in viewDocMeta.keys) {
-                  await db.delete(
-                    ViewKeyDataType(type: viewName),
-                    key: key,
-                  );
+                  keysForDelete.add(key);
                 }
                 await db.delete(
                   ViewIdDataType(type: viewName),
                   key: history.id,
                 );
+                await db.deleteMany(ViewKeyDataType(type: viewName),
+                    keys: keysForDelete);
               }
 
               if (history.winner != null) {
                 var entries = _runMapper(view, history.id, history.winner);
                 if (entries != null) {
                   //change to put in batch
+                  Map<String, dynamic> mapForInsert = {};
                   for (var entry in entries) {
-                    await db.batchInsert(
-                      ViewKeyDataType(type: viewName),
-                      key: entry.key,
-                      object: {"v": entry.value},
-                    );
+                    mapForInsert[entry.key] = {"v": entry.value};
                   }
-                  await db.batchInsert(
+                  await db.insert(
                     ViewIdDataType(type: viewName),
                     key: history.id,
                     object:
                         ViewDocMeta(keys: entries.map((e) => e.key).toList())
                             .toJson(),
                   );
+
+                  await db.insertMany(
+                    ViewKeyDataType(type: viewName),
+                    objects: mapForInsert,
+                  );
                 }
               }
             }
-            //});
 
             c.complete(resp.lastSeq);
           });

@@ -63,26 +63,34 @@ class Replicator {
       try {
         int untilIndex = min(limit, dbChanges.length);
         List<ChangeResult> toProcess = dbChanges.sublist(0, untilIndex);
-
+        assert(complete == true || toProcess.length == limit);
+        
         this.sourceSequence =
             toProcess.isNotEmpty ? toProcess.last.seq : sourceInfo!.updateSeq;
         onData(toProcess);
 
         Map<String, List<String>> changes = await readBatchOfChanges(toProcess);
         onData(changes);
+        assert(complete == true || changes.length == limit);
 
         Map<String, RevsDiff> revsDiff =
             await calculateRevisionDifference(changes);
         onData(revsDiff);
+        assert(complete == true || revsDiff.length == limit);
+
 
         if (revsDiff.isNotEmpty) {
           List<Doc<Map<String, dynamic>>> docs =
               await fetchChangedDocuments(revsDiff: revsDiff);
           onData(docs);
+          assert(complete == true || docs.length == limit);
+
 
           BulkDocResponse? bulkDocResponse = await target.lock.synchronized(
               () async => await uploadBatchOfChangedDocuments(body: docs));
           onData(bulkDocResponse);
+          assert(complete == true || bulkDocResponse?.putResponses.length == limit);
+
 
           EnsureFullCommitResponse ensureFullCommitResponse =
               await target.ensureFullCommit();
@@ -101,30 +109,25 @@ class Replicator {
 
           PutResponse insertResponse = await target.lock
               .synchronized(() async => await recordReplicationCheckpoint());
+
           if (insertResponse.ok == true) {
             onData(insertResponse);
           }
         }
         dbChanges.removeRange(0, untilIndex);
         onData("One Cycle Completed");
+
         if (!this.live && this.complete!) {
           if (dbChanges.length == 0) {
             this.onComplete!("Completed");
           } else {
-            _runReplicationCycle(since, upperbound);
+            this.running = false;
+            await _runReplicationCycle(since, upperbound);
           }
         }
       } catch (error) {
         this.running = false;
         await errorCallback(since: since, error: error);
-
-        // this.cancel(since);
-        // this.onError(Exception(error), () {
-        //   live
-        //       ? _listenToContinuousChanges(since: since)
-        //       : _listenToNormalChanges(since: since, upperbound: upperbound!);
-        // });
-        //throw error;
       } finally {
         this.running = false;
       }
@@ -151,12 +154,13 @@ class Replicator {
                           int.parse(element.seq.split('-')[0]) <= upperboundInt)
                       .toList();
                 }
+
                 await _runReplicationCycle(since, upperbound);
 
                 if (!complete!) {
                   sourceInfo = await getSourceInformation();
                   await this.cancel(since);
-                  _listenToNormalChanges(
+                  await _listenToNormalChanges(
                       since: changeResponse.lastSeq!, upperbound: upperbound);
                 }
               } catch (error) {
@@ -185,9 +189,6 @@ class Replicator {
             }
           } catch (error) {
             await errorCallback(since: since, error: error);
-            // this.cancel(since);
-            // this.onError(Exception(error),
-            //     () => _listenToContinuousChanges(since: since));
           }
         });
         this.onCancels[since] = () async {
@@ -200,17 +201,10 @@ class Replicator {
           if (dbChanges.length > 0) _runReplicationCycle(since, "");
         } catch (error) {
           await errorCallback(since: since, error: error);
-
-          // this.cancel(since);
-          // this.onError(
-          //     Exception(e), () => _listenToContinuousChanges(since: since));
         }
       });
     } catch (error) {
       await errorCallback(since: since, error: error);
-      // this.cancel(since);
-      // this.onError(
-      //     Exception(error), () => _listenToContinuousChanges(since: since));
     }
   }
 
@@ -325,22 +319,33 @@ class Replicator {
 
   Future<List<Doc<Map<String, dynamic>>>> fetchChangedDocuments(
       {required Map<String, RevsDiff> revsDiff}) async {
-    List<Doc<Map<String, dynamic>>> bulkDocs = [];
+    List<Map<String, dynamic>> body = [];
+    revsDiff.forEach((key, value) {
+      value.missing.forEach((rev) {
+        body.add({"id": key, "rev": rev.toString()});
+      });
+    });
+    return (await source.bulkGet<Map<String, dynamic>>(
+            body: body, revs: true, latest: true, fromJsonT: (json) => json))
+        .values
+        .expand((doc) => doc)
+        .toList();
 
-    for (String key in revsDiff.keys.toList()) {
-      bulkDocs.addAll(await source.getWithOpenRev<Map<String, dynamic>>(
-          id: key,
-          openRevs: OpenRevs.byRevs(revs: revsDiff[key]!.missing),
-          revs: true,
-          latest: true,
-          fromJsonT: (value) {
-            value.remove("_id");
-            value.remove("_revisions");
-            value.remove("_rev");
-            return value;
-          }));
-    }
-    return bulkDocs;
+    // await Future.forEach(
+    //     revsDiff.keys,
+    //     (String key) async =>
+    //         bulkdocs.addAll(await source.getWithOpenRev<Map<String, dynamic>>(
+    //             id: key,
+    //             openRevs: OpenRevs.byRevs(revs: revsDiff[key]!.missing),
+    //             revs: true,
+    //             latest: true,
+    //             fromJsonT: (value) {
+    //               value.remove("_id");
+    //               value.remove("_revisions");
+    //               value.remove("_rev");
+    //               return value;
+    //             })));
+    // return bulkdocs;
   }
 
   Future<BulkDocResponse> uploadBatchOfChangedDocuments(
@@ -379,8 +384,8 @@ class Replicator {
         id: "_local/${replicationId!}",
         rev: replicationLog!.rev,
         model: replicationLog!.model.toJson());
-    // throw AdapterException(error: "Replicator error");
 
+    // throw AdapterException(error: "Replicator error");
     PutResponse putResponse =
         await target.putLocal(doc: newReplicationLog, newEdits: false);
     return putResponse;

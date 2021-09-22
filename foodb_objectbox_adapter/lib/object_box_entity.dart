@@ -19,6 +19,7 @@ abstract class ObjectBoxEntity {
 @Entity()
 class DocObject extends ObjectBoxEntity {
   @override
+  @Id(assignable: true)
   int id;
 
   @override
@@ -37,6 +38,7 @@ class DocObject extends ObjectBoxEntity {
 @Entity()
 class LocalDocObject extends ObjectBoxEntity {
   @override
+  @Id(assignable: true)
   int id;
 
   @override
@@ -74,6 +76,7 @@ class SequenceObject extends ObjectBoxEntity {
 @Entity()
 class ViewMetaObject extends ObjectBoxEntity {
   @override
+  @Id(assignable: true)
   int id;
 
   @override
@@ -92,6 +95,7 @@ class ViewMetaObject extends ObjectBoxEntity {
 @Entity()
 class ViewIdObject extends ObjectBoxEntity {
   @override
+  @Id(assignable: true)
   int id;
 
   @override
@@ -110,6 +114,7 @@ class ViewIdObject extends ObjectBoxEntity {
 @Entity()
 class ViewKeyObject extends ObjectBoxEntity {
   @override
+  @Id(assignable: true)
   int id;
 
   @override

@@ -304,18 +304,11 @@ class ViewKeyObjectType extends BaseObjectType {
   }
 }
 
-class ObjectBoxDatabaseSession extends KeyValueDatabaseSession {
-  @override
-  var batch;
-
-  ObjectBoxDatabaseSession({required this.batch});
-}
-
 class ObjectBox implements KeyValueDatabase {
   static Store? _store;
   List<List<Object?>> batchResult = [];
 
-  Future<BaseObjectType> getObjectType(AbstractDataType type) async {
+  Future<BaseObjectType> _getObjectType(AbstractDataType type) async {
     await _iniDatabase();
     switch (type.runtimeType) {
       case DocDataType:
@@ -342,47 +335,82 @@ class ObjectBox implements KeyValueDatabase {
   }
 
   @override
-  Future<void> batchInsert(AbstractDataType type,
-      {required String key,
-      required Map<String, dynamic> object,
-      KeyValueDatabaseSession? session}) async {
-    BaseObjectType objectType = await getObjectType(type);
+  Future<void> insert(AbstractDataType type,
+      {required String key, required Map<String, dynamic> object}) async {
+    BaseObjectType objectType = await _getObjectType(type);
     ObjectBoxEntity entity = objectType.formObject(key, object);
     objectType.box.put(entity);
   }
 
   @override
-  Future<void> batchUpdate(AbstractDataType type,
-      {required String key,
-      required Map<String, dynamic> object,
-      KeyValueDatabaseSession? session}) async {
-    BaseObjectType objectType = await getObjectType(type);
+  Future<void> insertMany(AbstractDataType type,
+      {required Map<String, dynamic> objects}) async {
+    BaseObjectType objectType = await _getObjectType(type);
+    objects.forEach((key,value) {
+      ObjectBoxEntity entity = objectType.formObject(key, value);
+      objectType.box.put(entity);
+    });
+  }
+
+  @override
+  Future<void> update(AbstractDataType type,
+      {required String key, required Map<String, dynamic> object}) async {
+    BaseObjectType objectType = await _getObjectType(type);
     ObjectBoxEntity? entity = objectType.getObjectByKey(key);
     entity!.doc = object;
     objectType.box.put(entity);
   }
 
   @override
-  Future<bool> delete(AbstractDataType type,
-      {required String key, KeyValueDatabaseSession? session}) async {
-    BaseObjectType objectType = await getObjectType(type);
+  Future<bool> delete(AbstractDataType type, {required String key}) async {
+    BaseObjectType objectType = await _getObjectType(type);
     ObjectBoxEntity? entity = objectType.getObjectByKey(key);
     if (entity != null) {
       objectType.box.remove(entity.id);
     }
+
+    return true;
+  }
+
+  @override
+  Future<bool> deleteMany(AbstractDataType type,
+      {required List<String> keys}) async {
+    BaseObjectType objectType = await _getObjectType(type);
+    List<int> ids = [];
+    keys.forEach((key) {
+      ObjectBoxEntity? entity = objectType.getObjectByKey(key);
+      if (entity != null) {
+        ids.add(entity.id);
+      }
+    });
+    objectType.box.removeMany(ids);
     return true;
   }
 
   @override
   Future<Map<String, dynamic>?> get(AbstractDataType type,
       {required String key}) async {
-    BaseObjectType objectType = await getObjectType(type);
+    BaseObjectType objectType = await _getObjectType(type);
     return objectType.getObjectByKey(key)?.doc;
   }
 
   @override
+  Future<Map<String, dynamic>> getMany(AbstractDataType type,
+      {required List<String> keys}) async {
+    BaseObjectType objectType = await _getObjectType(type);
+    
+    Map<String, dynamic> map = {};
+    
+   keys.forEach((key) {
+      map.putIfAbsent(key, () => objectType.getObjectByKey(key)?.doc);
+    });
+
+    return map;
+  }
+
+  @override
   Future<MapEntry<String, dynamic>?> last(AbstractDataType type) async {
-    BaseObjectType objectType = await getObjectType(type);
+    BaseObjectType objectType = await _getObjectType(type);
     ObjectBoxEntity? entity = objectType.getLastObject();
 
     return entity != null ? MapEntry(entity.key!, entity.doc) : null;
@@ -390,10 +418,8 @@ class ObjectBox implements KeyValueDatabase {
 
   @override
   Future<bool> put(AbstractDataType type,
-      {required key,
-      required Map<String, dynamic> object,
-      KeyValueDatabaseSession? session}) async {
-    BaseObjectType objectType = await getObjectType(type);
+      {required String key, required Map<String, dynamic> object}) async {
+    BaseObjectType objectType = await _getObjectType(type);
     ObjectBoxEntity? entity = objectType.getObjectByKey(key);
     if (entity != null) {
       entity.doc = object;
@@ -404,43 +430,45 @@ class ObjectBox implements KeyValueDatabase {
     return true;
   }
 
+  @override
+  Future<bool> putMany(AbstractDataType type,
+      {required Map<String, dynamic> objects}) async {
+    BaseObjectType objectType = await _getObjectType(type);
+    objects.forEach((key,value) {
+      ObjectBoxEntity? entity = objectType.getObjectByKey(key);
+      if (entity != null) {
+        entity.doc = value;
+      } else {
+        entity = objectType.formObject(key, value);
+      }
+      objectType.box.put(entity);
+    });
+
+    return true;
+  }
+
   //toask : offset no need to implement?
   @override
   Future<ReadResult> read(AbstractDataType type,
       {String? startkey, String? endkey, bool? desc}) async {
-    BaseObjectType objectType = await getObjectType(type);
+    BaseObjectType objectType = await _getObjectType(type);
     List<ObjectBoxEntity> entities =
         objectType.readObjectBetween(startkey, endkey, desc);
     return ReadResult(
-        docs:
-            Map.fromIterable(entities, key: (e) => e.key, value: (e) => e.doc),
+        docs: Map.fromIterable(entities, key: (e) => e.key, value: (e) => e.doc),
         offset: 0,
         totalRows: await tableSize(type));
   }
 
   @override
-  Future<List<Object?>> runInSession(
-      Function(KeyValueDatabaseSession session) runInTx) async {
-    // batchResult.add([]);
-    // ObjectBoxDatabaseSession session =
-    //     new ObjectBoxDatabaseSession(batch: batchResult.length - 1);
-    // _store!.runInTransaction(TxMode.write, () async {
-    //   await runInTx(session);
-    // }).then((value) => batchResult[session.batch]);
-    // throw AdapterException(error: "Failed in Transaction");
-
-    throw UnimplementedError();
-  }
-
-  @override
   Future<int> tableSize(AbstractDataType type) async {
-    BaseObjectType objectType = await getObjectType(type);
+    BaseObjectType objectType = await _getObjectType(type);
     return objectType.box.count();
   }
 
   @override
   Future<bool> deleteTable(AbstractDataType type) async {
-    BaseObjectType objectType = await getObjectType(type);
+    BaseObjectType objectType = await _getObjectType(type);
     objectType.box.removeAll();
     return true;
   }
@@ -448,7 +476,7 @@ class ObjectBox implements KeyValueDatabase {
   @override
   Future<bool> deleteDatabase() async {
     await _iniDatabase();
-    _store!.runInTransaction(TxMode.write, () {
+    await _store!.runInTransaction(TxMode.write, () {
       _store!.box<DocObject>().removeAll();
       _store!.box<LocalDocObject>().removeAll();
       _store!.box<SequenceObject>().removeAll();

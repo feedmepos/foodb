@@ -1,28 +1,28 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodb/adapter/key_value_adapter.dart';
+import 'package:foodb/adapter/methods/bulk_docs.dart';
+import 'package:foodb/common/doc.dart';
 import 'package:foodb_objectbox_adapter/foodb_objectbox_adapter.dart';
-import 'package:foodb_objectbox_adapter/object_box_entity.dart';
-import 'package:foodb_objectbox_adapter/objectbox.g.dart';
 
 void main() async {
-  test("time needed to run OpenStore()", () async {
-    Stopwatch stopwatch = new Stopwatch();
-    stopwatch.start();
-    Store store = await openStore();
-    stopwatch.stop();
-    print(stopwatch.elapsedMilliseconds);
-    expect(store, isNotNull);
-  });
+  // test("time needed to run OpenStore()", () async {
+  //   Stopwatch stopwatch = new Stopwatch();
+  //   stopwatch.start();
+  //   Store store = await openStore();
+  //   stopwatch.stop();
+  //   print(stopwatch.elapsedMilliseconds);
+  //   expect(store, isNotNull);
+  // });
 
-  test("time needed to get box", () async {
-    Stopwatch stopwatch = new Stopwatch();
-    Store store = await openStore();
-    stopwatch.start();
-    Box box = store.box<DocObject>();
-    stopwatch.stop();
-    print(stopwatch.elapsedMilliseconds);
-    expect(store, isNotNull);
-  });
+  // test("time needed to get box", () async {
+  //   Stopwatch stopwatch = new Stopwatch();
+  //   Store store = await openStore();
+  //   stopwatch.start();
+  //   Box box = store.box<DocObject>();
+  //   stopwatch.stop();
+  //   print(stopwatch.elapsedMilliseconds);
+  //   expect(store, isNotNull);
+  // });
 
   test("put(), get()", () async {
     ObjectBox objectBox = new ObjectBox();
@@ -105,5 +105,179 @@ void main() async {
     expect(result, equals(0));
     int result2 = await objectBox.tableSize(DocDataType());
     expect(result2, equals(0));
+  });
+
+  test("bulkdocs performance", () async {
+    KeyValueAdapter keyValueAdapter =
+        new KeyValueAdapter(dbName: 'test', db: ObjectBox());
+    await keyValueAdapter.destroy();
+    Stopwatch stopwatch = new Stopwatch();
+    stopwatch.start();
+    BulkDocResponse bulkDocResponse = await keyValueAdapter.bulkDocs(body: [
+      Doc(id: "1", model: {"name": 1}),
+      Doc(id: "2", model: {"name": 1}),
+      Doc(id: "3", model: {"name": 3}),
+      Doc(id: "4", model: {"name": 1}),
+      Doc(id: "5", model: {"name": 1}),
+      Doc(id: "6", model: {"name": 3})
+    ], newEdits: true);
+    stopwatch.stop();
+    print(stopwatch.elapsedMilliseconds);
+    expect(bulkDocResponse.putResponses.length, 6);
+    expect(bulkDocResponse.putResponses[0].ok, true);
+    expect(bulkDocResponse.putResponses[1].ok, true);
+    expect(bulkDocResponse.putResponses[2].ok, true);
+    expect(bulkDocResponse.putResponses[3].ok, true);
+    expect(bulkDocResponse.putResponses[4].ok, true);
+    expect(bulkDocResponse.putResponses[5].ok, true);
+  });
+  group("delete vs delete many", () {
+    ObjectBox objectBox = new ObjectBox();
+
+    setUp(() async {
+      await objectBox.deleteDatabase();
+      await objectBox.put(DocDataType(), key: "1", object: {"name": "1"});
+      await objectBox.put(DocDataType(), key: "2", object: {"name": "1"});
+      await objectBox.put(DocDataType(), key: "3", object: {"name": "1"});
+      await objectBox.put(DocDataType(), key: "4", object: {"name": "1"});
+      await objectBox.put(DocDataType(), key: "5", object: {"name": "1"});
+      await objectBox.put(DocDataType(), key: "6", object: {"name": "1"});
+    });
+    test("delete", () async {
+      Stopwatch stopwatch = new Stopwatch();
+      stopwatch.start();
+      await objectBox.delete(DocDataType(), key: "1");
+      await objectBox.delete(DocDataType(), key: "2");
+      await objectBox.delete(DocDataType(), key: "3");
+      await objectBox.delete(DocDataType(), key: "4");
+      await objectBox.delete(DocDataType(), key: "5");
+      await objectBox.delete(DocDataType(), key: "6");
+      stopwatch.stop();
+      print(stopwatch.elapsedMilliseconds);
+      ReadResult readResult = await objectBox.read(DocDataType());
+      expect(readResult.docs.length, 0);
+    });
+    test("deleteMany", () async {
+      Stopwatch stopwatch = new Stopwatch();
+      stopwatch.start();
+      await objectBox
+          .deleteMany(DocDataType(), keys: ["1", "2", "3", "4", "5", "6"]);
+      stopwatch.stop();
+      print(stopwatch.elapsedMilliseconds);
+      ReadResult readResult = await objectBox.read(DocDataType());
+      expect(readResult.docs.length, 0);
+    });
+  });
+
+  group("insert vs insert many", () {
+    ObjectBox objectBox = new ObjectBox();
+
+    setUp(() async {
+      await objectBox.deleteDatabase();
+    });
+    test("insert", () async {
+      Stopwatch stopwatch = new Stopwatch();
+      stopwatch.start();
+      await objectBox.insert(DocDataType(), key: "1", object: {"name": "1"});
+      await objectBox.insert(DocDataType(), key: "2", object: {"name": "1"});
+      await objectBox.insert(DocDataType(), key: "3", object: {"name": "1"});
+      await objectBox.insert(DocDataType(), key: "4", object: {"name": "1"});
+      await objectBox.insert(DocDataType(), key: "5", object: {"name": "1"});
+      await objectBox.insert(DocDataType(), key: "6", object: {"name": "1"});
+      stopwatch.stop();
+      print(stopwatch.elapsedMilliseconds);
+      ReadResult readResult = await objectBox.read(DocDataType());
+      expect(readResult.docs.length, 6);
+    });
+    test("insertMany", () async {
+      Stopwatch stopwatch = new Stopwatch();
+      stopwatch.start();
+      await objectBox.insertMany(DocDataType(), objects: {
+        "1": {"name": "1"},
+        "2": {"name": "1"},
+        "3": {"name": "1"},
+        "4": {"name": "1"},
+        "5": {"name": "1"},
+        "6": {"name": "1"}
+      });
+      stopwatch.stop();
+      print(stopwatch.elapsedMilliseconds);
+      ReadResult readResult = await objectBox.read(DocDataType());
+      expect(readResult.docs.length, 6);
+    });
+  });
+  group("put vs put many", () {
+    ObjectBox objectBox = new ObjectBox();
+
+    setUp(() async {
+      await objectBox.deleteDatabase();
+    });
+    test("put", () async {
+      Stopwatch stopwatch = new Stopwatch();
+      stopwatch.start();
+      await objectBox.put(DocDataType(), key: "1", object: {"name": "1"});
+      await objectBox.put(DocDataType(), key: "2", object: {"name": "1"});
+      await objectBox.put(DocDataType(), key: "3", object: {"name": "1"});
+      await objectBox.put(DocDataType(), key: "4", object: {"name": "1"});
+      await objectBox.put(DocDataType(), key: "5", object: {"name": "1"});
+      await objectBox.put(DocDataType(), key: "6", object: {"name": "1"});
+      stopwatch.stop();
+      print(stopwatch.elapsedMilliseconds);
+      ReadResult readResult = await objectBox.read(DocDataType());
+      expect(readResult.docs.length, 6);
+    });
+    test("putMany", () async {
+      Stopwatch stopwatch = new Stopwatch();
+      stopwatch.start();
+      await objectBox.putMany(DocDataType(), objects: {
+        "1": {"name": "1"},
+        "2": {"name": "1"},
+        "3": {"name": "1"},
+        "4": {"name": "1"},
+        "5": {"name": "1"},
+        "6": {"name": "1"}
+      });
+      stopwatch.stop();
+      print(stopwatch.elapsedMilliseconds);
+      ReadResult readResult = await objectBox.read(DocDataType());
+      expect(readResult.docs.length, 6);
+    });
+  });
+
+  group("get vs get many", () {
+    ObjectBox objectBox = new ObjectBox();
+
+    setUp(() async {
+      await objectBox.deleteDatabase();
+      await objectBox.put(DocDataType(), key: "1", object: {"name": "1"});
+      await objectBox.put(DocDataType(), key: "2", object: {"name": "1"});
+      await objectBox.put(DocDataType(), key: "3", object: {"name": "1"});
+      await objectBox.put(DocDataType(), key: "4", object: {"name": "1"});
+      await objectBox.put(DocDataType(), key: "5", object: {"name": "1"});
+      await objectBox.put(DocDataType(), key: "6", object: {"name": "1"});
+    });
+    test("get", () async {
+      Stopwatch stopwatch = new Stopwatch();
+      stopwatch.start();
+      await objectBox.get(DocDataType(), key: "1");
+      await objectBox.get(DocDataType(), key: "2");
+      await objectBox.get(DocDataType(), key: "3");
+      await objectBox.get(DocDataType(), key: "4");
+      await objectBox.get(DocDataType(), key: "5");
+      await objectBox.get(DocDataType(), key: "6");
+      stopwatch.stop();
+      print(stopwatch.elapsedMilliseconds);
+      ReadResult readResult = await objectBox.read(DocDataType());
+      expect(readResult.docs.length, 6);
+    });
+    test("getMany", () async {
+      Stopwatch stopwatch = new Stopwatch();
+      stopwatch.start();
+      Map<String, dynamic>? map = await objectBox
+          .getMany(DocDataType(), keys: ["1", "2", "3", "4", "5", "6"]);
+      stopwatch.stop();
+      print(stopwatch.elapsedMilliseconds);
+      expect(map?.length, 6);
+    });
   });
 }

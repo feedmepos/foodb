@@ -62,6 +62,7 @@ class ChangesStream {
       Function(ChangeResult)? onResult,
       Function? onHearbeat}) {
     String cache = "";
+    String lastSeq = "";
     _subscription = _stream.listen((event) {
       // is heartbeat
       if (event.trim() == '') {
@@ -69,18 +70,24 @@ class ChangesStream {
       }
       cache = cache + event;
       var splitted = cache.split('\n').map((e) => e.trim());
+
       // is result
-      var changeResults =
-          splitted.where((element) => RegExp("^{.*},?\$").hasMatch(element));
       try {
+        var changeResults =
+            splitted.where((element) => RegExp("^{.*},?\$").hasMatch(element));
         changeResults.forEach((element) {
-          print(element);
           var result = ChangeResult.fromJson(
               jsonDecode(element.replaceAll(RegExp(",\$"), "")));
-
           if (_feed != ChangeFeed.continuous) _results.add(result);
           if (onResult != null) onResult(result);
-          cache = "";
+        });
+
+        cache = "";
+
+        var incompleteResults =
+            splitted.where((element) => !RegExp("^{.*},?\$").hasMatch(element));
+        incompleteResults.forEach((element) {
+          cache = cache + "\n" + element;
         });
       } catch (e) {
         print(e);
@@ -88,13 +95,25 @@ class ChangesStream {
 
       // is completed
       splitted.forEach((element) {
-        if (element.startsWith("\"last_seq\"")) {
-          element = "{" + element;
-          Map<String, dynamic> map = jsonDecode(element);
-          ChangeResponse changeResponse = new ChangeResponse(results: _results);
-          changeResponse.lastSeq = map['last_seq'];
-          changeResponse.pending = map['pending'];
-          if (onComplete != null) onComplete(changeResponse);
+        if (element.startsWith("\"last_seq\"") || lastSeq.length > 0) {
+          try {
+            if (element.startsWith("\"last_seq\"")) {
+              element = "{" + element;
+            }
+            lastSeq = lastSeq + element;
+
+            Map<String, dynamic> map = jsonDecode(lastSeq);
+            ChangeResponse changeResponse =
+                new ChangeResponse(results: _results);
+            changeResponse.lastSeq = map['last_seq'];
+            changeResponse.pending = map['pending'];
+
+            lastSeq = "";
+
+            if (onComplete != null) onComplete(changeResponse);
+          } catch (e) {
+            print(e);
+          }
         }
       });
     });

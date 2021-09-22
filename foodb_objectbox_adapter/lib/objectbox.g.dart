@@ -24,7 +24,7 @@ final _entities = <ModelEntity>[
             id: const IdUid(1, 1781864446410536219),
             name: 'id',
             type: 6,
-            flags: 1),
+            flags: 129),
         ModelProperty(
             id: const IdUid(3, 4226611598113381983),
             name: 'value',
@@ -49,7 +49,7 @@ final _entities = <ModelEntity>[
             id: const IdUid(1, 3935624190090915669),
             name: 'id',
             type: 6,
-            flags: 1),
+            flags: 129),
         ModelProperty(
             id: const IdUid(3, 684882806072693233),
             name: 'value',
@@ -99,7 +99,7 @@ final _entities = <ModelEntity>[
             id: const IdUid(1, 2851309909731352415),
             name: 'id',
             type: 6,
-            flags: 1),
+            flags: 129),
         ModelProperty(
             id: const IdUid(3, 5487010102948749176),
             name: 'value',
@@ -124,7 +124,7 @@ final _entities = <ModelEntity>[
             id: const IdUid(1, 5455334887915348687),
             name: 'id',
             type: 6,
-            flags: 1),
+            flags: 129),
         ModelProperty(
             id: const IdUid(3, 2769170428104305903),
             name: 'value',
@@ -149,7 +149,7 @@ final _entities = <ModelEntity>[
             id: const IdUid(1, 2903015649845273127),
             name: 'id',
             type: 6,
-            flags: 1),
+            flags: 129),
         ModelProperty(
             id: const IdUid(3, 2511425265660318828),
             name: 'value',

@@ -47,6 +47,39 @@ class CouchdbAdapter extends AbstractAdapter {
   }
 
   @override
+  Future<Map<String, List<Doc<T>>>> bulkGet<T>(
+      {required List<Map<String, dynamic>> body,
+      bool revs = false,
+      bool latest=false,
+      required T Function(Map<String, dynamic> json) fromJsonT}) async {
+    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_bulk_get')));
+    uriBuilder.queryParameters = convertToParams({"revs": revs,"latest":latest});
+    var response = (await this.client.post(uriBuilder.build(),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: jsonEncode({
+          "docs": body
+              .map((e) => (e.containsKey("rev")
+                  ? {...e, "rev": e["rev"].toString()}
+                  : e))
+              .toList()
+        })));
+    if (response.statusCode == 200) {
+      var list = jsonDecode(response.body)["results"];
+      return Map.fromIterable(list,
+          key: (idDoc) => idDoc["id"],
+          value: (idDoc) => idDoc["docs"]
+              .where((item) => item.containsKey("ok") == true)
+              .map<Doc<T>>((doc) => Doc<T>.fromJson(
+                  doc["ok"], (json) => fromJsonT(json as Map<String, dynamic>)))
+              .toList());
+    }
+    throw AdapterException(error: "Invalid Status Code");
+  }
+
+  @override
   Future<BulkDocResponse> bulkDocs(
       {required List<Doc<Map<String, dynamic>>> body,
       bool newEdits = false}) async {
@@ -69,20 +102,10 @@ class CouchdbAdapter extends AbstractAdapter {
       }
       return BulkDocResponse(putResponses: putResponses);
     } else {
+      print(response.body);
       throw AdapterException(
           error: 'Invalid status code', reason: response.statusCode.toString());
     }
-  }
-
-  Future<Stream> changesStreamTemp(ChangeRequest request) async {
-    var changeClient = getClient();
-    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_changes')));
-    uriBuilder.queryParameters = convertToParams(request.toJson());
-
-    var res = await changeClient.send(Request('get', uriBuilder.build()));
-    var streamedRes = res.stream.transform(utf8.decoder);
-
-    return streamedRes;
   }
 
   @override
@@ -184,12 +207,19 @@ class CouchdbAdapter extends AbstractAdapter {
             .client
             .get(uriBuilder.build(), headers: {'Accept': 'application/json'}))
         .body;
-    List<Doc<T>> results = jsonDecode(response)
-        .where((value) => value.containsKey("ok") == true)
-        .map<Doc<T>>((value) => Doc<T>.fromJson(
-            value["ok"], (json) => fromJsonT(json as Map<String, dynamic>)))
-        .toList();
-    return results;
+    var map = jsonDecode(response);
+    if (map.runtimeType == List) {
+      List<Doc<T>> results = map
+          .where((value) => value.containsKey("ok") == true)
+          .map<Doc<T>>((value) => Doc<T>.fromJson(
+              value["ok"], (json) => fromJsonT(json as Map<String, dynamic>)))
+          .toList();
+
+      return results;
+    } else {
+      print(id);
+      throw AdapterException(error: 'I donno what the fuck happenned');
+    }
   }
 
   @override

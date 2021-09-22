@@ -90,6 +90,12 @@ abstract class AbstractAdapter {
   Future<Map<String, RevsDiff>> revsDiff(
       {required Map<String, List<String>> body});
 
+  Future<Map<String, List<Doc<T>>>> bulkGet<T>(
+      {required List<Map<String, dynamic>> body,
+      bool revs = false,
+      bool latest =false,
+      required T Function(Map<String, dynamic> json) fromJsonT});
+
   Future<BulkDocResponse> bulkDocs(
       {required List<Doc<Map<String, dynamic>>> body, bool newEdits = false});
 
