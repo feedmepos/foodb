@@ -5,6 +5,7 @@ import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/exception.dart';
 import 'package:foodb/adapter/methods/all_docs.dart';
 import 'package:foodb/adapter/methods/bulk_docs.dart';
+import 'package:foodb/adapter/methods/bulk_get.dart';
 import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/adapter/methods/delete.dart';
 import 'package:foodb/adapter/methods/ensure_full_commit.dart';
@@ -47,13 +48,14 @@ class CouchdbAdapter extends AbstractAdapter {
   }
 
   @override
-  Future<Map<String, List<Doc<T>>>> bulkGet<T>(
+  Future<BulkGetResponse<T>> bulkGet<T>(
       {required List<Map<String, dynamic>> body,
       bool revs = false,
-      bool latest=false,
+      bool latest = false,
       required T Function(Map<String, dynamic> json) fromJsonT}) async {
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_bulk_get')));
-    uriBuilder.queryParameters = convertToParams({"revs": revs,"latest":latest});
+    uriBuilder.queryParameters =
+        convertToParams({"revs": revs, "latest": latest});
     var response = (await this.client.post(uriBuilder.build(),
         headers: {
           'Content-Type': 'application/json',
@@ -67,14 +69,15 @@ class CouchdbAdapter extends AbstractAdapter {
               .toList()
         })));
     if (response.statusCode == 200) {
-      var list = jsonDecode(response.body)["results"];
-      return Map.fromIterable(list,
-          key: (idDoc) => idDoc["id"],
-          value: (idDoc) => idDoc["docs"]
-              .where((item) => item.containsKey("ok") == true)
-              .map<Doc<T>>((doc) => Doc<T>.fromJson(
-                  doc["ok"], (json) => fromJsonT(json as Map<String, dynamic>)))
-              .toList());
+      // var list = jsonDecode(response.body)["results"];
+      return BulkGetResponse<T>.fromJson(jsonDecode(response.body), (json) => fromJsonT(json as Map<String,dynamic>));
+      // .fromIterable(list,
+      //     key: (idDoc) => idDoc["id"],
+      //     value: (idDoc) => idDoc["docs"]
+      //         .where((item) => item.containsKey("ok") == true)
+      //         .map<Doc<T>>((doc) => Doc<T>.fromJson(
+      //             doc["ok"], (json) => fromJsonT(json as Map<String, dynamic>)))
+      //         .toList());
     }
     throw AdapterException(error: "Invalid Status Code");
   }

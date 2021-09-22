@@ -8,6 +8,7 @@ import 'package:foodb/adapter/couchdb_adapter.dart';
 import 'package:foodb/adapter/exception.dart';
 import 'package:foodb/adapter/methods/all_docs.dart';
 import 'package:foodb/adapter/methods/bulk_docs.dart';
+import 'package:foodb/adapter/methods/bulk_get.dart';
 import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/adapter/methods/delete.dart';
 import 'package:foodb/adapter/methods/explain.dart';
@@ -78,7 +79,7 @@ void main() async {
           newEdits: false);
     });
     test("getDocs with revs =true", () async {
-      Map<String, List<Doc<Map<String, dynamic>>>> docs =
+      BulkGetResponse<Map<String,dynamic>> response =
           await couchdb.bulkGet<Map<String, dynamic>>(body: [
         {"id": "a", "rev": Rev.fromString("1-aa")},
         {"id": "a", "rev": Rev.fromString("1-a")},
@@ -87,8 +88,8 @@ void main() async {
         {"id": "c", "rev": Rev.fromString("1-c")}
       ], fromJsonT: (json) => json, revs: true);
 
-      print(docs);
-      expect(docs.length, 3);
+      print(response.toJson((json)=>json));
+      expect(response.results.length, 3);
     });
   });
 

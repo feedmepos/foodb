@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/methods/bulk_docs.dart';
+import 'package:foodb/adapter/methods/bulk_get.dart';
 import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/adapter/methods/ensure_full_commit.dart';
 import 'package:foodb/adapter/methods/info.dart';
@@ -63,34 +64,26 @@ class Replicator {
       try {
         int untilIndex = min(limit, dbChanges.length);
         List<ChangeResult> toProcess = dbChanges.sublist(0, untilIndex);
-        assert(complete == true || toProcess.length == limit);
-        
+
         this.sourceSequence =
             toProcess.isNotEmpty ? toProcess.last.seq : sourceInfo!.updateSeq;
         onData(toProcess);
 
         Map<String, List<String>> changes = await readBatchOfChanges(toProcess);
         onData(changes);
-        assert(complete == true || changes.length == limit);
 
         Map<String, RevsDiff> revsDiff =
             await calculateRevisionDifference(changes);
         onData(revsDiff);
-        assert(complete == true || revsDiff.length == limit);
-
 
         if (revsDiff.isNotEmpty) {
           List<Doc<Map<String, dynamic>>> docs =
               await fetchChangedDocuments(revsDiff: revsDiff);
           onData(docs);
-          assert(complete == true || docs.length == limit);
-
 
           BulkDocResponse? bulkDocResponse = await target.lock.synchronized(
               () async => await uploadBatchOfChangedDocuments(body: docs));
           onData(bulkDocResponse);
-          assert(complete == true || bulkDocResponse?.putResponses.length == limit);
-
 
           EnsureFullCommitResponse ensureFullCommitResponse =
               await target.ensureFullCommit();
@@ -325,27 +318,20 @@ class Replicator {
         body.add({"id": key, "rev": rev.toString()});
       });
     });
-    return (await source.bulkGet<Map<String, dynamic>>(
-            body: body, revs: true, latest: true, fromJsonT: (json) => json))
-        .values
-        .expand((doc) => doc)
-        .toList();
+    return
+        (await source.bulkGet<Map<String, dynamic>>(
+                body: body,
+                revs: true,
+                latest: true,
+                fromJsonT: (json) => json))
+            .results
+            .expand((BulkGetIdDocs<Map<String,dynamic>> result) => result
+                .docs.where((BulkGetDoc<Map<String,dynamic>> item) => item.doc!=null)
+                .expand(
+                    (BulkGetDoc<Map<String,dynamic>> item) => [item.doc!])
+                .toList())
+            .toList();
 
-    // await Future.forEach(
-    //     revsDiff.keys,
-    //     (String key) async =>
-    //         bulkdocs.addAll(await source.getWithOpenRev<Map<String, dynamic>>(
-    //             id: key,
-    //             openRevs: OpenRevs.byRevs(revs: revsDiff[key]!.missing),
-    //             revs: true,
-    //             latest: true,
-    //             fromJsonT: (value) {
-    //               value.remove("_id");
-    //               value.remove("_revisions");
-    //               value.remove("_rev");
-    //               return value;
-    //             })));
-    // return bulkdocs;
   }
 
   Future<BulkDocResponse> uploadBatchOfChangedDocuments(

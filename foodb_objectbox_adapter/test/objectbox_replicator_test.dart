@@ -72,8 +72,8 @@ void main() async {
   }, timeout: Timeout.none);
 
   test('check replicator with 2 couchdb', () async {
-    await getLocalCouchDbAdapter().destroy();
-    await getLocalCouchDbAdapter().init();
+    await getLocalCouchDbAdapter(dbName: "tenk").destroy();
+    await getLocalCouchDbAdapter(dbName: "tenk").init();
 
     var fn = expectAsync1((result) {
       print("in fn");
@@ -81,8 +81,8 @@ void main() async {
     });
 
     Replicator(
-            source: getLocalCouchDbAdapter(dbName: 'restaurant'),
-            target: getLocalCouchDbAdapter())
+            source: getCouchDbAdapter(dbName: 'tenk'),
+            target: getLocalCouchDbAdapter(dbName: "tenk"))
         .replicate(
             live: false,
             limit: 5000,
@@ -616,7 +616,7 @@ void main() async {
   }, timeout: Timeout.none);
 
   test("check total docs replicated", () async {
-    final objectBox = KeyValueAdapter(dbName: "fortyk", db: getObjectBox());
+    final objectBox = KeyValueAdapter(dbName: "tenk", db: getObjectBox());
     final GetAllDocsResponse response =
         await objectBox.allDocs(GetAllDocsRequest(), (json) => json);
     print(response.toJson((value) => value));

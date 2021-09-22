@@ -1,5 +1,6 @@
 import 'package:foodb/adapter/methods/all_docs.dart';
 import 'package:foodb/adapter/methods/bulk_docs.dart';
+import 'package:foodb/adapter/methods/bulk_get.dart';
 import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/adapter/methods/delete.dart';
 import 'package:foodb/adapter/methods/ensure_full_commit.dart';
@@ -90,7 +91,7 @@ abstract class AbstractAdapter {
   Future<Map<String, RevsDiff>> revsDiff(
       {required Map<String, List<String>> body});
 
-  Future<Map<String, List<Doc<T>>>> bulkGet<T>(
+  Future<BulkGetResponse<T>> bulkGet<T>(
       {required List<Map<String, dynamic>> body,
       bool revs = false,
       bool latest =false,
