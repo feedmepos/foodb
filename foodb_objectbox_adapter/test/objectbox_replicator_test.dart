@@ -605,7 +605,7 @@ void main() async {
           print(e.toString());
         },
         onData: (data) {
-          print(data);
+          //print(data);
         },
         onComplete: (result) async {
           stopwatch.stop();
@@ -616,7 +616,7 @@ void main() async {
   }, timeout: Timeout.none);
 
   test("check total docs replicated", () async {
-    final objectBox = KeyValueAdapter(dbName: dbName, db: getObjectBox());
+    final objectBox = KeyValueAdapter(dbName: "fortyk", db: getObjectBox());
     final GetAllDocsResponse response =
         await objectBox.allDocs(GetAllDocsRequest(), (json) => json);
     print(response.toJson((value) => value));

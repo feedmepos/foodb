@@ -193,7 +193,7 @@ class SqliteDatabase implements KeyValueDatabase {
   }
 
   @override
-  Future<void> batchInsert(String tableName,
+  Future<void> insert(String tableName,
       {required key,
       required Map<String, dynamic> object,
       required KeyValueDatabaseSession session}) async {
@@ -205,7 +205,7 @@ class SqliteDatabase implements KeyValueDatabase {
   }
 
   @override
-  Future<void> batchUpdate(String tableName,
+  Future<void> update(String tableName,
       {key,
       required Map<String, dynamic> object,
       required KeyValueDatabaseSession session}) async {

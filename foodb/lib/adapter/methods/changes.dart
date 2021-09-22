@@ -100,8 +100,8 @@ class ChangesStream {
             if (element.startsWith("\"last_seq\"")) {
               element = "{" + element;
             }
-            lastSeq = lastSeq + element;
 
+            lastSeq = lastSeq + element;
             Map<String, dynamic> map = jsonDecode(lastSeq);
             ChangeResponse changeResponse =
                 new ChangeResponse(results: _results);
@@ -111,6 +111,7 @@ class ChangesStream {
             lastSeq = "";
 
             if (onComplete != null) onComplete(changeResponse);
+
           } catch (e) {
             print(e);
           }
