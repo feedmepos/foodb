@@ -68,7 +68,7 @@ void main() async {
   test("generate 40k DB", () async {
     final couchdb = getLocalCouchDbAdapter(dbName: "fortyk");
     // await couchdb.destroy();
-    // await couchdb.init();
+    // await couchdb.initDb();
 
     List<Doc<Map<String, dynamic>>> docs = [];
     for (int x = 30000; x < 40000; x++) {
@@ -80,7 +80,7 @@ void main() async {
   test("generate 5k DB", () async {
     final couchdb = getCouchDbAdapter(dbName: "fthousand");
     await couchdb.destroy();
-    await couchdb.init();
+    await couchdb.initDb();
 
     List<Doc<Map<String, dynamic>>> docs = [];
     for (int x = 0; x < 5000; x++) {
@@ -89,10 +89,170 @@ void main() async {
     }
     await couchdb.bulkDocs(body: docs, newEdits: true);
   }, timeout: Timeout.none);
+<<<<<<< HEAD
+=======
+
+  test('check replicator with 2 couchdb', () async {
+    await getLocalCouchDbAdapter(dbName: "tenk").destroy();
+    await getLocalCouchDbAdapter(dbName: "tenk").initDb();
+
+    var fn = expectAsync1((result) {
+      print("in fn");
+      expect(result, "Completed");
+    });
+
+    Replicator(
+            source: getCouchDbAdapter(dbName: 'tenk'),
+            target: getLocalCouchDbAdapter(dbName: "tenk"))
+        .replicate(
+            live: false,
+            limit: 5000,
+            timeout: Duration(milliseconds: 500),
+            onData: (data) {
+              print(data);
+              // if (data == "One Cycle Completed") ++count;
+              // if (count == 2) {
+              //   fn(data);
+              // }
+            },
+            onError: (error, retry) {
+              print(error);
+            },
+            onComplete: (result) {
+              print(result);
+              fn(result);
+            });
+  }, timeout: Timeout.none);
+  test('check synchronization with 2 couchdb', () async {
+    await getCouchDbAdapter(dbName: "a-test").destroy();
+    await getCouchDbAdapter(dbName: "a-test").initDb();
+
+    PutResponse putResponse = await getCouchDbAdapter(dbName: "adish").put(
+      doc: Doc(
+          id: "feedme",
+          rev: Rev.fromString("1-asdfg"),
+          model: {"name": "feedmefood", "no": 300}),
+      newEdits: false,
+    );
+    expect(putResponse.ok, isTrue);
+
+    PutResponse putResponse2 = await getCouchDbAdapter(dbName: "adish").put(
+      doc: Doc(
+          id: "feedme",
+          model: {"name": "feedmecola", "no": 200},
+          rev: Rev.fromString("2-asdfg"),
+          revisions: Revisions(start: 2, ids: ["asdfg", "asdfg"])),
+      newEdits: false,
+    );
+    expect(putResponse2.ok, isTrue);
+
+    PutResponse putResponse3 = await getCouchDbAdapter(dbName: "adish").put(
+      doc: Doc(
+          id: "feedme",
+          model: {"name": "feedmeburger", "no": 900},
+          rev: Rev.fromString("2-bbdfg"),
+          revisions: Revisions(ids: ["bbdfg", "asdfg"], start: 2)),
+      newEdits: false,
+    );
+    expect(putResponse3.ok, isTrue);
+
+    await getCouchDbAdapter(dbName: "a-test").destroy();
+    await getCouchDbAdapter(dbName: "a-test").initDb();
+
+    //case 1
+    //case 2
+    await getCouchDbAdapter(dbName: "a-test").put(
+      doc: Doc(
+          id: "feedme",
+          rev: Rev.fromString("1-asdfg"),
+          model: {"name": "feedmefood", "no": 300}),
+      newEdits: false,
+    );
+
+    // case 3
+    await getCouchDbAdapter(dbName: "a-test").put(
+      doc: Doc(
+          id: "feedme",
+          model: {"name": "starvation", "no": 999},
+          rev: Rev.fromString("2-zzzzz"),
+          revisions: Revisions(ids: ["zzzzz", "asdfg"], start: 2)),
+      newEdits: false,
+    );
+
+    // var fn3 = expectAsync1((result) {
+    //   print(result);
+    //   expect(result, isInstanceOf<Exception>());
+    // });
+
+    // var fn2 = expectAsync1((result) {
+    //   // print("in fn2");
+    //   print(result == "One Cycle Completed");
+    //   replicator.cancelStream();
+
+    //   expect(result, equals("One Cycle Completed"));
+    // });
+
+    var fn4 = expectAsync1((result) {
+      expect(result, "Completed");
+    });
+
+    var fn = expectAsync1((result) {
+      // print("in fn");
+      print(result == "Completed");
+      expect(result, equals("Completed"));
+
+      replicator2.replicate(
+          live: false,
+          timeout: Duration(milliseconds: 500),
+          onData: (data) {
+            print(data);
+          },
+          onError: (error, retry) {
+            print(error);
+            retry();
+          },
+          onComplete: (result) {
+            print(result);
+            fn4(result);
+          });
+    });
+
+    int count = 0;
+
+    replicator.replicate(
+        live: false,
+        limit: 5,
+        timeout: Duration(milliseconds: 500),
+        onData: (data) {
+          print(data);
+          if (data == "One Cycle Completed") ++count;
+          // if (count == 2) {
+          //   // fn2(data);
+          // }
+        },
+        onError: (error, retry) {
+          print(error);
+          print("error ${error.runtimeType}");
+          //if (count == 2)
+          //fn3(error);
+
+          retry();
+        },
+        onComplete: (result) {
+          print("DONE HERE $result");
+          fn(result);
+        });
+
+    // Future.delayed(Duration(seconds: 10)).then((value) => {
+    //       getCouchDbAdapter()
+    //           .put(doc: Doc(id: "fn2", model: {"name": "fueffd", "no": 999}))
+    //     });
+  });
+>>>>>>> c1eba40... WIP, clean up
   test("check replicator from objectBox to couchdb", () async {
     final couchdb = getCouchDbAdapter(dbName: "a-test");
     await couchdb.destroy();
-    await couchdb.init();
+    await couchdb.initDb();
 
     final object = await getObjectBox();
     await object.deleteDatabase();
@@ -159,7 +319,7 @@ void main() async {
 
     final objectBox = await KeyValueAdapter(db: object, dbName: dbName);
     await couchdb.destroy();
-    await couchdb.init();
+    await couchdb.initDb();
     await couchdb.put(
         doc: Doc(
             id: "1",
@@ -234,7 +394,7 @@ void main() async {
     final couchdb = getCouchDbAdapter(dbName: "a-test");
 
     await couchdb.destroy();
-    await couchdb.init();
+    await couchdb.initDb();
     await couchdb.put(
         doc: Doc(
             id: "1",
@@ -329,7 +489,7 @@ void main() async {
       () async {
     final couchdb = getCouchDbAdapter();
     await couchdb.destroy();
-    await couchdb.init();
+    await couchdb.initDb();
 
     final object = await getObjectBox();
     final objectBox = new KeyValueAdapter(dbName: dbName, db: object);
@@ -497,11 +657,21 @@ void main() async {
     expect(response.totalRows, equals(40000));
   }, timeout: Timeout.none);
 
+<<<<<<< HEAD
   test("Benchmark: Replication From ObjectBox to CouchDb with 40K docs ",
       () async {
     final couchdb = getLocalCouchDbAdapter(dbName: "fromobjectbox");
     await couchdb.destroy();
     await couchdb.init();
+=======
+  test("test objectbox length", () async {
+    final objectBox = KeyValueAdapter(dbName: dbName, db: getObjectBox());
+    GetAllDocsResponse response =
+        await objectBox.allDocs(GetAllDocsRequest(), (json) => json);
+    expect(response.rows.length, 44428);
+    expect(response.totalRows, 44428);
+  }, timeout: Timeout.none);
+>>>>>>> c1eba40... WIP, clean up
 
     final objectBox =
         new KeyValueAdapter(dbName: 'restaurant', db: getObjectBox());
@@ -511,6 +681,7 @@ void main() async {
       expect(result, "Completed");
     });
 
+<<<<<<< HEAD
     Stopwatch stopwatch = new Stopwatch();
     stopwatch.start();
     Replicator(source: objectBox, target: couchdb).replicate(
@@ -535,5 +706,20 @@ void main() async {
         await objectBox.allDocs(GetAllDocsRequest(), (json) => json);
     print(response.toJson((value) => value));
     expect(response.totalRows, equals(40000));
+=======
+    Replicator(
+            source: getCouchDbAdapter(dbName: "benchtest"), target: objectBox)
+        .replicate(
+            live: false,
+            limit: 3000,
+            onData: (data) {
+              //print(data);
+            },
+            onError: (error, retry) {},
+            onComplete: (response) {
+              print(response);
+              fn(response);
+            });
+>>>>>>> c1eba40... WIP, clean up
   }, timeout: Timeout.none);
 }
