@@ -49,7 +49,7 @@ class CouchdbAdapter extends AbstractAdapter {
 
   @override
   Future<BulkGetResponse<T>> bulkGet<T>(
-      {required List<Map<String, dynamic>> body,
+      {required BulkGetRequestBody body,
       bool revs = false,
       bool latest = false,
       required T Function(Map<String, dynamic> json) fromJsonT}) async {
@@ -61,16 +61,11 @@ class CouchdbAdapter extends AbstractAdapter {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: jsonEncode({
-          "docs": body
-              .map((e) => (e.containsKey("rev")
-                  ? {...e, "rev": e["rev"].toString()}
-                  : e))
-              .toList()
-        })));
+        body: jsonEncode(body.toJson())));
     if (response.statusCode == 200) {
       // var list = jsonDecode(response.body)["results"];
-      return BulkGetResponse<T>.fromJson(jsonDecode(response.body), (json) => fromJsonT(json as Map<String,dynamic>));
+      return BulkGetResponse<T>.fromJson(jsonDecode(response.body),
+          (json) => fromJsonT(json as Map<String, dynamic>));
       // .fromIterable(list,
       //     key: (idDoc) => idDoc["id"],
       //     value: (idDoc) => idDoc["docs"]
@@ -329,6 +324,9 @@ class CouchdbAdapter extends AbstractAdapter {
       json['startkey'] = jsonEncode(json['startkey']);
     if (json['endkey'] != null) json['endkey'] = jsonEncode(json['endkey']);
     uriBuilder.queryParameters = convertToParams(json);
+
+    print((await this.client.get(uriBuilder.build())).body);
+
     return GetAllDocsResponse<T>.fromJson(
         jsonDecode((await this.client.get(uriBuilder.build())).body),
         (a) => fromJsonT(a as Map<String, dynamic>));

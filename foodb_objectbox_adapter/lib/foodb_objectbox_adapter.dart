@@ -324,7 +324,7 @@ class ObjectBox implements KeyValueDatabase {
       case ViewKeyDataType:
         return ViewKeyObjectType(store: _store!, tableName: type.type);
       default:
-        throw AdapterException(error: "Invalid DataType");
+        throw AdapterException(error: "Invalid Data Type");
     }
   }
 
@@ -346,7 +346,7 @@ class ObjectBox implements KeyValueDatabase {
   Future<void> insertMany(AbstractDataType type,
       {required Map<String, dynamic> objects}) async {
     BaseObjectType objectType = await _getObjectType(type);
-    objects.forEach((key,value) {
+    objects.forEach((key, value) {
       ObjectBoxEntity entity = objectType.formObject(key, value);
       objectType.box.put(entity);
     });
@@ -398,10 +398,10 @@ class ObjectBox implements KeyValueDatabase {
   Future<Map<String, dynamic>> getMany(AbstractDataType type,
       {required List<String> keys}) async {
     BaseObjectType objectType = await _getObjectType(type);
-    
+
     Map<String, dynamic> map = {};
-    
-   keys.forEach((key) {
+
+    keys.forEach((key) {
       map.putIfAbsent(key, () => objectType.getObjectByKey(key)?.doc);
     });
 
@@ -426,7 +426,7 @@ class ObjectBox implements KeyValueDatabase {
     } else {
       entity = objectType.formObject(key, object);
     }
-    objectType.box.put(entity);
+    int x = objectType.box.put(entity);
     return true;
   }
 
@@ -434,7 +434,7 @@ class ObjectBox implements KeyValueDatabase {
   Future<bool> putMany(AbstractDataType type,
       {required Map<String, dynamic> objects}) async {
     BaseObjectType objectType = await _getObjectType(type);
-    objects.forEach((key,value) {
+    objects.forEach((key, value) {
       ObjectBoxEntity? entity = objectType.getObjectByKey(key);
       if (entity != null) {
         entity.doc = value;
@@ -455,7 +455,8 @@ class ObjectBox implements KeyValueDatabase {
     List<ObjectBoxEntity> entities =
         objectType.readObjectBetween(startkey, endkey, desc);
     return ReadResult(
-        docs: Map.fromIterable(entities, key: (e) => e.key, value: (e) => e.doc),
+        docs:
+            Map.fromIterable(entities, key: (e) => e.key, value: (e) => e.doc),
         offset: 0,
         totalRows: await tableSize(type));
   }

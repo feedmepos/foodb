@@ -79,16 +79,21 @@ void main() async {
           newEdits: false);
     });
     test("getDocs with revs =true", () async {
-      BulkGetResponse<Map<String,dynamic>> response =
-          await couchdb.bulkGet<Map<String, dynamic>>(body: [
-        {"id": "a", "rev": Rev.fromString("1-aa")},
-        {"id": "a", "rev": Rev.fromString("1-a")},
-        {"id": "b", "rev": Rev.fromString("2-b")},
-        {"id": "b", "rev": Rev.fromString("1-b")},
-        {"id": "c", "rev": Rev.fromString("1-c")}
-      ], fromJsonT: (json) => json, revs: true);
+      BulkGetResponse<Map<String, dynamic>> response =
+          await couchdb.bulkGet<Map<String, dynamic>>(
+              body: BulkGetRequestBody.fromJson({
+                "docs": [
+                  {"id": "a", "rev": Rev.fromString("1-aa")},
+                  {"id": "a", "rev": Rev.fromString("1-a")},
+                  {"id": "b", "rev": Rev.fromString("2-b")},
+                  {"id": "b", "rev": Rev.fromString("1-b")},
+                  {"id": "c", "rev": Rev.fromString("1-c")}
+                ]
+              }),
+              fromJsonT: (json) => json,
+              revs: true);
 
-      print(response.toJson((json)=>json));
+      print(response.toJson((json) => json));
       expect(response.results.length, 3);
     });
   });
@@ -40350,6 +40355,44 @@ void main() async {
 
     expect(map["results"].length, equals(5000));
   });
+
+  test("reproduce changeStream more than single changeResponse problem",
+      () async {
+    int count = 0;
+    var fn = expectAsync1((value) {
+      expect(value, isNotNull);
+    });
+
+    // var fn2 = expectAsync1((value) {
+    //   expect(value, isNotNull);
+    // });
+
+    final CouchdbAdapter couchDb = getCouchDbAdapter(dbName: "benchtest");
+    couchDb
+        .changesStream(ChangeRequest(
+            feed: ChangeFeed.normal,
+            style: 'all_docs',
+            heartbeat: 10000,
+            since: '0',
+            conflicts: true,
+            limit: 50))
+        .then((changesStream) {
+      var listener = changesStream.listen(
+          onHearbeat: () {
+            print('heartneat $count');
+            // if (count == 5) {
+            //   fn();
+            // }
+          },
+          onResult: (event) {
+            print('onResult: ${event.toJson()}');
+          },
+          onComplete: expectAsync1((result) {
+            print(result);
+            fn(result);
+          }, count: 1));
+    });
+  }, timeout: Timeout.none);
 
   test("change stream", () async {
     int count = 0;

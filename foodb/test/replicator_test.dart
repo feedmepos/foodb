@@ -11,6 +11,7 @@ import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/rev.dart';
 import 'package:foodb/replicator.dart';
+import 'package:http/http.dart';
 
 void main() async {
   // https://stackoverflow.com/questions/60686746/how-to-access-flutter-environment-variables-from-tests
@@ -19,7 +20,6 @@ void main() async {
   await dotenv.load(fileName: ".env");
   String envDbName = dotenv.env['COUCHDB_DB_NAME'] as String;
   String baseUri = dotenv.env['COUCHDB_BASE_URI'] as String;
-  String dbName = dotenv.env['SQLITE_DB_NAME'] as String;
 
   getCouchDbAdapter({String? dbName}) {
     return new CouchdbAdapter(
@@ -37,17 +37,18 @@ void main() async {
       source: getCouchDbAdapter(dbName: "a-test"), target: getCouchDbAdapter());
 
   test('check replicator with 2 couchdb', () async {
-    await getCouchDbAdapter(dbName: "a-test").destroy();
-    await getCouchDbAdapter(dbName: "a-test").init();
+    await getCouchDbAdapter(dbName: "adish").destroy();
+    await getCouchDbAdapter(dbName: "adish").init();
 
     var fn = expectAsync1((result) {
       print("in fn");
       expect(result, "Completed");
     });
 
-    replicator.replicate(
+    Replicator(source: getCouchDbAdapter(dbName: "fortyk"),target: getCouchDbAdapter(dbName: "adish")).replicate(
         live: false,
         timeout: Duration(milliseconds: 500),
+        limit: 5000,
         onData: (data) {
           print(data);
           // if (data == "One Cycle Completed") ++count;

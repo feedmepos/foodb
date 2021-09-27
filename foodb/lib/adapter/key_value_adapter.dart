@@ -190,11 +190,24 @@ class KeyValueAdapter extends AbstractAdapter {
 
   @override
   Future<BulkGetResponse<T>> bulkGet<T>(
-      {required List<Map<String, dynamic>> body,
+      {required BulkGetRequestBody body,
       bool revs = false,
       bool latest = false,
-      required T Function(Map<String, dynamic> json) fromJsonT}) {
-    throw UnimplementedError();
+      required T Function(Map<String, dynamic> json) fromJsonT}) async {
+    Map<String, List<BulkGetDoc<T>>> docs = {};
+    await Future.forEach(body.docs, (BulkGetRequest request) async {
+      Doc<T>? doc = await get<T>(
+          id: request.id, rev: request.rev.toString(), fromJsonT: fromJsonT);
+      await docs.update(doc!.id, (value) {
+        value.add(BulkGetDoc<T>(doc: doc));
+        return value;
+      }, ifAbsent: () => [BulkGetDoc<T>(doc: doc)]);
+    });
+
+    return BulkGetResponse<T>(
+        results: docs.entries
+            .map((e) => BulkGetIdDocs<T>(id: e.key, docs: e.value))
+            .toList());
   }
 
   @override
@@ -209,7 +222,7 @@ class KeyValueAdapter extends AbstractAdapter {
     List<String> deletedSequences = [];
     Map<String, dynamic> insertedSequences = {};
 
-    await Future.forEach(body, (Doc<Map<String, dynamic>> doc) async {
+    for(Doc<Map<String, dynamic>> doc in body){
       var history = await db.get(DocDataType(), key: doc.id);
       DocHistory docHistory = history == null
           ? DocHistory(id: doc.id, docs: {}, revisions: RevisionTree(nodes: []))
@@ -264,7 +277,8 @@ class KeyValueAdapter extends AbstractAdapter {
         await db.delete(SequenceDataType(), key: winnerBeforeUpdate.localSeq!);
       }
       //insertedSequences[newUpdateSeq.toString()] = newUpdateSeqObject.toJson();
-      await db.insert(SequenceDataType(), key: newUpdateSeq.toString(), object:  newUpdateSeqObject.toJson());
+      await db.insert(SequenceDataType(),
+          key: newUpdateSeq.toString(), object: newUpdateSeqObject.toJson());
 
       bool ok = await db.put(
         DocDataType(),
@@ -275,9 +289,10 @@ class KeyValueAdapter extends AbstractAdapter {
       localChangeStreamController.sink.add(newUpdateSeqObject);
 
       putResponses.add(PutResponse(ok: ok, id: doc.id, rev: newDocObject.rev));
-    });
+    }
+
     //await db.deleteMany(SequenceDataType(), keys: deletedSequences);
-   // await db.insertMany(SequenceDataType(), objects: insertedSequences);
+    // await db.insertMany(SequenceDataType(), objects: insertedSequences);
 
     return BulkDocResponse(putResponses: putResponses);
   }
@@ -328,7 +343,12 @@ class KeyValueAdapter extends AbstractAdapter {
         if (request.limit != null) {
           request.limit = request.limit! - 1;
           if (request.limit == 0) {
-            streamController.close();
+            if (request.feed == ChangeFeed.normal ||
+                request.feed == ChangeFeed.longpoll) {
+              streamController.sink
+                  .add("\"last_seq\":\"${lastSeq}\", \"pending\": 0}");
+              streamController.close();
+            }
             break;
           }
         }
@@ -350,7 +370,7 @@ class KeyValueAdapter extends AbstractAdapter {
           subscription.cancel();
           streamController.sink
               .add("\"last_seq\":\"${lastSeq}\", \"pending\": 0}");
-          streamController.close();
+          await streamController.close();
         });
       } else {
         streamController.sink
@@ -603,7 +623,7 @@ class KeyValueAdapter extends AbstractAdapter {
         docs: {...docHistory.docs, newDocObject.rev.toString(): newDocObject},
         revisions: newRevisionTreeObject);
 
-    await db.put(DocDataType(),
+    await db.put(LocalDocDataType(),
         key: doc.id, object: newDocHistoryObject.toJson());
 
     return PutResponse(ok: true, id: doc.id, rev: newRev);
@@ -779,11 +799,16 @@ class KeyValueAdapter extends AbstractAdapter {
       bool revsInfo = false,
       required T Function(Map<String, dynamic> json) fromJsonT}) async {
     var json = await db.get(DocDataType(), key: id);
-    if (json == null) {
-      return null;
+    if (json != null) {
+      var docHistory = DocHistory.fromJson(json);
+      InternalDoc? winner = docHistory.winner;
+      if (winner != null) {
+        return winner.toDoc(id, (json) => fromJsonT(json),
+            revisions: _getRevisions(
+                rev: winner.rev, docHistory: docHistory, revs: revs));
+      }
     }
-    var result = DocHistory.fromJson(json);
-    return result.winner?.toDoc(id, fromJsonT);
+    return null;
   }
 
   @override

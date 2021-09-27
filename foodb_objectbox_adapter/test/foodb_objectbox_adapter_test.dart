@@ -1,7 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/key_value_adapter.dart';
 import 'package:foodb/adapter/methods/bulk_docs.dart';
+import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/common/doc.dart';
+import 'package:foodb/common/rev.dart';
 import 'package:foodb_objectbox_adapter/foodb_objectbox_adapter.dart';
 
 void main() async {
@@ -277,7 +280,27 @@ void main() async {
           .getMany(DocDataType(), keys: ["1", "2", "3", "4", "5", "6"]);
       stopwatch.stop();
       print(stopwatch.elapsedMilliseconds);
-      expect(map?.length, 6);
+      expect(map.length, 6);
     });
+  });
+
+  test('changeStream with limit', () async {
+    ObjectBox objectBox = new ObjectBox();
+    await objectBox.deleteDatabase();
+
+    final objectBoxAdapter = KeyValueAdapter(dbName: "adish", db: objectBox);
+    await objectBoxAdapter.bulkDocs(newEdits: true, body: [
+      Doc(id: "1", model: {"name": "1"}),
+      Doc(id: "2", model: {"name": "2"}),
+      Doc(id: "3", model: {"name": "3"})
+    ]);
+    var fn =expectAsync1((result){
+        expect(result, isNotNull);
+    });
+    final changeStream =
+        await objectBoxAdapter.changesStream(ChangeRequest(limit:1,feed: ChangeFeed.normal));
+    changeStream.listen(onResult: expectAsync1((data){
+      print(data);
+    },count: 1), onComplete: (result) {print("check $result"); fn(result);});
   });
 }

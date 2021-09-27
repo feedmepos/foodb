@@ -19,12 +19,12 @@ dependencies:
   crypto: ^3.0.1
 
 dev_dependencies:
-  flutter_dotenv: ^5.0.0
   build_runner: ^2.0.0
   json_serializable: ^4.1.3
   path: any
   flutter_test:
     sdk: flutter
+  flutter_dotenv: ^5.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -32,8 +32,8 @@ dev_dependencies:
 # The following section is specific to Flutter.
 flutter:
   # To add assets to your package, add an assets section, like this:
-  # assets:
-  #   - .env
+  assets:
+    - .env
   #   - images/a_dot_ham.jpeg
   #
   # For details regarding assets in packages, see

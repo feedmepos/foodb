@@ -1,12 +1,15 @@
+import 'package:foodb/common/rev.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'revs_diff.g.dart';
 
 @JsonSerializable()
 class RevsDiff {
-  List<String> missing;
-  @JsonKey(name: 'possible_ancestors')
-  List<String>? possibleAncestors;
+  @JsonKey(fromJson: ListOfRevFromJsonString, toJson: ListOfRevToJsonString)
+  List<Rev> missing;
+
+  @JsonKey(name: 'possible_ancestors',fromJson: OptionalListOfRevFromJsonString, toJson: OptionalListOfRevToJsonString)
+  List<Rev>? possibleAncestors;
   RevsDiff({
     required this.missing,
     this.possibleAncestors,

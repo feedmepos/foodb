@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:foodb/adapter/adapter.dart';
+import 'package:foodb/adapter/exception.dart';
 import 'package:foodb/adapter/methods/bulk_docs.dart';
 import 'package:foodb/adapter/methods/bulk_get.dart';
 import 'package:foodb/adapter/methods/changes.dart';
@@ -71,10 +73,12 @@ class Replicator {
 
         Map<String, List<String>> changes = await readBatchOfChanges(toProcess);
         onData(changes);
+        //assert(complete == true || changes.length == limit);
 
         Map<String, RevsDiff> revsDiff =
             await calculateRevisionDifference(changes);
         onData(revsDiff);
+        //assert(complete == true || revsDiff.length == limit);
 
         if (revsDiff.isNotEmpty) {
           List<Doc<Map<String, dynamic>>> docs =
@@ -131,39 +135,39 @@ class Replicator {
       {required String since, required String upperbound}) async {
     try {
       int upperboundInt = int.parse(upperbound.split('-')[0]);
-      listenToChangesFeed(feed: ChangeFeed.normal, since: since)
-          .then((changeStream) async {
-        changeStream.listen(
-            onResult: (changeResult) => dbChanges.add(changeResult),
-            onComplete: (changeResponse) async {
-              try {
-                complete = false;
+      ChangesStream changeStream =
+          await listenToChangesFeed(feed: ChangeFeed.normal, since: since);
+      this.onCancels[since] = () async {
+        await changeStream.cancel();
+      };
+      changeStream.listen(
+          onResult: (changeResult) => dbChanges.add(changeResult),
+          onComplete: (changeResponse) async {
+            try {
+              complete = false;
+              print(dbChanges.length);
 
-                if (int.parse(changeResponse.lastSeq!.split('-')[0]) >=
-                    upperboundInt) {
-                  complete = true;
-                  dbChanges = dbChanges
-                      .where((element) =>
-                          int.parse(element.seq.split('-')[0]) <= upperboundInt)
-                      .toList();
-                }
-
-                await _runReplicationCycle(since, upperbound);
-
-                if (!complete!) {
-                  sourceInfo = await getSourceInformation();
-                  await this.cancel(since);
-                  await _listenToNormalChanges(
-                      since: changeResponse.lastSeq!, upperbound: upperbound);
-                }
-              } catch (error) {
-                await errorCallback(since: since, error: error);
+              if (int.parse(changeResponse.lastSeq!.split('-')[0]) >=
+                  upperboundInt) {
+                complete = true;
+                dbChanges = dbChanges
+                    .where((element) =>
+                        int.parse(element.seq.split('-')[0]) <= upperboundInt)
+                    .toList();
               }
-            });
-        this.onCancels[since] = () async {
-          await changeStream.cancel();
-        };
-      });
+
+              await _runReplicationCycle(since, upperbound);
+
+              if (!complete!) {
+                //sourceInfo = await getSourceInformation();
+                await this.cancel(since);
+                await _listenToNormalChanges(
+                    since: changeResponse.lastSeq!, upperbound: upperbound);
+              }
+            } catch (error) {
+              await errorCallback(since: since, error: error);
+            }
+          });
     } catch (error) {
       await errorCallback(since: since, error: error);
     }
@@ -173,7 +177,10 @@ class Replicator {
     try {
       listenToChangesFeed(feed: ChangeFeed.continuous, since: since)
           .then((changeStream) async {
-        this.onCancels[since] = changeStream.cancel;
+        this.onCancels[since] = () async {
+          await changeStream.cancel();
+        };
+
         changeStream.listen(onResult: (changeResult) async {
           try {
             dbChanges.add(changeResult);
@@ -184,9 +191,6 @@ class Replicator {
             await errorCallback(since: since, error: error);
           }
         });
-        this.onCancels[since] = () async {
-          await changeStream.cancel();
-        };
       });
 
       this.timer = Timer.periodic(timeout, (timer) async {
@@ -222,9 +226,9 @@ class Replicator {
       await initialReplicate();
       String sourceLastSeq = this.replicationLog?.model.sourceLastSeq ?? '0';
       if (live) {
-        _listenToContinuousChanges(since: sourceLastSeq);
+        await _listenToContinuousChanges(since: sourceLastSeq);
       } else
-        _listenToNormalChanges(
+        await _listenToNormalChanges(
             since: sourceLastSeq, upperbound: sourceInfo?.updateSeq ?? "0");
     } catch (e) {
       await errorCallback(error: e);
@@ -312,26 +316,23 @@ class Replicator {
 
   Future<List<Doc<Map<String, dynamic>>>> fetchChangedDocuments(
       {required Map<String, RevsDiff> revsDiff}) async {
-    List<Map<String, dynamic>> body = [];
+    List<BulkGetRequest> requests = [];
     revsDiff.forEach((key, value) {
       value.missing.forEach((rev) {
-        body.add({"id": key, "rev": rev.toString()});
+        requests.add(new BulkGetRequest(id: key, rev: rev));
       });
     });
-    return
-        (await source.bulkGet<Map<String, dynamic>>(
-                body: body,
-                revs: true,
-                latest: true,
-                fromJsonT: (json) => json))
-            .results
-            .expand((BulkGetIdDocs<Map<String,dynamic>> result) => result
-                .docs.where((BulkGetDoc<Map<String,dynamic>> item) => item.doc!=null)
-                .expand(
-                    (BulkGetDoc<Map<String,dynamic>> item) => [item.doc!])
-                .toList())
-            .toList();
 
+    BulkGetRequestBody body = new BulkGetRequestBody(docs: requests);
+
+    return (await source.bulkGet<Map<String, dynamic>>(
+            body: body, revs: true, latest: true, fromJsonT: (json) => json))
+        .results
+        .expand((BulkGetIdDocs<Map<String, dynamic>> result) => result.docs
+            //.where((BulkGetDoc<Map<String, dynamic>> item) => item.doc != null)
+            .expand((BulkGetDoc<Map<String, dynamic>> item) => [item.doc!])
+            .toList())
+        .toList();
   }
 
   Future<BulkDocResponse> uploadBatchOfChangedDocuments(
@@ -371,7 +372,6 @@ class Replicator {
         rev: replicationLog!.rev,
         model: replicationLog!.model.toJson());
 
-    // throw AdapterException(error: "Replicator error");
     PutResponse putResponse =
         await target.putLocal(doc: newReplicationLog, newEdits: false);
     return putResponse;

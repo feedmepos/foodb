@@ -538,6 +538,43 @@ void main() async {
     Future.delayed(Duration(seconds: 5)).then((value) =>
         adapter.put(doc: Doc(id: "e", model: {"name": "e", "no": 777})));
   });
+
+    test("changeStream", () async {
+    var adapter = getMemoryAdapter();
+
+    await adapter.put(doc: Doc(id: "a", model: {"name": "a", "no": 666}));
+    await adapter.put(doc: Doc(id: "b", model: {"name": "b", "no": 5555}));
+
+    var fn = expectAsync1((ChangeResponse result) {
+      print(result.toJson());
+      expect(result.results.length, equals(2));
+    });
+
+    // var fn = expectAsync2((int no, Function cancel) async {
+    //   await cancel();
+    //   await adapter.put(doc: Doc(id: "d", model: {"name": "n", "no": 999}));
+    //   expect(no, equals(1));
+    // });
+
+    ChangesStream stream = await adapter
+        .changesStream(ChangeRequest(since: '0', feed: ChangeFeed.normal));
+
+    int count = 0;
+
+    stream.listen(
+        onResult: expectAsync1((result) {
+          print(result.toJson());
+          ++count;
+          // if (count == 1) fn(count, stream.cancel);
+        }, count: 2),
+        onComplete: (response) {
+          print(response.toJson());
+          fn(response);
+        });
+
+    Future.delayed(Duration(seconds: 5)).then((value) =>
+        adapter.put(doc: Doc(id: "e", model: {"name": "e", "no": 777})));
+  });
   test('read', () async {
     var adapter = getMemoryAdapter();
     await adapter.db.put(DocDataType(),

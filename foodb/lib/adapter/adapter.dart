@@ -92,7 +92,7 @@ abstract class AbstractAdapter {
       {required Map<String, List<String>> body});
 
   Future<BulkGetResponse<T>> bulkGet<T>(
-      {required List<Map<String, dynamic>> body,
+      {required BulkGetRequestBody body,
       bool revs = false,
       bool latest =false,
       required T Function(Map<String, dynamic> json) fromJsonT});

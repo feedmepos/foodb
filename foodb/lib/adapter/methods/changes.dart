@@ -62,61 +62,56 @@ class ChangesStream {
       Function(ChangeResult)? onResult,
       Function? onHearbeat}) {
     String cache = "";
-    String lastSeq = "";
-    _subscription = _stream.listen((event) {
+
+    _subscription = _stream.listen((event) async {
       // is heartbeat
       if (event.trim() == '') {
         if (onHearbeat != null) onHearbeat();
       }
+
       cache = cache + event;
-      var splitted = cache.split('\n').map((e) => e.trim());
+      var splitted = cache.split('\n').map((e) => e.trim()).toList();
 
       // is result
-      try {
-        var changeResults =
-            splitted.where((element) => RegExp("^{.*},?\$").hasMatch(element));
-        changeResults.forEach((element) {
+      // var changeResults =
+      //     splitted.where((element) => RegExp("^{.*},?]?\$").hasMatch(element));
+      cache = "";
+      for (String element in splitted) {
+        cache += element;
+        try {
           var result = ChangeResult.fromJson(
-              jsonDecode(element.replaceAll(RegExp(",\$"), "")));
+              jsonDecode(cache.replaceAll(RegExp(",\$"), "")));
           if (_feed != ChangeFeed.continuous) _results.add(result);
           if (onResult != null) onResult(result);
-        });
-
-        cache = "";
-
-        var incompleteResults =
-            splitted.where((element) => !RegExp("^{.*},?\$").hasMatch(element));
-        incompleteResults.forEach((element) {
-          cache = cache + "\n" + element;
-        });
-      } catch (e) {
-        print(e);
+          cache = "";
+        } catch (e) {
+          if (element.startsWith("{\"results\"") || element == ",") {
+            cache = "";
+          } else {
+            print("before concatenate $element");
+            print("after concatenate $cache");
+          }
+        }
       }
 
       // is completed
-      splitted.forEach((element) {
-        if (element.startsWith("\"last_seq\"") || lastSeq.length > 0) {
-          try {
-            if (element.startsWith("\"last_seq\"")) {
-              element = "{" + element;
-            }
+      var splittedResponse = event.split('\n').map((e) => e.trim());
+      for (String element in splittedResponse) {
+        if (element.startsWith("\"last_seq\"")) {
+          print("last seq $element");
+          element = "{" + element;
+          Map<String, dynamic> map = jsonDecode(element);
+          ChangeResponse changeResponse = new ChangeResponse(results: _results);
+          changeResponse.lastSeq = map['last_seq'];
+          changeResponse.pending = map['pending'];
 
-            lastSeq = lastSeq + element;
-            Map<String, dynamic> map = jsonDecode(lastSeq);
-            ChangeResponse changeResponse =
-                new ChangeResponse(results: _results);
-            changeResponse.lastSeq = map['last_seq'];
-            changeResponse.pending = map['pending'];
-
-            lastSeq = "";
-
-            if (onComplete != null) onComplete(changeResponse);
-
-          } catch (e) {
-            print(e);
+          if (onComplete != null) {
+            onComplete(changeResponse);
+            await cancel();
           }
+          break;
         }
-      });
+      }
     });
   }
 }

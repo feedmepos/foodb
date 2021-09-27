@@ -9,6 +9,14 @@ ListOfRevToJsonString(List<Rev> strs) {
   return strs.map<String>((e) => RevToJsonString(e)).toList();
 }
 
+OptionalListOfRevFromJsonString(List<dynamic>? strs) {
+  return strs?.map<Rev>((e) => RevFromJsonString(e)).toList();
+}
+
+OptionalListOfRevToJsonString(List<Rev>? strs) {
+  return strs?.map<String>((e) => RevToJsonString(e)).toList();
+}
+
 RevFromJsonString(String? str) {
   if (str == null) {
     return null;
