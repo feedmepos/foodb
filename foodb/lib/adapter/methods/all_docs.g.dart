@@ -11,7 +11,7 @@ GetAllDocsResponse<T> _$GetAllDocsResponseFromJson<T>(
   T Function(Object? json) fromJsonT,
 ) {
   return GetAllDocsResponse<T>(
-    offset: json['offset'] as int?,
+    offset: json['offset'] as int,
     totalRows: json['total_rows'] as int,
     rows: (json['rows'] as List<dynamic>)
         .map((e) => AllDocRow.fromJson(

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/rendering.dart';
-import 'package:foodb/foodb.dart';
+import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/rev.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -23,14 +23,14 @@ class ChangeResultRev {
 @JsonSerializable(explicitToJson: true)
 class ChangeResult {
   String id;
-  String? seq;
+  String seq;
   bool? deleted;
   List<ChangeResultRev> changes;
   Doc<Map<String, dynamic>>? doc;
 
   ChangeResult({
     required this.id,
-    this.seq,
+    required this.seq,
     this.deleted,
     required this.changes,
     this.doc,
@@ -62,7 +62,6 @@ class ChangesStream {
       Function(ChangeResult)? onResult,
       Function? onHearbeat}) {
     String cache = "";
-<<<<<<< HEAD
 
     _subscription = _stream.listen((event) async {
       // is heartbeat
@@ -111,28 +110,6 @@ class ChangesStream {
             await cancel();
           }
           break;
-=======
-    _subscription = _stream.listen((event) {
-      if (_feed == ChangeFeed.continuous) {
-        var items = RegExp("^{\".*},?\n?\$", multiLine: true).allMatches(event);
-        items.forEach((i) {
-          var json = jsonDecode(event.substring(i.start, i.end).trim());
-          onResult?.call(ChangeResult.fromJson(json));
-        });
-      } else {
-        cache += event;
-        if (event.contains('last_seq')) {
-          Map<String, dynamic> map = jsonDecode(cache);
-          ChangeResponse changeResponse = new ChangeResponse(results: _results);
-          map['results'].forEach((r) {
-            final result = ChangeResult.fromJson(r);
-            changeResponse.results.add(result);
-            onResult?.call(result);
-          });
-          changeResponse.lastSeq = map['last_seq'];
-          changeResponse.pending = map['pending'];
-          onComplete?.call(new ChangeResponse(results: _results));
->>>>>>> c1eba40... WIP, clean up
         }
       }
     });

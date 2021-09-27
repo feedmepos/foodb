@@ -6,7 +6,7 @@ part 'all_docs.g.dart';
 
 @JsonSerializable(genericArgumentFactories: true, explicitToJson: true)
 class GetAllDocsResponse<T> {
-  int? offset;
+  int offset;
 
   @JsonKey(name: 'total_rows')
   int totalRows;

@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodb/foodb.dart';
+import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/couchdb_adapter.dart';
 import 'package:foodb/adapter/exception.dart';
 import 'package:foodb/adapter/in_memory_database.dart';
@@ -37,8 +37,8 @@ void main() async {
       source: getCouchDbAdapter(dbName: "a-test"), target: getCouchDbAdapter());
 
   test('check replicator with 2 couchdb', () async {
-    await getCouchDbAdapter(dbName: "a-test").destroy();
-    await getCouchDbAdapter(dbName: "a-test").initDb();
+    await getCouchDbAdapter(dbName: "adish").destroy();
+    await getCouchDbAdapter(dbName: "adish").init();
 
     var fn = expectAsync1((result) {
       print("in fn");
@@ -67,7 +67,7 @@ void main() async {
   });
   test('check synchronization with 2 couchdb', () async {
     await getCouchDbAdapter(dbName: "a-test").destroy();
-    await getCouchDbAdapter(dbName: "a-test").initDb();
+    await getCouchDbAdapter(dbName: "a-test").init();
 
     PutResponse putResponse = await getCouchDbAdapter(dbName: "adish").put(
       doc: Doc(
@@ -99,7 +99,7 @@ void main() async {
     expect(putResponse3.ok, isTrue);
 
     await getCouchDbAdapter(dbName: "a-test").destroy();
-    await getCouchDbAdapter(dbName: "a-test").initDb();
+    await getCouchDbAdapter(dbName: "a-test").init();
 
     //case 1
     //case 2
@@ -193,7 +193,7 @@ void main() async {
   test("check replicator from memoryDb to couchdb", () async {
     final couchdb = getCouchDbAdapter(dbName: "a-test");
     await couchdb.destroy();
-    await couchdb.initDb();
+    await couchdb.init();
 
     final memorydb = await getMemoryAdapter();
     await memorydb.put(doc: Doc(id: "1", model: {"name": "abc", "no": 123}));
@@ -252,7 +252,7 @@ void main() async {
     final memorydb = await getMemoryAdapter();
 
     await couchdb.destroy();
-    await couchdb.initDb();
+    await couchdb.init();
     await couchdb.put(
         doc: Doc(
             id: "1",
@@ -320,7 +320,7 @@ void main() async {
     final couchdb = getCouchDbAdapter(dbName: "a-test");
 
     await couchdb.destroy();
-    await couchdb.initDb();
+    await couchdb.init();
     await couchdb.put(
         doc: Doc(
             id: "1",
@@ -420,7 +420,7 @@ void main() async {
   test("check replicator from memoryDb to couchDb with changeStream", () async {
     final couchdb = getCouchDbAdapter(dbName: "a-test");
     await couchdb.destroy();
-    await couchdb.initDb();
+    await couchdb.init();
 
     final memorydb = await getMemoryAdapter();
     await memorydb.put(

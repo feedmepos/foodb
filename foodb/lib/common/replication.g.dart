@@ -27,7 +27,6 @@ Map<String, dynamic> _$ReplicationLogToJson(ReplicationLog instance) =>
 
 History _$HistoryFromJson(Map<String, dynamic> json) {
   return History(
-    sessionId: json['session_id'] as String,
     startTime: json['start_time'] as String,
     endTime: json['end_time'] as String,
     recordedSeq: json['recorded_seq'] as String,
@@ -35,7 +34,6 @@ History _$HistoryFromJson(Map<String, dynamic> json) {
 }
 
 Map<String, dynamic> _$HistoryToJson(History instance) => <String, dynamic>{
-      'session_id': instance.sessionId,
       'start_time': instance.startTime,
       'end_time': instance.endTime,
       'recorded_seq': instance.recordedSeq,

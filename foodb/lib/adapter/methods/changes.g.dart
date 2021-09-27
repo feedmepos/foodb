@@ -20,7 +20,7 @@ Map<String, dynamic> _$ChangeResultRevToJson(ChangeResultRev instance) =>
 ChangeResult _$ChangeResultFromJson(Map<String, dynamic> json) {
   return ChangeResult(
     id: json['id'] as String,
-    seq: json['seq'] as String?,
+    seq: json['seq'] as String,
     deleted: json['deleted'] as bool?,
     changes: (json['changes'] as List<dynamic>)
         .map((e) => ChangeResultRev.fromJson(e as Map<String, dynamic>))

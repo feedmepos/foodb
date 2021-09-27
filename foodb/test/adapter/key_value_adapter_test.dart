@@ -1,8 +1,10 @@
 import 'dart:math';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodb/foodb.dart';
+import 'package:foodb/adapter/adapter.dart';
 import 'package:foodb/adapter/exception.dart';
+import 'package:foodb/adapter/in_memory_database.dart';
+import 'package:foodb/adapter/key_value_adapter.dart';
 import 'package:foodb/adapter/methods/all_docs.dart';
 import 'package:foodb/adapter/methods/bulk_docs.dart';
 import 'package:foodb/adapter/methods/changes.dart';

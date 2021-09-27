@@ -29,9 +29,6 @@ class ReplicationLog {
 
 @JsonSerializable()
 class History {
-  @JsonKey(name: 'session_id')
-  String sessionId;
-
   @JsonKey(name: 'start_time')
   String startTime;
 
@@ -42,7 +39,6 @@ class History {
   String recordedSeq;
 
   History({
-    required this.sessionId,
     required this.startTime,
     required this.endTime,
     required this.recordedSeq,
