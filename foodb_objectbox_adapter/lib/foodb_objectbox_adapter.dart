@@ -2,6 +2,7 @@ library foodb_objectbox_adapter;
 
 import 'dart:convert';
 import 'package:foodb/adapter/exception.dart';
+import 'package:foodb/adapter/key_value/key_value_database.dart';
 import 'package:foodb/adapter/key_value_adapter.dart';
 import 'package:foodb_objectbox_adapter/object_box_entity.dart';
 import 'package:foodb_objectbox_adapter/objectbox.g.dart';
@@ -308,20 +309,20 @@ class ObjectBox implements KeyValueDatabase {
   static Store? _store;
   List<List<Object?>> batchResult = [];
 
-  Future<BaseObjectType> _getObjectType(AbstractDataType type) async {
+  Future<BaseObjectType> _getObjectType(AbstractRecord type) async {
     await _iniDatabase();
     switch (type.runtimeType) {
-      case DocDataType:
+      case DocRecord:
         return DocObjectType(store: _store!);
-      case LocalDocDataType:
+      case LocalDocRecord:
         return LocalDocObjectType(store: _store!);
-      case SequenceDataType:
+      case SequenceRecord:
         return SequenceObjectType(store: _store!);
-      case ViewMetaDataType:
+      case ViewMetaRecord:
         return ViewMetaObjectType(store: _store!);
-      case ViewIdDataType:
+      case ViewIdRecord:
         return ViewIdObjectType(store: _store!, tableName: type.type);
-      case ViewKeyDataType:
+      case ViewKeyRecord:
         return ViewKeyObjectType(store: _store!, tableName: type.type);
       default:
         throw AdapterException(error: "Invalid DataType");
@@ -335,7 +336,7 @@ class ObjectBox implements KeyValueDatabase {
   }
 
   @override
-  Future<void> insert(AbstractDataType type,
+  Future<void> insert(AbstractRecord type,
       {required String key, required Map<String, dynamic> object}) async {
     BaseObjectType objectType = await _getObjectType(type);
     ObjectBoxEntity entity = objectType.formObject(key, object);
@@ -343,17 +344,17 @@ class ObjectBox implements KeyValueDatabase {
   }
 
   @override
-  Future<void> insertMany(AbstractDataType type,
+  Future<void> insertMany(AbstractRecord type,
       {required Map<String, dynamic> objects}) async {
     BaseObjectType objectType = await _getObjectType(type);
-    objects.forEach((key,value) {
+    objects.forEach((key, value) {
       ObjectBoxEntity entity = objectType.formObject(key, value);
       objectType.box.put(entity);
     });
   }
 
   @override
-  Future<void> update(AbstractDataType type,
+  Future<void> update(AbstractRecord type,
       {required String key, required Map<String, dynamic> object}) async {
     BaseObjectType objectType = await _getObjectType(type);
     ObjectBoxEntity? entity = objectType.getObjectByKey(key);
@@ -362,7 +363,7 @@ class ObjectBox implements KeyValueDatabase {
   }
 
   @override
-  Future<bool> delete(AbstractDataType type, {required String key}) async {
+  Future<bool> delete(AbstractRecord type, {required String key}) async {
     BaseObjectType objectType = await _getObjectType(type);
     ObjectBoxEntity? entity = objectType.getObjectByKey(key);
     if (entity != null) {
@@ -373,7 +374,7 @@ class ObjectBox implements KeyValueDatabase {
   }
 
   @override
-  Future<bool> deleteMany(AbstractDataType type,
+  Future<bool> deleteMany(AbstractRecord type,
       {required List<String> keys}) async {
     BaseObjectType objectType = await _getObjectType(type);
     List<int> ids = [];
@@ -388,20 +389,20 @@ class ObjectBox implements KeyValueDatabase {
   }
 
   @override
-  Future<Map<String, dynamic>?> get(AbstractDataType type,
+  Future<Map<String, dynamic>?> get(AbstractRecord type,
       {required String key}) async {
     BaseObjectType objectType = await _getObjectType(type);
     return objectType.getObjectByKey(key)?.doc;
   }
 
   @override
-  Future<Map<String, dynamic>> getMany(AbstractDataType type,
+  Future<Map<String, dynamic>> getMany(AbstractRecord type,
       {required List<String> keys}) async {
     BaseObjectType objectType = await _getObjectType(type);
-    
+
     Map<String, dynamic> map = {};
-    
-   keys.forEach((key) {
+
+    keys.forEach((key) {
       map.putIfAbsent(key, () => objectType.getObjectByKey(key)?.doc);
     });
 
@@ -409,7 +410,7 @@ class ObjectBox implements KeyValueDatabase {
   }
 
   @override
-  Future<MapEntry<String, dynamic>?> last(AbstractDataType type) async {
+  Future<MapEntry<String, dynamic>?> last(AbstractRecord type) async {
     BaseObjectType objectType = await _getObjectType(type);
     ObjectBoxEntity? entity = objectType.getLastObject();
 
@@ -417,7 +418,7 @@ class ObjectBox implements KeyValueDatabase {
   }
 
   @override
-  Future<bool> put(AbstractDataType type,
+  Future<bool> put(AbstractRecord type,
       {required String key, required Map<String, dynamic> object}) async {
     BaseObjectType objectType = await _getObjectType(type);
     ObjectBoxEntity? entity = objectType.getObjectByKey(key);
@@ -431,10 +432,10 @@ class ObjectBox implements KeyValueDatabase {
   }
 
   @override
-  Future<bool> putMany(AbstractDataType type,
+  Future<bool> putMany(AbstractRecord type,
       {required Map<String, dynamic> objects}) async {
     BaseObjectType objectType = await _getObjectType(type);
-    objects.forEach((key,value) {
+    objects.forEach((key, value) {
       ObjectBoxEntity? entity = objectType.getObjectByKey(key);
       if (entity != null) {
         entity.doc = value;
@@ -449,25 +450,26 @@ class ObjectBox implements KeyValueDatabase {
 
   //toask : offset no need to implement?
   @override
-  Future<ReadResult> read(AbstractDataType type,
+  Future<ReadResult> read(AbstractRecord type,
       {String? startkey, String? endkey, bool? desc}) async {
     BaseObjectType objectType = await _getObjectType(type);
     List<ObjectBoxEntity> entities =
         objectType.readObjectBetween(startkey, endkey, desc);
     return ReadResult(
-        docs: Map.fromIterable(entities, key: (e) => e.key, value: (e) => e.doc),
+        docs:
+            Map.fromIterable(entities, key: (e) => e.key, value: (e) => e.doc),
         offset: 0,
         totalRows: await tableSize(type));
   }
 
   @override
-  Future<int> tableSize(AbstractDataType type) async {
+  Future<int> tableSize(AbstractRecord type) async {
     BaseObjectType objectType = await _getObjectType(type);
     return objectType.box.count();
   }
 
   @override
-  Future<bool> deleteTable(AbstractDataType type) async {
+  Future<bool> deleteTable(AbstractRecord type) async {
     BaseObjectType objectType = await _getObjectType(type);
     objectType.box.removeAll();
     return true;

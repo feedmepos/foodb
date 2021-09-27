@@ -8,8 +8,7 @@ part of 'revs_diff.dart';
 
 RevsDiff _$RevsDiffFromJson(Map<String, dynamic> json) {
   return RevsDiff(
-    missing:
-        (json['missing'] as List<dynamic>).map((e) => e as String).toList(),
+    missing: ListOfRevFromJsonString(json['missing'] as List),
     possibleAncestors: (json['possible_ancestors'] as List<dynamic>?)
         ?.map((e) => e as String)
         .toList(),
@@ -17,6 +16,6 @@ RevsDiff _$RevsDiffFromJson(Map<String, dynamic> json) {
 }
 
 Map<String, dynamic> _$RevsDiffToJson(RevsDiff instance) => <String, dynamic>{
-      'missing': instance.missing,
+      'missing': ListOfRevFromJsonString(instance.missing),
       'possible_ancestors': instance.possibleAncestors,
     };

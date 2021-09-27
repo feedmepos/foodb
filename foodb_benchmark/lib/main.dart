@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:foodb/adapter/key_value_adapter.dart';
+import 'package:foodb/adapter/key_value/key_value_adapter.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/rev.dart';
 import 'package:foodb/foodb.dart';

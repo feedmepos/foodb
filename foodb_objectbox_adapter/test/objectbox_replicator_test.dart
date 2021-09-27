@@ -48,7 +48,7 @@ void main() async {
   test("generate 10k DB", () async {
     final couchdb = getCouchDbAdapter(dbName: "fourtyk");
     // await couchdb.destroy();
-    // await couchdb.init();
+    // await couchdb.initDb();
 
     List<Doc<Map<String, dynamic>>> docs = [];
     for (int x = 30000; x < 40000; x++) {
@@ -61,7 +61,7 @@ void main() async {
   test("generate 5k DB", () async {
     final couchdb = getCouchDbAdapter(dbName: "fthousand");
     await couchdb.destroy();
-    await couchdb.init();
+    await couchdb.initDb();
 
     List<Doc<Map<String, dynamic>>> docs = [];
     for (int x = 0; x < 5000; x++) {
@@ -73,7 +73,7 @@ void main() async {
 
   test('check replicator with 2 couchdb', () async {
     await getLocalCouchDbAdapter(dbName: "tenk").destroy();
-    await getLocalCouchDbAdapter(dbName: "tenk").init();
+    await getLocalCouchDbAdapter(dbName: "tenk").initDb();
 
     var fn = expectAsync1((result) {
       print("in fn");
@@ -104,7 +104,7 @@ void main() async {
   }, timeout: Timeout.none);
   test('check synchronization with 2 couchdb', () async {
     await getCouchDbAdapter(dbName: "a-test").destroy();
-    await getCouchDbAdapter(dbName: "a-test").init();
+    await getCouchDbAdapter(dbName: "a-test").initDb();
 
     PutResponse putResponse = await getCouchDbAdapter(dbName: "adish").put(
       doc: Doc(
@@ -136,7 +136,7 @@ void main() async {
     expect(putResponse3.ok, isTrue);
 
     await getCouchDbAdapter(dbName: "a-test").destroy();
-    await getCouchDbAdapter(dbName: "a-test").init();
+    await getCouchDbAdapter(dbName: "a-test").initDb();
 
     //case 1
     //case 2
@@ -230,7 +230,7 @@ void main() async {
   test("check replicator from objectBox to couchdb", () async {
     final couchdb = getCouchDbAdapter(dbName: "a-test");
     await couchdb.destroy();
-    await couchdb.init();
+    await couchdb.initDb();
 
     final object = await getObjectBox();
     await object.deleteDatabase();
@@ -294,7 +294,7 @@ void main() async {
     await object.deleteDatabase();
     final objectBox = await KeyValueAdapter(db: object, dbName: dbName);
     await couchdb.destroy();
-    await couchdb.init();
+    await couchdb.initDb();
     await couchdb.put(
         doc: Doc(
             id: "1",
@@ -369,7 +369,7 @@ void main() async {
     final couchdb = getCouchDbAdapter(dbName: "a-test");
 
     await couchdb.destroy();
-    await couchdb.init();
+    await couchdb.initDb();
     await couchdb.put(
         doc: Doc(
             id: "1",
@@ -464,7 +464,7 @@ void main() async {
       () async {
     final couchdb = getCouchDbAdapter();
     await couchdb.destroy();
-    await couchdb.init();
+    await couchdb.initDb();
 
     final object = await getObjectBox();
     final objectBox = new KeyValueAdapter(dbName: dbName, db: object);
@@ -629,7 +629,7 @@ void main() async {
         await objectBox.allDocs(GetAllDocsRequest(), (json) => json);
     expect(response.rows.length, 44428);
     expect(response.totalRows, 44428);
-  },timeout:Timeout.none);
+  }, timeout: Timeout.none);
 
   test("check individual performance of functions in replicator", () async {
     final object = getObjectBox();
@@ -652,9 +652,7 @@ void main() async {
             onData: (data) {
               //print(data);
             },
-            onError: (error, retry) {
-              
-            },
+            onError: (error, retry) {},
             onComplete: (response) {
               print(response);
               fn(response);
