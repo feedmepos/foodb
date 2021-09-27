@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math';
-import 'package:foodb/adapter/adapter.dart';
+import 'package:foodb/foodb.dart';
 import 'package:foodb/adapter/exception.dart';
 import 'package:foodb/adapter/methods/all_docs.dart';
 import 'package:foodb/adapter/methods/bulk_docs.dart';
@@ -13,6 +12,7 @@ import 'package:foodb/adapter/methods/explain.dart';
 import 'package:foodb/adapter/methods/find.dart';
 import 'package:foodb/adapter/methods/index.dart';
 import 'package:foodb/adapter/methods/info.dart';
+import 'package:foodb/adapter/methods/server.dart';
 import 'package:foodb/adapter/methods/open_revs.dart';
 import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/adapter/methods/revs_diff.dart';
@@ -22,7 +22,7 @@ import 'package:http/http.dart';
 import 'package:foodb/adapter/params_converter.dart';
 import 'package:uri/uri.dart';
 
-class CouchdbAdapter extends AbstractAdapter {
+class CouchdbAdapter extends Foodb {
   late Client client;
   Uri baseUri;
 
@@ -45,6 +45,10 @@ class CouchdbAdapter extends AbstractAdapter {
 
   Uri getUri(String path) {
     return Uri.parse("${baseUri.toString()}/$dbName/$path");
+  }
+
+  String get dbUri {
+    return this.getUri("").toString();
   }
 
   @override
@@ -80,7 +84,7 @@ class CouchdbAdapter extends AbstractAdapter {
   @override
   Future<BulkDocResponse> bulkDocs(
       {required List<Doc<Map<String, dynamic>>> body,
-      bool newEdits = false}) async {
+      bool newEdits = true}) async {
     var response = (await this.client.post(this.getUri('_bulk_docs'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -129,6 +133,20 @@ class CouchdbAdapter extends AbstractAdapter {
             this.getUri('_ensure_full_commit'),
             headers: {'Content-Type': 'application/json'}))
         .body));
+  }
+
+  @override
+  Future<GetAllDocsResponse<T>> allDocs<T>(GetAllDocsRequest getAllDocsRequest,
+      T Function(Map<String, dynamic> json) fromJsonT) async {
+    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_all_docs')));
+    var json = getAllDocsRequest.toJson();
+    if (json['startkey'] != null)
+      json['startkey'] = jsonEncode(json['startkey']);
+    if (json['endkey'] != null) json['endkey'] = jsonEncode(json['endkey']);
+    uriBuilder.queryParameters = convertToParams(json);
+    return GetAllDocsResponse<T>.fromJson(
+        jsonDecode((await this.client.get(uriBuilder.build())).body),
+        (a) => fromJsonT(a as Map<String, dynamic>));
   }
 
   @override
@@ -222,49 +240,17 @@ class CouchdbAdapter extends AbstractAdapter {
 
   @override
   Future<GetInfoResponse> info() async {
-    return GetInfoResponse.fromJson(
-        jsonDecode((await this.client.get(this.getUri(''))).body));
-  }
-
-  String generateNewRev(String? oldRev) {
-    var r = Random(DateTime.now().millisecond);
-    const _chars = 'abcdefghijklmnopqrstuvwxyz1234567890';
-    String tail =
-        List.generate(33, (index) => _chars[r.nextInt(_chars.length)]).join();
-
-    if (oldRev == null) {
-      return '0-$tail';
+    var response = await this.client.get(this.getUri(''));
+    if (response.statusCode != 200) {
+      throw AdapterException(error: 'database not found');
     }
-    return '${int.parse(oldRev.split('-')[0]) + 1}-$tail';
+    return GetInfoResponse.fromJson(jsonDecode(response.body));
   }
 
   @override
-  Future<PutResponse> putLocal(
-      {required Doc<Map<String, dynamic>> doc, bool newEdits = true}) async {
-    UriBuilder uriBuilder = new UriBuilder.fromUri(this.getUri(doc.id));
-    uriBuilder.queryParameters =
-        convertToParams({'new_edits': newEdits, "rev": doc.rev});
-
-    Map<String, dynamic> newBody = doc.model;
-
-    if (!newEdits) {
-      if (doc.rev == null) {
-        throw new AdapterException(
-            error: 'rev is required when newEdits is false');
-      }
-      if (doc.revisions != null) {
-        newBody['_revisions'] = doc.revisions!.toJson();
-      }
-    }
-    var response =
-        await this.client.put(uriBuilder.build(), body: jsonEncode(newBody));
-
-    if (response.statusCode != 201) {
-      throw AdapterException(
-          error: jsonDecode(response.body)["error"],
-          reason: jsonDecode(response.body)["reason"]);
-    }
-    return PutResponse.fromJson(jsonDecode(response.body));
+  Future<GetServerInfoResponse> serverInfo() async {
+    return GetServerInfoResponse.fromJson(
+        jsonDecode((await this.client.get(this.baseUri)).body));
   }
 
   @override
@@ -286,15 +272,15 @@ class CouchdbAdapter extends AbstractAdapter {
         newBody['_revisions'] = doc.revisions!.toJson();
       }
     }
-    var response =
-        await this.client.put(uriBuilder.build(), body: jsonEncode(newBody));
+    var responseBody = jsonDecode(
+        (await this.client.put(uriBuilder.build(), body: jsonEncode(newBody)))
+            .body);
 
-    if (response.statusCode != 201) {
+    if (responseBody['error'] != null) {
       throw AdapterException(
-          error: jsonDecode(response.body)["error"],
-          reason: jsonDecode(response.body)["reason"]);
+          error: responseBody['error'], reason: responseBody['reason']);
     }
-    return PutResponse.fromJson(jsonDecode(response.body));
+    return PutResponse.fromJson(responseBody);
   }
 
   @override
@@ -310,8 +296,13 @@ class CouchdbAdapter extends AbstractAdapter {
       {required Map<String, List<String>> body}) async {
     Response response = await this.client.post(this.getUri("_revs_diff"),
         headers: {'Content-Type': 'application/json'}, body: jsonEncode(body));
-    return (jsonDecode(response.body).map<String, RevsDiff>((k, v) {
+    Map<String, dynamic> decoded = jsonDecode(response.body);
+    if (decoded.isEmpty) {
+      return {};
+    }
+    return decoded.map<String, RevsDiff>((k, v) {
       return MapEntry<String, RevsDiff>(k, RevsDiff.fromJson(v));
+<<<<<<< HEAD
     }));
   }
 
@@ -330,6 +321,9 @@ class CouchdbAdapter extends AbstractAdapter {
     return GetAllDocsResponse<T>.fromJson(
         jsonDecode((await this.client.get(uriBuilder.build())).body),
         (a) => fromJsonT(a as Map<String, dynamic>));
+=======
+    });
+>>>>>>> c1eba40... WIP, clean up
   }
 
   @override
@@ -390,13 +384,19 @@ class CouchdbAdapter extends AbstractAdapter {
   }
 
   @override
-  Future<bool> init() async {
-    Response response = await this.client.head(this.getUri(""));
+  Future<bool> initDb() async {
+    final response = await this.client.head(this.getUri(""));
     if (response.statusCode == 404) {
-      Response createResponse = await this.client.put(this.getUri(""));
+      final response = await this.client.put(this.getUri(""));
+      final body = jsonDecode(response.body);
+      if (body['error'] != null) {
+        throw new AdapterException(
+            error: body['error'], reason: body['reason']);
+      }
+      return true;
+    } else {
+      return true;
     }
-
-    return true;
   }
 
   @override
