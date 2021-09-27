@@ -303,6 +303,7 @@ class CouchdbAdapter extends Foodb {
     return decoded.map<String, RevsDiff>((k, v) {
       return MapEntry<String, RevsDiff>(k, RevsDiff.fromJson(v));
 <<<<<<< HEAD
+<<<<<<< HEAD
     }));
   }
 
@@ -324,6 +325,9 @@ class CouchdbAdapter extends Foodb {
 =======
     });
 >>>>>>> c1eba40... WIP, clean up
+=======
+    });
+>>>>>>> c1eba401601dbacacb9162b2991f049ef97f21e1
   }
 
   @override

@@ -9,13 +9,13 @@ part of 'revs_diff.dart';
 RevsDiff _$RevsDiffFromJson(Map<String, dynamic> json) {
   return RevsDiff(
     missing: ListOfRevFromJsonString(json['missing'] as List),
-    possibleAncestors:
-        OptionalListOfRevFromJsonString(json['possible_ancestors'] as List?),
+    possibleAncestors: (json['possible_ancestors'] as List<dynamic>?)
+        ?.map((e) => e as String)
+        .toList(),
   );
 }
 
 Map<String, dynamic> _$RevsDiffToJson(RevsDiff instance) => <String, dynamic>{
-      'missing': ListOfRevToJsonString(instance.missing),
-      'possible_ancestors':
-          OptionalListOfRevToJsonString(instance.possibleAncestors),
+      'missing': ListOfRevFromJsonString(instance.missing),
+      'possible_ancestors': instance.possibleAncestors,
     };

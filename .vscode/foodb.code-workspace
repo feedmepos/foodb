@@ -15,10 +15,6 @@
     {
       "name": "foodb_objectbox_adapter",
       "path": "../foodb_objectbox_adapter"
-    },
-    {
-      "name": "foodb_sqflite_adapter",
-      "path": "../foodb_sqflite_adapter"
     }
   ],
   "settings": {
@@ -27,7 +23,6 @@
       "foodb_core/": true,
       "foodb/": true,
       "foodb_objectbox_adapter/": true,
-      "foodb_sqflite_adapter/": true,
       "foodb_benchmark/": true,
     }
   }
