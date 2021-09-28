@@ -5,8 +5,8 @@ import 'package:foodb/foodb.dart';
 import 'adapter_test.dart';
 
 void main() {
-  final ctx = CouchdbAdapterTestContext();
-  // final ctx = InMemoryAdapterTestContext();
+  // final ctx = CouchdbAdapterTestContext();
+  final ctx = InMemoryAdapterTestContext();
   deleteTest().forEach((t) {
     t(ctx);
   });

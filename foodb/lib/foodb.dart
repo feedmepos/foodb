@@ -79,22 +79,6 @@ abstract class Foodb {
       bool revsInfo = false,
       required T Function(Map<String, dynamic> json) fromJsonT});
 
-  Future<List<Doc<T>>> getWithOpenRev<T>(
-      {required String id,
-      bool attachments = false,
-      bool attEncodingInfo = false,
-      List<String>? attsSince,
-      bool conflicts = false,
-      bool deletedConflicts = false,
-      bool latest = false,
-      bool localSeq = false,
-      bool meta = false,
-      required OpenRevs openRevs,
-      String? rev,
-      bool revs = false,
-      bool revsInfo = false,
-      required T Function(Map<String, dynamic> json) fromJsonT});
-
   Future<Doc<DesignDoc>?> fetchDesignDoc({
     required String id,
   }) async {

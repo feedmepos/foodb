@@ -20,7 +20,7 @@ mixin _KeyValueAdapterChange on _KeyValueAdapter {
       Map<String, dynamic>? winner = docs.winner != null
           ? docs
               .toDoc(docs.winner!.rev, (json) => json)
-              .toJson((value) => value)
+              ?.toJson((value) => value)
           : null;
 
       changeResult["doc"] = winner;
@@ -42,6 +42,7 @@ mixin _KeyValueAdapterChange on _KeyValueAdapter {
       streamController.sink.add('{"results":[');
     }
     var pending = 0;
+    var changeCount = 0;
     if (request.since != 'now') {
       int since = int.parse(request.since.split('-')[0]);
       ReadResult result = await keyValueDb.read(SequenceKey(key: 0),
@@ -55,6 +56,7 @@ mixin _KeyValueAdapterChange on _KeyValueAdapter {
         lastSeq = key.key!;
         pending -= 1;
         limit -= 1;
+        changeCount += 1;
         if (limit == 0) break;
         if (pending != 0 && request.feed != ChangeFeed.continuous)
           streamController.sink.add(",");
@@ -62,10 +64,10 @@ mixin _KeyValueAdapterChange on _KeyValueAdapter {
     }
 
     if (request.feed == ChangeFeed.normal ||
-        (limit == 0 && request.feed == ChangeFeed.longpoll)) {
+        (request.feed == ChangeFeed.longpoll && changeCount > 0)) {
       streamController.sink.add("],");
       streamController.sink
-          .add('"last_seq":"${lastSeq}", "pending": $pending}');
+          .add('"last_seq":"$lastSeq-0", "pending": $pending}');
       streamController.close();
     } else {
       subscription = localChangeStreamController.stream.listen(null);
@@ -76,7 +78,8 @@ mixin _KeyValueAdapterChange on _KeyValueAdapter {
         lastSeq = entry.key.key!;
         if (request.feed == ChangeFeed.longpoll) {
           subscription?.cancel();
-          streamController.sink.add('"last_seq":"${lastSeq}", "pending": 0}');
+          streamController.sink.add("],");
+          streamController.sink.add('"last_seq":"$lastSeq-0", "pending": 0}');
           streamController.close();
         }
       });

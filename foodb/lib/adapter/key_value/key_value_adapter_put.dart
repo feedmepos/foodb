@@ -19,21 +19,23 @@ mixin _KeyValueAdapterPut on _KeyValueAdapter {
         mappedRevision.putIfAbsent(
             newRev.toString(), () => RevisionNode(rev: newRev));
       } else {
-        inputRevision.ids.asMap().forEach((key, value) {
-          Rev rev = Rev(index: inputRevision.start - key, md5: value);
+        int start = inputRevision.start;
+
+        for (final id in inputRevision.ids) {
+          Rev rev = Rev(index: start, md5: id);
+          int prevIndex = inputRevision.start - start + 1;
           Rev? prevRev;
-          if (key < inputRevision.ids.length - 1) {
-            prevRev = Rev(
-                index: inputRevision.start - key - 1,
-                md5: inputRevision.ids[key + 1]);
+          if (prevIndex < inputRevision.ids.length) {
+            prevRev = Rev(index: start - 1, md5: inputRevision.ids[prevIndex]);
           }
           mappedRevision.update(rev.toString(), (value) {
             if (value.prevRev == null && prevRev != null) {
               value.prevRev = prevRev;
             }
             return value;
-          }, ifAbsent: () => RevisionNode(rev: newRev, prevRev: prevRev));
-        });
+          }, ifAbsent: () => RevisionNode(rev: rev, prevRev: prevRev));
+          start -= 1;
+        }
       }
     }
     return oldReivisions.copyWith(
@@ -188,7 +190,7 @@ mixin _KeyValueAdapterPut on _KeyValueAdapter {
   @override
   Future<BulkDocResponse> bulkDocs(
       {required List<Doc<Map<String, dynamic>>> body,
-      bool newEdits = false}) async {
+      bool newEdits = true}) async {
     List<PutResponse> putResponses = [];
 
     for (final doc in body) {
