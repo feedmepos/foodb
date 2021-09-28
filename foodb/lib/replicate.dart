@@ -242,8 +242,7 @@ class _Replicator {
             .toList();
         if (gen1Ids.length > 0) {
           final docs = await _source.allDocs(
-              GetAllDocsRequest(
-                  keys: gen1Ids, includeDocs: true, conflicts: true),
+              GetViewRequest(keys: gen1Ids, includeDocs: true, conflicts: true),
               (json) => json);
           if (cancelled) throw ReplicationException('cancelled');
           docs.rows.forEach((row) {
@@ -261,13 +260,13 @@ class _Replicator {
 
         // handle the rest through bulkGet
         toInsert.addAll((await _source.bulkGet<Map<String, dynamic>>(
-                body: revsDiff.keys
-                    .expand((k) => revsDiff[k]!
-                        .missing
-                        .map((r) => {"id": k, "rev": r.toString()}))
-                    .toList(),
+                body: BulkGetRequest(
+                    docs: revsDiff.keys
+                        .expand((k) => revsDiff[k]!
+                            .missing
+                            .map((r) => BulkGetRequestDoc(id: k, rev: r)))
+                        .toList()),
                 revs: true,
-                latest: true,
                 fromJsonT: (json) => json))
             .results
             .expand((BulkGetIdDocs<Map<String, dynamic>> result) => result.docs

@@ -1,3 +1,4 @@
+import 'package:foodb/adapter/exception.dart';
 import 'package:foodb/adapter/methods/revs_diff.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/rev.dart';
@@ -57,7 +58,7 @@ class InternalDoc {
   @JsonKey(fromJson: RevFromJsonString, toJson: RevToJsonString)
   Rev rev;
   bool deleted;
-  String? localSeq;
+  int? localSeq;
   Map<String, dynamic> data;
   InternalDoc({
     required this.rev,
@@ -73,7 +74,7 @@ class InternalDoc {
   InternalDoc copyWith({
     Rev? rev,
     bool? deleted,
-    String? localSeq,
+    int? localSeq,
     Map<String, dynamic>? data,
   }) {
     return InternalDoc(
@@ -82,16 +83,6 @@ class InternalDoc {
       localSeq: localSeq ?? this.localSeq,
       data: data ?? this.data,
     );
-  }
-
-  Doc<T> toDoc<T>(String id, T Function(Map<String, dynamic> json) fromT,
-      {Revisions? revisions}) {
-    return Doc(
-        id: id,
-        model: fromT(this.data),
-        rev: this.rev,
-        deleted: this.deleted,
-        revisions: revisions);
   }
 }
 
@@ -140,6 +131,40 @@ class DocHistory {
           .toList()[0];
     }
     return revisions;
+  }
+
+  Doc<T> toDoc<T>(Rev rev, T Function(Map<String, dynamic> json) fromT,
+      {bool revs = false, bool revsInfo = false}) {
+    final doc = docs[rev.toString()];
+    if (doc == null) {
+      throw AdapterException(error: 'missing', reason: 'document not found');
+    }
+    Revisions? _revisions;
+    if (revs == true) {
+      _revisions = getRevision(rev)!;
+    }
+    List<RevsInfo>? _revsInfo;
+    if (revsInfo == true && _revisions != null) {
+      _revsInfo = [];
+      var index = _revisions.start;
+      for (final id in _revisions.ids) {
+        final rev = Rev(index: index, md5: id);
+        if (docs[rev.toString()] != null) {
+          _revsInfo.add(RevsInfo(rev: rev, status: 'available'));
+        } else {
+          _revsInfo.add(RevsInfo(rev: rev, status: 'missing'));
+        }
+        index -= 1;
+      }
+    }
+    return Doc(
+      id: id,
+      model: fromT(doc.data),
+      rev: doc.rev,
+      deleted: doc.deleted,
+      revisions: _revisions,
+      revsInfo: _revsInfo,
+    );
   }
 
   RevsDiff revsDiff(List<Rev> body) {

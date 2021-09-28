@@ -6,45 +6,43 @@ mixin _KeyValueAdapterUtil on _KeyValueAdapter {
     return Future.value(GetInfoResponse(
         instanceStartTime: "0",
         updateSeq:
-            (await keyValueDb.last(SequenceRecord()))?.key.toString() ?? "0",
+            (await keyValueDb.last(SequenceKey(key: 0)))?.key.toString() ?? "0",
         dbName: dbName));
   }
 
   @override
-  Future<GetServerInfoResponse> serverInfo() {
-    // TODO: implement serverInfo
-    throw UnimplementedError();
+  Future<GetServerInfoResponse> serverInfo() async {
+    // TODO
+    return GetServerInfoResponse(uuid: '', version: '1');
   }
 
   @override
   Future<Map<String, RevsDiff>> revsDiff(
-      {required Map<String, List<String>> body}) async {
+      {required Map<String, List<Rev>> body}) async {
     Map<String, RevsDiff> revsDiff = {};
     await Future.forEach(body.keys, (String key) async {
-      var result = await keyValueDb.get(DocRecord(), key: key);
+      var result = await keyValueDb.get(DocKey(key: key));
       DocHistory docHistory = result != null
-          ? DocHistory.fromJson((await keyValueDb.get(DocRecord(), key: key))!)
+          ? DocHistory.fromJson(result.value)
           : new DocHistory(
               id: key, docs: {}, revisions: RevisionTree(nodes: []));
-      revsDiff[key] = docHistory
-          .revsDiff(body[key]!.map((e) => Rev.fromString(e)).toList());
+      revsDiff[key] = docHistory.revsDiff(body[key]!.map((e) => e).toList());
     });
     return revsDiff;
   }
 
   @override
   Future<bool> initDb() async {
-    throw UnimplementedError();
+    return keyValueDb.initDb();
   }
 
   @override
   Future<bool> destroy() async {
-    return await keyValueDb.deleteDatabase();
+    return keyValueDb.destroy();
   }
 
   @override
-  Future<EnsureFullCommitResponse> ensureFullCommit() {
-    return Future.value(
-        EnsureFullCommitResponse(instanceStartTime: "0", ok: true));
+  Future<EnsureFullCommitResponse> ensureFullCommit() async {
+    return EnsureFullCommitResponse(instanceStartTime: "0", ok: true);
   }
 }

@@ -1,10 +1,10 @@
 part of './key_value_adapter.dart';
 
 mixin _KeyValueAdapterChange on _KeyValueAdapter {
-  _encodeUpdateSequence(UpdateSequence update,
+  _encodeUpdateSequence(SequenceKey key, UpdateSequence update,
       {bool? includeDocs = false, String? style = 'main_only'}) async {
     Map<String, dynamic> changeResult = {
-      "seq": update.seq,
+      "seq": '${key.key}-0',
       "id": update.id,
       "changes": style == 'all_docs'
           ? update.allLeafRev.map((rev) => {"rev": rev.toString()}).toList()
@@ -15,14 +15,13 @@ mixin _KeyValueAdapterChange on _KeyValueAdapter {
 
     if (includeDocs == true) {
       DocHistory docs = DocHistory.fromJson(
-          (await keyValueDb.get(DocRecord(), key: update.id))!);
+          (await keyValueDb.get(DocKey(key: update.id)))!.value);
 
-      Map<String, dynamic>? winner = docs.winner
-          ?.toDoc<Map<String, dynamic>>(
-            update.id,
-            (json) => json,
-          )
-          .toJson((value) => value);
+      Map<String, dynamic>? winner = docs.winner != null
+          ? docs
+              .toDoc(docs.winner!.rev, (json) => json)
+              .toJson((value) => value)
+          : null;
 
       changeResult["doc"] = winner;
     }
@@ -32,50 +31,55 @@ mixin _KeyValueAdapterChange on _KeyValueAdapter {
   @override
   Future<ChangesStream> changesStream(ChangeRequest request) async {
     StreamController<String> streamController = StreamController();
-    var subscription;
+    StreamSubscription<MapEntry<SequenceKey, UpdateSequence>>? subscription;
     // now get new changes
-    String lastSeq = (await keyValueDb.last(SequenceRecord()))?.key ?? "0";
+    var lastSeq =
+        ((await keyValueDb.last(SequenceKey(key: 0)))?.key as SequenceKey?)
+                ?.key ??
+            0;
+    var limit = request.limit ?? 9223372036854775807;
+    if (request.feed != ChangeFeed.continuous) {
+      streamController.sink.add('{"results":[');
+    }
+    var pending = 0;
     if (request.since != 'now') {
-      ReadResult result =
-          await keyValueDb.read(SequenceRecord(), startkey: request.since);
-      Iterable<MapEntry<String, dynamic>> entries = result.docs.entries;
-      for (MapEntry entry in entries) {
+      int since = int.parse(request.since.split('-')[0]);
+      ReadResult result = await keyValueDb.read(SequenceKey(key: 0),
+          startkey: SequenceKey(key: since));
+      pending = result.records.length;
+      for (final entry in result.records.entries) {
+        final key = entry.key as SequenceKey;
         UpdateSequence update = UpdateSequence.fromJson(entry.value);
-        streamController.sink.add(await _encodeUpdateSequence(update,
+        streamController.sink.add(await _encodeUpdateSequence(key, update,
             includeDocs: request.includeDocs, style: request.style));
-        lastSeq = update.seq;
-        if (request.limit != null) {
-          request.limit = request.limit! - 1;
-          if (request.limit == 0) {
-            streamController.close();
-            break;
-          }
-        }
+        lastSeq = key.key;
+        pending -= 1;
+        limit -= 1;
+        if (limit == 0) break;
+        if (pending != 0 && request.feed != ChangeFeed.continuous)
+          streamController.sink.add(",");
       }
     }
-    if (!streamController.isClosed) {
-      if (request.feed == ChangeFeed.continuous) {
-        subscription = localChangeStreamController.stream.listen(null);
-        subscription.onData((data) async {
-          streamController.sink.add(await _encodeUpdateSequence(data,
-              includeDocs: request.includeDocs, style: request.style));
-        });
-      } else if (request.feed == ChangeFeed.longpoll) {
-        subscription = localChangeStreamController.stream.listen(null);
-        subscription.onData((data) async {
-          lastSeq = data.seq;
-          streamController.sink.add(await _encodeUpdateSequence(data,
-              includeDocs: request.includeDocs, style: request.style));
-          subscription.cancel();
-          streamController.sink
-              .add("\"last_seq\":\"${lastSeq}\", \"pending\": 0}");
+
+    if (request.feed == ChangeFeed.normal ||
+        (limit == 0 && request.feed == ChangeFeed.longpoll)) {
+      streamController.sink.add("],");
+      streamController.sink
+          .add('"last_seq":"${lastSeq}", "pending": $pending}');
+      streamController.close();
+    } else {
+      subscription = localChangeStreamController.stream.listen(null);
+      subscription.onData((entry) async {
+        streamController.sink.add(await _encodeUpdateSequence(
+            entry.key, entry.value,
+            includeDocs: request.includeDocs, style: request.style));
+        lastSeq = entry.key.key;
+        if (request.feed == ChangeFeed.longpoll) {
+          subscription?.cancel();
+          streamController.sink.add('"last_seq":"${lastSeq}", "pending": 0}');
           streamController.close();
-        });
-      } else {
-        streamController.sink
-            .add("\"last_seq\":\"${lastSeq}\", \"pending\": 0}");
-        streamController.close();
-      }
+        }
+      });
     }
 
     return ChangesStream(

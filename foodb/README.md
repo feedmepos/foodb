@@ -3,3 +3,6 @@
 
 ## Development
 - `flutter pub run build_runner watch --delete-conflicting-outputs`
+
+## Pending
+[] Partial index selector

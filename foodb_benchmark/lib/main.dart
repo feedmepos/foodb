@@ -86,9 +86,9 @@ class _MyHomePageState extends State<MyHomePage> {
                         stopwatch.stop();
                         print("stopwatch ${stopwatch.elapsedMilliseconds}");
 
-                        GetAllDocsResponse<Map<String, dynamic>> allDocs =
+                        GetViewResponse<Map<String, dynamic>> allDocs =
                             await foodb.adapter.allDocs<Map<String, dynamic>>(
-                                GetAllDocsRequest(
+                                GetViewRequest(
                                     startkey: "l", endkey: "l\uffff"),
                                 (json) => json);
                         setState(() {
@@ -106,9 +106,9 @@ class _MyHomePageState extends State<MyHomePage> {
                               DateTime.now().millisecondsSinceEpoch.toString();
                         });
 
-                        GetAllDocsResponse<Map<String, dynamic>> allDocs2 =
+                        GetViewResponse<Map<String, dynamic>> allDocs2 =
                             await foodb.adapter.allDocs<Map<String, dynamic>>(
-                                GetAllDocsRequest(
+                                GetViewRequest(
                                     startkey: "l", endkey: "l\uffff"),
                                 (json) => json);
                         setState(() {
@@ -203,7 +203,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         startDesignDoc =
                             DateTime.now().millisecondsSinceEpoch.toString();
                       });
-                      List<AllDocRow<Map<String, dynamic>>> docs =
+                      List<ViewRow<Map<String, dynamic>>> docs =
                           await foodb.adapter.view("name_doc", "name_index",
                               startKey: "_wtf_88",
                               endKey: "_wtf_88\uffff",
@@ -213,7 +213,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         endDesignDoc =
                             DateTime.now().millisecondsSinceEpoch.toString();
                       });
-                      for (AllDocRow doc in docs) {
+                      for (ViewRow doc in docs) {
                         print("designdocone ${doc.toJson((value) => value)}");
                       }
                       print("designdocone ${docs.length}");
@@ -222,7 +222,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         startDesignDocAgain =
                             DateTime.now().millisecondsSinceEpoch.toString();
                       });
-                      List<AllDocRow<Map<String, dynamic>>> docs2 =
+                      List<ViewRow<Map<String, dynamic>>> docs2 =
                           await foodb.adapter.view("name_doc", "name_index",
                               startKey: "_wtf_88",
                               endKey: "_wtf_88\uffff",
@@ -233,7 +233,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             DateTime.now().millisecondsSinceEpoch.toString();
                       });
 
-                      for (AllDocRow doc in docs2) {
+                      for (ViewRow doc in docs2) {
                         print("designdocagain ${doc.toJson((value) => value)}");
                       }
                       print("designdocagain ${docs2.length}");

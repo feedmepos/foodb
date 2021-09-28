@@ -1,7 +1,10 @@
 import 'package:foodb/adapter/couchdb_adapter.dart';
+import 'package:foodb/adapter/key_value/in_memory_database.dart';
+import 'package:foodb/adapter/key_value/key_value_adapter.dart';
+import 'package:foodb/adapter/key_value/key_value_database.dart';
 // import 'package:foodb/adapter/key_value/key_value_adapter.dart';
 // import 'package:foodb/adapter/key_value/key_value_database.dart';
-import 'package:foodb/adapter/methods/all_docs.dart';
+import 'package:foodb/adapter/methods/view.dart';
 import 'package:foodb/adapter/methods/bulk_docs.dart';
 import 'package:foodb/adapter/methods/bulk_get.dart';
 import 'package:foodb/adapter/methods/changes.dart';
@@ -23,7 +26,7 @@ export 'foodb.dart';
 export './common/doc.dart';
 export './common/design_doc.dart';
 export './common/rev.dart';
-export './adapter/methods/all_docs.dart';
+export 'adapter/methods/view.dart';
 export './adapter/methods/bulk_docs.dart';
 export './adapter/methods/changes.dart';
 export './adapter/methods/delete.dart';
@@ -51,13 +54,9 @@ abstract class Foodb {
     return CouchdbAdapter(dbName: dbName, baseUri: baseUri);
   }
 
-  // factory Foodb.memoryBox(
-  //     {required String dbName,
-  //     required KeyValueDatabase keyValueDb,
-  //     required JSRuntime jsRuntime}) {
-  //   return KeyValueAdapter(
-  //       dbName: dbName, keyValueDb: keyValueDb, jsRuntime: jsRuntime);
-  // }
+  factory Foodb.inMemoryDb({required String dbName}) {
+    return KeyValueAdapter(dbName: dbName, keyValueDb: InMemoryDatabase());
+  }
 
   String get dbUri;
 
@@ -104,8 +103,8 @@ abstract class Foodb {
   }
 
   Future<List<Doc<DesignDoc>>> fetchAllDesignDocs() async {
-    GetAllDocsResponse<DesignDoc> docs = await allDocs<DesignDoc>(
-        GetAllDocsRequest(
+    GetViewResponse<DesignDoc> docs = await allDocs<DesignDoc>(
+        GetViewRequest(
             includeDocs: true, startkey: "_design/", endkey: "_design/\uffff"),
         (json) => DesignDoc.fromJson(json));
     return docs.rows.map<Doc<DesignDoc>>((e) => e.doc!).toList();
@@ -117,12 +116,11 @@ abstract class Foodb {
   Future<DeleteResponse> delete({required String id, required Rev rev});
 
   Future<Map<String, RevsDiff>> revsDiff(
-      {required Map<String, List<String>> body});
+      {required Map<String, List<Rev>> body});
 
   Future<BulkGetResponse<T>> bulkGet<T>(
-      {required List<Map<String, dynamic>> body,
+      {required BulkGetRequest body,
       bool revs = false,
-      bool latest = false,
       required T Function(Map<String, dynamic> json) fromJsonT});
 
   Future<BulkDocResponse> bulkDocs(
@@ -132,7 +130,7 @@ abstract class Foodb {
 
   Future<ChangesStream> changesStream(ChangeRequest request);
 
-  Future<GetAllDocsResponse<T>> allDocs<T>(GetAllDocsRequest allDocsRequest,
+  Future<GetViewResponse<T>> allDocs<T>(GetViewRequest allDocsRequest,
       T Function(Map<String, dynamic> json) fromJsonT);
 
   Future<IndexResponse> createIndex(
@@ -140,7 +138,6 @@ abstract class Foodb {
       String? ddoc,
       String? name,
       String type = 'json',
-      Map<String, dynamic>? partialFilterSelector,
       bool? partitioned});
 
   Future<FindResponse<T>> find<T>(
@@ -152,10 +149,9 @@ abstract class Foodb {
 
   Future<bool> destroy();
 
-  Future<List<AllDocRow<Map<String, dynamic>>>> view(String ddoc, String viewId,
-      {String? startKey,
-      String? endKey,
-      bool? desc,
-      String? startKeyDocId,
-      String? endKeyDocId});
+  Future<GetViewResponse<T>> view<T>(
+      String ddocId,
+      String viewName,
+      GetViewRequest getViewRequest,
+      T Function(Map<String, dynamic> json) fromJsonT);
 }

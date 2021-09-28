@@ -36,7 +36,7 @@ InternalDoc _$InternalDocFromJson(Map<String, dynamic> json) {
   return InternalDoc(
     rev: RevFromJsonString(json['rev'] as String?),
     deleted: json['deleted'] as bool,
-    localSeq: json['localSeq'] as String?,
+    localSeq: json['localSeq'] as int?,
     data: json['data'] as Map<String, dynamic>,
   );
 }

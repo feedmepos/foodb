@@ -5,7 +5,7 @@ part 'revs_diff.g.dart';
 
 @JsonSerializable()
 class RevsDiff {
-  @JsonKey(fromJson: ListOfRevFromJsonString, toJson: ListOfRevFromJsonString)
+  @JsonKey(fromJson: ListOfRevFromJsonString, toJson: ListOfRevToJsonString)
   List<Rev> missing;
   @JsonKey(name: 'possible_ancestors')
   List<String>? possibleAncestors;

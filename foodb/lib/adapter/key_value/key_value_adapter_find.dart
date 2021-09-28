@@ -4,12 +4,13 @@ mixin _KeyValueAdapterFind on _KeyValueAdapter {
   //Position Order Considered
   Future<ViewKey?> _findSelectorIndexByFields(
       List<Map<String, String>> sort) async {
-    ReadResult readResult = await keyValueDb.read(DocRecord(),
-        startkey: "_design", endkey: "_design\uffff");
+    ReadResult readResult = await keyValueDb.read(DocKey(key: ''),
+        startkey: DocKey(key: "_design/"),
+        endkey: DocKey(key: "_design\uffff"));
     List<String> keys = sort.map<String>((e) => e.keys.toList()[0]).toList();
 
     Map<ViewKey, int> matchedPositions = {};
-    List<Doc<DesignDoc>> docs = readResult.docs.values
+    List<Doc<DesignDoc>> docs = readResult.records.values
         .map((e) => Doc.fromJson(
             e, (json) => DesignDoc.fromJson(json as Map<String, dynamic>)))
         .toList();

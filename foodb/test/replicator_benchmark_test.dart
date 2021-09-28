@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodb/adapter/methods/all_docs.dart';
+import 'package:foodb/adapter/methods/view.dart';
 import 'package:foodb/replicate.dart';
 
-import 'adapter/helper.dart';
+import 'adapter/adapter_test.dart';
 
 void main() async {
   test('Couchdb to Couchdb: 30k-benchmark', () async {
@@ -14,8 +14,8 @@ void main() async {
       stopwatch.stop();
       print('done: ${stopwatch.elapsed.inSeconds}');
       print('perDoc: ${stopwatch.elapsed.inMilliseconds / 1000}');
-      final fromAll = await from.allDocs(GetAllDocsRequest(), (json) => json);
-      final toAll = await from.allDocs(GetAllDocsRequest(), (json) => json);
+      final fromAll = await from.allDocs(GetViewRequest(), (json) => json);
+      final toAll = await from.allDocs(GetViewRequest(), (json) => json);
       expect(fromAll.totalRows, equals(toAll.totalRows));
     });
 

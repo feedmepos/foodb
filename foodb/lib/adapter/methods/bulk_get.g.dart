@@ -6,6 +6,32 @@ part of 'bulk_get.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+BulkGetRequestDoc _$BulkGetRequestDocFromJson(Map<String, dynamic> json) {
+  return BulkGetRequestDoc(
+    id: json['id'] as String,
+    rev: RevFromJsonString(json['rev'] as String?),
+  );
+}
+
+Map<String, dynamic> _$BulkGetRequestDocToJson(BulkGetRequestDoc instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'rev': RevToJsonString(instance.rev),
+    };
+
+BulkGetRequest _$BulkGetRequestFromJson(Map<String, dynamic> json) {
+  return BulkGetRequest(
+    docs: (json['docs'] as List<dynamic>)
+        .map((e) => BulkGetRequestDoc.fromJson(e as Map<String, dynamic>))
+        .toList(),
+  );
+}
+
+Map<String, dynamic> _$BulkGetRequestToJson(BulkGetRequest instance) =>
+    <String, dynamic>{
+      'docs': instance.docs.map((e) => e.toJson()).toList(),
+    };
+
 BulkGetResponse<T> _$BulkGetResponseFromJson<T>(
   Map<String, dynamic> json,
   T Function(Object? json) fromJsonT,
@@ -56,6 +82,23 @@ Map<String, dynamic> _$BulkGetIdDocsToJson<T>(
           .toList(),
     };
 
+BulkGetDocError _$BulkGetDocErrorFromJson(Map<String, dynamic> json) {
+  return BulkGetDocError(
+    id: json['id'] as String,
+    rev: json['rev'] as String,
+    error: json['error'] as String,
+    reason: json['reason'] as String,
+  );
+}
+
+Map<String, dynamic> _$BulkGetDocErrorToJson(BulkGetDocError instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'rev': instance.rev,
+      'error': instance.error,
+      'reason': instance.reason,
+    };
+
 BulkGetDoc<T> _$BulkGetDocFromJson<T>(
   Map<String, dynamic> json,
   T Function(Object? json) fromJsonT,
@@ -65,6 +108,9 @@ BulkGetDoc<T> _$BulkGetDocFromJson<T>(
         ? null
         : Doc.fromJson(
             json['ok'] as Map<String, dynamic>, (value) => fromJsonT(value)),
+    error: json['error'] == null
+        ? null
+        : BulkGetDocError.fromJson(json['error'] as Map<String, dynamic>),
   );
 }
 
@@ -76,4 +122,5 @@ Map<String, dynamic> _$BulkGetDocToJson<T>(
       'ok': instance.doc?.toJson(
         (value) => toJsonT(value),
       ),
+      'error': instance.error?.toJson(),
     };
