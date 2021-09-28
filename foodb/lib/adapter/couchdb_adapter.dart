@@ -185,56 +185,6 @@ class CouchdbAdapter extends Foodb {
   }
 
   @override
-  Future<List<Doc<T>>> getWithOpenRev<T>(
-      {required String id,
-      bool attachments = false,
-      bool attEncodingInfo = false,
-      List<String>? attsSince,
-      bool conflicts = false,
-      bool deletedConflicts = false,
-      bool latest = false,
-      bool localSeq = false,
-      bool meta = false,
-      required OpenRevs openRevs,
-      String? rev,
-      bool revs = false,
-      bool revsInfo = false,
-      required T Function(Map<String, dynamic> json) fromJsonT}) async {
-    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri(id)));
-    uriBuilder.queryParameters = convertToParams({
-      'revs': revs,
-      'conflicts': conflicts,
-      'deleted_conflicts': deletedConflicts,
-      'latest': latest,
-      'local_seq': localSeq,
-      'meta': meta,
-      'att_encoding_info': attEncodingInfo,
-      'attachments': attachments,
-      'atts_since': attsSince,
-      'rev': rev,
-      'open_revs': openRevs.getOpenRevs(),
-      'revs_info': revsInfo
-    });
-    var response = (await this
-            .client
-            .get(uriBuilder.build(), headers: {'Accept': 'application/json'}))
-        .body;
-    var map = jsonDecode(response);
-    if (map.runtimeType == List) {
-      List<Doc<T>> results = map
-          .where((value) => value.containsKey("ok") == true)
-          .map<Doc<T>>((value) => Doc<T>.fromJson(
-              value["ok"], (json) => fromJsonT(json as Map<String, dynamic>)))
-          .toList();
-
-      return results;
-    } else {
-      print(id);
-      throw AdapterException(error: 'I donno what the fuck happenned');
-    }
-  }
-
-  @override
   Future<GetInfoResponse> info() async {
     var response = await this.client.get(this.getUri(''));
     if (response.statusCode != 200) {

@@ -20,12 +20,11 @@ void main() async {
     });
 
     final stream = await replicate(
-        from,
-        to,
-        ReplicationConfig(
-          maxBatchSize: 300,
-          createTarget: true,
-        ));
+      from,
+      to,
+      maxBatchSize: 300,
+      createTarget: true,
+    );
     stream.listen(
         onError: (err) {
           print(err);

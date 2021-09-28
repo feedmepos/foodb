@@ -14,7 +14,7 @@ class Doc<T> {
   final T model;
   final Object? attachments;
   final List<Rev>? conflicts;
-  final List<String>? deletedConflicts;
+  final List<Rev>? deletedConflicts;
   final List<RevsInfo>? revsInfo;
   final String? localSeq;
 
@@ -46,7 +46,7 @@ class Doc<T> {
           ?.map((e) => RevFromJsonString(e) as Rev)
           .toList(),
       deletedConflicts: (json['_deleted_conflicts'] as List<dynamic>?)
-          ?.map((e) => e as String)
+          ?.map((e) => RevFromJsonString(e) as Rev)
           .toList(),
       revsInfo: (json['_revs_info'] as List<dynamic>?)
           ?.map((e) => RevsInfo.fromJson(e as Map<String, dynamic>))

@@ -35,44 +35,6 @@ class ReplicationErrorEvent extends ReplicationEvent {
 
 class ReplicationCompleteEvent extends ReplicationEvent {}
 
-class ReplicationConfig {
-  /**
-   * create target database if not exist
-   */
-  final bool createTarget;
-  /**
-   * run in continuous mode, the replication will be a long running process
-   */
-  final bool continuous;
-  /**
-   * used when continuous = true.
-   * specify a certain millisecond before kick start the cycle
-   */
-  final int debounce;
-  /**
-   * when continuous = true, when is size meet but replictor still in debounce, replication cycle will be triggered
-   * when continuous = false, batchSize is used in seq_interval in ChangeRequest, let the couchdb decide the upperbound
-   */
-  final int maxBatchSize;
-  /**
-   * heartbeat for ChangeRequest
-   */
-  final int heartbeat;
-  /**
-   * timeout for ChangeRequest
-   */
-  final int timeout;
-
-  const ReplicationConfig({
-    this.continuous = false,
-    this.createTarget = false,
-    this.maxBatchSize = 25,
-    this.debounce = 3000,
-    this.heartbeat = 10000,
-    this.timeout = 60000,
-  });
-}
-
 class ReplicationStream {
   Stream<ReplicationEvent> _stream;
   final void Function() onCancel;
@@ -84,15 +46,15 @@ class ReplicationStream {
     /**
    * when counter error, can use the stream to decide retry or abort
    */
-    required void Function(ReplicationErrorEvent)? onError,
+    void Function(ReplicationErrorEvent)? onError,
     /**
    * call when a non-continuous replication completed
    */
-    required void Function(ReplicationCompleteEvent)? onComplete,
+    void Function(ReplicationCompleteEvent)? onComplete,
     /**
    * call when completed a single checkpoint
    */
-    required void Function(ReplicationCheckpointEvent)? onCheckpoint,
+    void Function(ReplicationCheckpointEvent)? onCheckpoint,
   }) {
     _stream.listen((event) {
       if (event is ReplicationCheckpointEvent) {
@@ -222,10 +184,10 @@ class _Replicator {
           0, toProcess.lastIndexWhere((element) => element.seq != null) + 1);
 
       // get revs diff
-      Map<String, List<String>> groupedChange = new Map();
+      Map<String, List<Rev>> groupedChange = new Map();
       toProcess.forEach((changeResult) {
         groupedChange[changeResult.id] =
-            changeResult.changes.map((e) => e.rev.toString()).toList();
+            changeResult.changes.map((e) => e.rev).toList();
       });
       Map<String, RevsDiff> revsDiff =
           await _target.revsDiff(body: groupedChange);
@@ -297,11 +259,8 @@ class _Replicator {
           lastSeq: lastSeq,
           sessionId: sessionId);
       pendingList = pendingList.sublist(toProcess.length);
-      onFinishCheckpoint?.call(targetLog, toProcess);
       isRunning = false;
-      if (pendingList.isNotEmpty) {
-        run();
-      }
+      onFinishCheckpoint?.call(targetLog, toProcess);
     } catch (err) {
       isRunning = false;
       onError?.call(err);
@@ -309,18 +268,56 @@ class _Replicator {
   }
 }
 
-Future<ReplicationStream> replicate(Foodb source, Foodb target,
-    [ReplicationConfig config = const ReplicationConfig()]) async {
+Future<ReplicationStream> replicate(
+  Foodb source,
+  Foodb target, {
+  /**
+   * create target database if not exist
+   */
+  bool createTarget = false,
+  /**
+   * run in continuous mode, the replication will be a long running process
+   */
+  bool continuous = false,
+  /**
+   * used when continuous = true.
+   * specify a certain millisecond before kick start the cycle
+   */
+  Duration debounce = const Duration(microseconds: 3000),
+  /**
+   * when continuous = true, when is size meet but replictor still in debounce, replication cycle will be triggered
+   * when continuous = false, batchSize is used in seq_interval in ChangeRequest, let the couchdb decide the upperbound
+   */
+  int maxBatchSize = 25,
+  /**
+   * heartbeat for ChangeRequest
+   */
+  int heartbeat = 10000,
+  /**
+   * timeout for ChangeRequest
+   */
+  int timeout = 30000,
+}) async {
   StreamController<ReplicationEvent> _stream = new StreamController();
   late ReplicationStream resultStream;
-  late final replicator;
+  late final _Replicator replicator;
   ChangesStream? changeStream;
+  var timer = Timer(debounce, () {});
+  refreshTimer(void Function() fn) {
+    timer.cancel();
+    return Timer(debounce, fn);
+  }
+
   replicator = _Replicator(source, target,
-      maxBatchSize: config.maxBatchSize,
+      maxBatchSize: maxBatchSize,
       onFinishCheckpoint: (log, changes) {
         _stream.sink.add(ReplicationCheckpointEvent(log, changes));
-        if (!config.continuous && replicator.pendingList.isEmpty) {
-          _stream.sink.add(ReplicationCompleteEvent());
+        if (replicator.pendingList.isNotEmpty) {
+          replicator.run();
+        } else {
+          if (!continuous) {
+            _stream.sink.add(ReplicationCompleteEvent());
+          }
         }
       },
       onError: (err) => _stream.sink.add(ReplicationErrorEvent(err)));
@@ -343,7 +340,7 @@ Future<ReplicationStream> replicate(Foodb source, Foodb target,
       try {
         await target.info();
       } catch (err) {
-        if (config.createTarget) {
+        if (createTarget) {
           await target.initDb();
         } else {
           _stream.sink.add(ReplicationErrorEvent(err));
@@ -355,8 +352,8 @@ Future<ReplicationStream> replicate(Foodb source, Foodb target,
           sourceUri: source.dbUri,
           targetUuid: targetInstanceInfo.uuid,
           targetUri: target.dbUri,
-          createTarget: config.createTarget,
-          continuous: config.continuous);
+          createTarget: createTarget,
+          continuous: continuous);
 
       // get first start seq
       var startSeq = '0';
@@ -379,32 +376,29 @@ Future<ReplicationStream> replicate(Foodb source, Foodb target,
         }
       }
 
-      var timer = Timer(Duration(milliseconds: config.debounce), () {});
-
       source
           .changesStream(ChangeRequest(
-              feed:
-                  config.continuous ? ChangeFeed.continuous : ChangeFeed.normal,
+              feed: continuous ? ChangeFeed.continuous : ChangeFeed.normal,
               style: 'all_docs',
-              heartbeat: config.heartbeat,
-              timeout: config.timeout,
-              seqInterval: config.maxBatchSize - 1,
+              heartbeat: heartbeat,
+              timeout: timeout,
+              seqInterval: continuous ? null : maxBatchSize - 1,
               since: startSeq))
           .then((value) {
         changeStream = value;
         changeStream!.listen(onResult: (result) {
-          if (config.continuous) {
+          if (continuous) {
             replicator.pendingList.add(result);
-            timer.cancel();
-            timer = Timer(Duration(milliseconds: config.debounce), () {
+            refreshTimer(() {
               replicator.run();
             });
-            if (replicator.pendingList.length >= config.maxBatchSize) {
+            if (replicator.pendingList.length >= maxBatchSize) {
+              timer.cancel();
               replicator.run();
             }
           }
         }, onComplete: (result) async {
-          if (!config.continuous) {
+          if (!continuous) {
             if (result.results.isEmpty) {
               _stream.sink.add(ReplicationCompleteEvent());
             } else {

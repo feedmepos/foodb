@@ -105,6 +105,18 @@ class DocHistory {
     return leaf.values;
   }
 
+  Iterable<InternalDoc> get allConflicts {
+    return leafDocs.where((element) => element.rev != winner?.rev);
+  }
+
+  Iterable<InternalDoc> get conflicts {
+    return allConflicts.where((element) => !element.deleted);
+  }
+
+  Iterable<InternalDoc> get deletedConflicts {
+    return allConflicts.where((element) => element.deleted);
+  }
+
   InternalDoc? get winner {
     List<InternalDoc> sortedLeaves = leafDocs.toList();
     sortedLeaves.removeWhere((element) => element.deleted == true);
@@ -115,36 +127,33 @@ class DocHistory {
 
   Revisions? getRevision(Rev rev) {
     List<RevisionNode> nodes =
-        this.revisions.nodes.where((element) => element.rev == rev).toList();
+        revisions.nodes.where((element) => element.rev == rev).toList();
 
     if (nodes.length == 0) return null;
     RevisionNode current = nodes[0];
-    Revisions revisions =
+    Revisions result =
         new Revisions(ids: [current.rev.md5], start: current.rev.index);
 
     while (current.prevRev != null) {
-      revisions.ids.add(current.prevRev!.md5);
-      current = this
-          .revisions
-          .nodes
-          .where((element) => element.rev == rev)
+      result.ids.add(current.prevRev!.md5);
+      current = revisions.nodes
+          .where((element) => element.rev == current.prevRev)
           .toList()[0];
     }
-    return revisions;
+    return result;
   }
 
-  Doc<T> toDoc<T>(Rev rev, T Function(Map<String, dynamic> json) fromT,
-      {bool revs = false, bool revsInfo = false}) {
+  Doc<T>? toDoc<T>(Rev rev, T Function(Map<String, dynamic> json) fromT,
+      {bool showRevision = false,
+      bool showRevInfo = false,
+      showConflicts = false}) {
     final doc = docs[rev.toString()];
     if (doc == null) {
-      throw AdapterException(error: 'missing', reason: 'document not found');
+      return null;
     }
-    Revisions? _revisions;
-    if (revs == true) {
-      _revisions = getRevision(rev)!;
-    }
+    Revisions? _revisions = getRevision(rev)!;
     List<RevsInfo>? _revsInfo;
-    if (revsInfo == true && _revisions != null) {
+    if (showRevInfo == true) {
       _revsInfo = [];
       var index = _revisions.start;
       for (final id in _revisions.ids) {
@@ -158,13 +167,18 @@ class DocHistory {
       }
     }
     return Doc(
-      id: id,
-      model: fromT(doc.data),
-      rev: doc.rev,
-      deleted: doc.deleted,
-      revisions: _revisions,
-      revsInfo: _revsInfo,
-    );
+        id: id,
+        model: fromT(doc.data),
+        rev: doc.rev,
+        deleted: doc.deleted,
+        revisions: showRevision ? _revisions : null,
+        revsInfo: _revsInfo,
+        deletedConflicts: showConflicts && deletedConflicts.length > 0
+            ? deletedConflicts.map((e) => e.rev).toList()
+            : null,
+        conflicts: showConflicts && conflicts.length > 0
+            ? conflicts.map((e) => e.rev).toList()
+            : null);
   }
 
   RevsDiff revsDiff(List<Rev> body) {

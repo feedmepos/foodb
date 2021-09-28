@@ -12,8 +12,7 @@ mixin _KeyValueAdapterUtil on _KeyValueAdapter {
 
   @override
   Future<GetServerInfoResponse> serverInfo() async {
-    // TODO
-    return GetServerInfoResponse(uuid: '', version: '1');
+    return GetServerInfoResponse(uuid: 'in-memory-db', version: '1');
   }
 
   @override
