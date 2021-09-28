@@ -4,8 +4,8 @@ import 'package:foodb/foodb.dart';
 import 'adapter_test.dart';
 
 void main() {
-  // final ctx = CouchdbAdapterTestContext();
-  final ctx = InMemoryAdapterTestContext();
+  final ctx = CouchdbAdapterTestContext();
+  // final ctx = InMemoryAdapterTestContext();
   changeStreamTest().forEach((t) {
     t(ctx);
   });
@@ -99,7 +99,6 @@ List<Function(AdapterTestContext)> changeStreamTest() {
         var resultFn = expectAsync1((p0) => null, count: 1);
         await db.put(doc: Doc(id: 'a', model: {}));
         await db.put(doc: Doc(id: 'b', model: {}));
-
         db
             .changesStream(
                 ChangeRequest(feed: ChangeFeed.longpoll, since: 'now'))

@@ -124,29 +124,3 @@ Map<String, dynamic> _$BulkGetDocToJson<T>(
       ),
       'error': instance.error?.toJson(),
     };
-
-BulkGetRequestBody _$BulkGetRequestBodyFromJson(Map<String, dynamic> json) {
-  return BulkGetRequestBody(
-    docs: (json['docs'] as List<dynamic>)
-        .map((e) => BulkGetRequest.fromJson(e as Map<String, dynamic>))
-        .toList(),
-  );
-}
-
-Map<String, dynamic> _$BulkGetRequestBodyToJson(BulkGetRequestBody instance) =>
-    <String, dynamic>{
-      'docs': instance.docs.map((e) => e.toJson()).toList(),
-    };
-
-BulkGetRequest _$BulkGetRequestFromJson(Map<String, dynamic> json) {
-  return BulkGetRequest(
-    rev: RevFromJsonString(json['rev'] as String?),
-    id: json['id'] as String,
-  );
-}
-
-Map<String, dynamic> _$BulkGetRequestToJson(BulkGetRequest instance) =>
-    <String, dynamic>{
-      'rev': RevToJsonString(instance.rev),
-      'id': instance.id,
-    };

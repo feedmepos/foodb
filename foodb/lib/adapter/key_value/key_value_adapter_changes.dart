@@ -52,7 +52,7 @@ mixin _KeyValueAdapterChange on _KeyValueAdapter {
         UpdateSequence update = UpdateSequence.fromJson(entry.value);
         streamController.sink.add(await _encodeUpdateSequence(key, update,
             includeDocs: request.includeDocs, style: request.style));
-        lastSeq = key.key;
+        lastSeq = key.key!;
         pending -= 1;
         limit -= 1;
         if (limit == 0) break;
@@ -73,7 +73,7 @@ mixin _KeyValueAdapterChange on _KeyValueAdapter {
         streamController.sink.add(await _encodeUpdateSequence(
             entry.key, entry.value,
             includeDocs: request.includeDocs, style: request.style));
-        lastSeq = entry.key.key;
+        lastSeq = entry.key.key!;
         if (request.feed == ChangeFeed.longpoll) {
           subscription?.cancel();
           streamController.sink.add('"last_seq":"${lastSeq}", "pending": 0}');

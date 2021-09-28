@@ -171,9 +171,8 @@ class DocHistory {
     List<Rev> revs = docs.values.map((v) => v.rev).toList();
     List<Rev> missing = [];
     body.forEach((element) {
-      Rev rev = Rev.fromString(element);
-      if (!revs.contains(rev)) {
-        missing.add(rev);
+      if (!revs.contains(element)) {
+        missing.add(element);
       }
     });
     return RevsDiff(missing: missing);

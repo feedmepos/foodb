@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:foodb/common/view_meta.dart';
 import 'package:foodb/foodb.dart';
 import 'package:foodb/adapter/exception.dart';
 import 'package:foodb/adapter/key_value/key_value_database.dart';

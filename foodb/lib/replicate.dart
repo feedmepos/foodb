@@ -222,10 +222,10 @@ class _Replicator {
           0, toProcess.lastIndexWhere((element) => element.seq != null) + 1);
 
       // get revs diff
-      Map<String, List<String>> groupedChange = new Map();
+      Map<String, List<Rev>> groupedChange = new Map();
       toProcess.forEach((changeResult) {
         groupedChange[changeResult.id] =
-            changeResult.changes.map((e) => e.rev.toString()).toList();
+            changeResult.changes.map((e) => e.rev).toList();
       });
       Map<String, RevsDiff> revsDiff =
           await _target.revsDiff(body: groupedChange);
