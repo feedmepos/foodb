@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foodb/adapter/methods/bulk_get.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/rev.dart';
 import 'package:foodb/foodb.dart';
@@ -42,13 +43,17 @@ void main() async {
               revisions: Revisions(ids: ["b", "b"], start: 2)),
           newEdits: false);
 
-      final response = await db.bulkGet<Map<String, dynamic>>(body: [
-        {"id": "a", "rev": Rev.fromString("1-aa")},
-        {"id": "a", "rev": Rev.fromString("1-a")},
-        {"id": "b", "rev": Rev.fromString("2-b")},
-        {"id": "b", "rev": Rev.fromString("1-b")},
-        {"id": "c", "rev": Rev.fromString("1-c")}
-      ], fromJsonT: (json) => json, revs: true);
+      final response = await db.bulkGet<Map<String, dynamic>>(
+          body: BulkGetRequestBody.fromJson({"docs":[
+            {"id": "a", "rev": Rev.fromString("1-aa")},
+            {"id": "a", "rev": Rev.fromString("1-a")},
+            {"id": "b", "rev": Rev.fromString("2-b")},
+            {"id": "b", "rev": Rev.fromString("1-b")},
+            {"id": "c", "rev": Rev.fromString("1-c")}
+          ]
+          }),
+          fromJsonT: (json) => json,
+          revs: true);
       print(response.toJson((json) => json));
       expect(response.results.length, 5);
     });

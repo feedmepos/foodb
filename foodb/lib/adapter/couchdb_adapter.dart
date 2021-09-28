@@ -302,33 +302,9 @@ class CouchdbAdapter extends Foodb {
     }
     return decoded.map<String, RevsDiff>((k, v) {
       return MapEntry<String, RevsDiff>(k, RevsDiff.fromJson(v));
-<<<<<<< HEAD
-<<<<<<< HEAD
-    }));
+    });
   }
 
-  @override
-  Future<GetAllDocsResponse<T>> allDocs<T>(GetAllDocsRequest getAllDocsRequest,
-      T Function(Map<String, dynamic> json) fromJsonT) async {
-    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_all_docs')));
-    var json = getAllDocsRequest.toJson();
-    if (json['startkey'] != null)
-      json['startkey'] = jsonEncode(json['startkey']);
-    if (json['endkey'] != null) json['endkey'] = jsonEncode(json['endkey']);
-    uriBuilder.queryParameters = convertToParams(json);
-
-    print((await this.client.get(uriBuilder.build())).body);
-
-    return GetAllDocsResponse<T>.fromJson(
-        jsonDecode((await this.client.get(uriBuilder.build())).body),
-        (a) => fromJsonT(a as Map<String, dynamic>));
-=======
-    });
->>>>>>> c1eba40... WIP, clean up
-=======
-    });
->>>>>>> c1eba401601dbacacb9162b2991f049ef97f21e1
-  }
 
   @override
   Future<IndexResponse> createIndex(

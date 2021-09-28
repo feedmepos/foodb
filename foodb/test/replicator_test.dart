@@ -4,13 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodb/foodb.dart';
 import 'package:foodb/adapter/couchdb_adapter.dart';
 import 'package:foodb/adapter/exception.dart';
-import 'package:foodb/adapter/in_memory_database.dart';
-import 'package:foodb/adapter/key_value_adapter.dart';
 import 'package:foodb/adapter/methods/changes.dart';
 import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/common/doc.dart';
 import 'package:foodb/common/rev.dart';
-import 'package:foodb/replicator.dart';
+import 'package:foodb/replicate.dart';
 import 'package:http/http.dart';
 
 void main() async {
@@ -20,7 +18,7 @@ void main() async {
   await dotenv.load(fileName: ".env");
   String envDbName = dotenv.env['COUCHDB_DB_NAME'] as String;
   String baseUri = dotenv.env['COUCHDB_BASE_URI'] as String;
-
+  
   getCouchDbAdapter({String? dbName}) {
     return new CouchdbAdapter(
         dbName: dbName ?? envDbName, baseUri: Uri.parse(baseUri));

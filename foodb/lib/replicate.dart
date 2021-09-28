@@ -261,11 +261,11 @@ class _Replicator {
 
         // handle the rest through bulkGet
         toInsert.addAll((await _source.bulkGet<Map<String, dynamic>>(
-                body: revsDiff.keys
-                    .expand((k) => revsDiff[k]!
-                        .missing
-                        .map((r) => {"id": k, "rev": r.toString()}))
-                    .toList(),
+                body: new BulkGetRequestBody(
+                  docs: revsDiff.entries.map((doc) => 
+                    doc.value.missing.map((e) => 
+                      BulkGetRequest(rev: e, id: doc.key)).toList()).toList()
+                        .expand((element) => element).toList()),
                 revs: true,
                 latest: true,
                 fromJsonT: (json) => json))
