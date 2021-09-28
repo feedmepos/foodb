@@ -16,6 +16,6 @@ RevsDiff _$RevsDiffFromJson(Map<String, dynamic> json) {
 }
 
 Map<String, dynamic> _$RevsDiffToJson(RevsDiff instance) => <String, dynamic>{
-      'missing': ListOfRevFromJsonString(instance.missing),
+      'missing': ListOfRevToJsonString(instance.missing),
       'possible_ancestors': instance.possibleAncestors,
     };

@@ -8,7 +8,6 @@ part of 'update_sequence.dart';
 
 UpdateSequence _$UpdateSequenceFromJson(Map<String, dynamic> json) {
   return UpdateSequence(
-    seq: json['seq'] as String,
     id: json['id'] as String,
     winnerRev: RevFromJsonString(json['winnerRev'] as String?),
     allLeafRev: ListOfRevFromJsonString(json['allLeafRev'] as List),
@@ -17,7 +16,6 @@ UpdateSequence _$UpdateSequenceFromJson(Map<String, dynamic> json) {
 
 Map<String, dynamic> _$UpdateSequenceToJson(UpdateSequence instance) =>
     <String, dynamic>{
-      'seq': instance.seq,
       'id': instance.id,
       'winnerRev': RevToJsonString(instance.winnerRev),
       'allLeafRev': ListOfRevToJsonString(instance.allLeafRev),

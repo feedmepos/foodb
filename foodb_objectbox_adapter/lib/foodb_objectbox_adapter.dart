@@ -9,16 +9,16 @@ import 'package:foodb_objectbox_adapter/objectbox.g.dart';
 
 const int int64MaxValue = 9223372036854775807;
 
-abstract class BaseObjectType {
+abstract class BaseObjectType<T> {
   abstract Box box;
-  ObjectBoxEntity formObject(String key, Map<String, dynamic> value);
+  ObjectBoxEntity formObject(T key, Map<String, dynamic> value);
   ObjectBoxEntity? getObjectByKey(key);
   ObjectBoxEntity? getLastObject();
   List<ObjectBoxEntity> readObjectBetween(
-      String? startkey, String? endkey, bool? descending);
+      T? startkey, T? endkey, bool? descending);
 }
 
-class DocObjectType extends BaseObjectType {
+class DocObjectType extends BaseObjectType<String> {
   @override
   late Box box;
 

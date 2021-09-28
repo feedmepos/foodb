@@ -1,70 +1,55 @@
 import 'package:foodb/common/doc.dart';
-import 'package:foodb/common/rev.dart';
 import 'package:json_annotation/json_annotation.dart';
 
-part 'all_docs.g.dart';
+part 'view.g.dart';
 
 @JsonSerializable(genericArgumentFactories: true, explicitToJson: true)
-class GetAllDocsResponse<T> {
+class GetViewResponse<T> {
   int? offset;
 
   @JsonKey(name: 'total_rows')
   int totalRows;
 
-  List<AllDocRow<T>> rows;
+  List<ViewRow<T>> rows;
 
   @JsonKey(name: 'update_seq')
   String? updateSeq;
 
-  GetAllDocsResponse(
+  GetViewResponse(
       {required this.offset,
       required this.totalRows,
       required this.rows,
       this.updateSeq});
 
-  factory GetAllDocsResponse.fromJson(
+  factory GetViewResponse.fromJson(
           Map<String, dynamic> json, T Function(Object? json) fromJsonT) =>
-      _$GetAllDocsResponseFromJson(json, fromJsonT);
+      _$GetViewResponseFromJson(json, fromJsonT);
   Map<String, dynamic> toJson(Object Function(T value) toJsonT) =>
-      _$GetAllDocsResponseToJson(this, toJsonT);
+      _$GetViewResponseToJson(this, toJsonT);
 }
 
 @JsonSerializable(genericArgumentFactories: true, explicitToJson: true)
-class AllDocRow<T> {
+class ViewRow<T> {
   String id;
-  String key;
-  AllDocRowValue value;
+  dynamic key;
+  dynamic value;
   Doc<T>? doc;
 
-  AllDocRow(
-      {required this.id, required this.key, required this.value, this.doc});
-  factory AllDocRow.fromJson(
+  ViewRow({required this.id, required this.key, this.value, this.doc});
+  factory ViewRow.fromJson(
           Map<String, dynamic> json, T Function(Object? json) fromJsonT) =>
-      _$AllDocRowFromJson(json, fromJsonT);
+      _$ViewRowFromJson(json, fromJsonT);
   Map<String, dynamic> toJson(Object? Function(T value) toJsonT) =>
-      _$AllDocRowToJson(this, toJsonT);
+      _$ViewRowToJson(this, toJsonT);
 }
 
 @JsonSerializable()
-class AllDocRowValue {
-  @JsonKey(fromJson: RevFromJsonString, toJson: RevToJsonString)
-  Rev rev;
-  AllDocRowValue({required this.rev});
-
-  factory AllDocRowValue.fromJson(Map<String, dynamic> json) =>
-      _$AllDocRowValueFromJson(json);
-  Map<String, dynamic> toJson() => _$AllDocRowValueToJson(this);
-}
-
-@JsonSerializable()
-class GetAllDocsRequest {
+class GetViewRequest {
   bool conflicts;
   bool descending;
 
   dynamic endkey;
 
-  @JsonKey(name: 'endkey_docid')
-  String? endKeyDocId;
   bool group;
 
   @JsonKey(name: 'group_level')
@@ -91,18 +76,15 @@ class GetAllDocsRequest {
   String? stale;
   dynamic startkey;
 
-  @JsonKey(name: 'startkey_docid')
-  String? startKeyDocId;
   String? update;
 
   @JsonKey(name: 'update_seq')
   bool updateSeq;
 
-  GetAllDocsRequest({
+  GetViewRequest({
     this.conflicts = false,
     this.descending = false,
     this.endkey,
-    this.endKeyDocId,
     this.group = false,
     this.groupLevel,
     this.includeDocs = false,
@@ -112,17 +94,16 @@ class GetAllDocsRequest {
     this.key,
     this.keys,
     this.limit,
-    this.reduce,
+    this.reduce = false,
     this.skip,
     this.sorted = true,
     this.stable = false,
     this.stale,
     this.startkey,
-    this.startKeyDocId,
     this.update,
     this.updateSeq = false,
   });
-  factory GetAllDocsRequest.fromJson(Map<String, dynamic> json) =>
-      _$GetAllDocsRequestFromJson(json);
-  Map<String, dynamic> toJson() => _$GetAllDocsRequestToJson(this);
+  factory GetViewRequest.fromJson(Map<String, dynamic> json) =>
+      _$GetViewRequestFromJson(json);
+  Map<String, dynamic> toJson() => _$GetViewRequestToJson(this);
 }

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:foodb/foodb.dart';
 import 'package:foodb/adapter/exception.dart';
-import 'package:foodb/adapter/methods/all_docs.dart';
+import 'package:foodb/adapter/methods/view.dart';
 import 'package:foodb/adapter/methods/bulk_docs.dart';
 import 'package:foodb/adapter/methods/bulk_get.dart';
 import 'package:foodb/adapter/methods/changes.dart';
@@ -53,13 +53,12 @@ class CouchdbAdapter extends Foodb {
 
   @override
   Future<BulkGetResponse<T>> bulkGet<T>(
-      {required BulkGetRequestBody body,
+      {required BulkGetRequest body,
       bool revs = false,
-      bool latest = false,
       required T Function(Map<String, dynamic> json) fromJsonT}) async {
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_bulk_get')));
-    uriBuilder.queryParameters =
-        convertToParams({"revs": revs, "latest": latest});
+    uriBuilder.queryParameters = convertToParams({"revs": revs});
+    var b = body.toJson();
     var response = (await this.client.post(uriBuilder.build(),
         headers: {
           'Content-Type': 'application/json',
@@ -136,15 +135,12 @@ class CouchdbAdapter extends Foodb {
   }
 
   @override
-  Future<GetAllDocsResponse<T>> allDocs<T>(GetAllDocsRequest getAllDocsRequest,
+  Future<GetViewResponse<T>> allDocs<T>(GetViewRequest getViewRequest,
       T Function(Map<String, dynamic> json) fromJsonT) async {
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_all_docs')));
-    var json = getAllDocsRequest.toJson();
-    if (json['startkey'] != null)
-      json['startkey'] = jsonEncode(json['startkey']);
-    if (json['endkey'] != null) json['endkey'] = jsonEncode(json['endkey']);
+    var json = getViewRequest.toJson();
     uriBuilder.queryParameters = convertToParams(json);
-    return GetAllDocsResponse<T>.fromJson(
+    return GetViewResponse<T>.fromJson(
         jsonDecode((await this.client.get(uriBuilder.build())).body),
         (a) => fromJsonT(a as Map<String, dynamic>));
   }
@@ -287,15 +283,21 @@ class CouchdbAdapter extends Foodb {
   Future<DeleteResponse> delete({required String id, required Rev rev}) async {
     UriBuilder uriBuilder = new UriBuilder.fromUri(this.getUri(id));
     uriBuilder.queryParameters = convertToParams({'rev': rev.toString()});
-    return DeleteResponse.fromJson(
-        jsonDecode((await this.client.delete(uriBuilder.build())).body));
+    var result =
+        jsonDecode((await this.client.delete(uriBuilder.build())).body);
+    if (result['error'] != null) {
+      throw AdapterException(error: result['error'], reason: result['reason']);
+    }
+    return DeleteResponse.fromJson(result);
   }
 
   @override
   Future<Map<String, RevsDiff>> revsDiff(
-      {required Map<String, List<String>> body}) async {
+      {required Map<String, List<Rev>> body}) async {
     Response response = await this.client.post(this.getUri("_revs_diff"),
-        headers: {'Content-Type': 'application/json'}, body: jsonEncode(body));
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body.map((key, value) =>
+            MapEntry(key, value.map((e) => e.toString()).toList()))));
     Map<String, dynamic> decoded = jsonDecode(response.body);
     if (decoded.isEmpty) {
       return {};
@@ -312,12 +314,11 @@ class CouchdbAdapter extends Foodb {
       String? ddoc,
       String? name,
       String type = 'json',
-      Map<String, dynamic>? partialFilterSelector,
       bool? partitioned}) async {
-    Map<String, dynamic> body = {
-      'index': {'fields': indexFields},
-      'type': type,
-    };
+    Map<String, dynamic> body = Map();
+    body['type'] = type;
+    body['index'] = Map<String, dynamic>();
+    body['index']['fields'] = indexFields;
     if (partitioned != null) {
       body['partitioned'] = partitioned;
     }
@@ -327,9 +328,7 @@ class CouchdbAdapter extends Foodb {
     if (name != null) {
       body['name'] = name;
     }
-    if (partialFilterSelector != null) {
-      body['index']['partial_filter_selector'] = partialFilterSelector;
-    }
+
     var response = (jsonDecode((await this.client.post(this.getUri('_index'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode(body)))
@@ -386,13 +385,22 @@ class CouchdbAdapter extends Foodb {
   }
 
   @override
-  Future<List<AllDocRow<Map<String, dynamic>>>> view(String ddoc, String viewId,
-      {String? startKey,
-      String? endKey,
-      bool? desc,
-      String? startKeyDocId,
-      String? endKeyDocId}) {
-    // TODO: implement view
-    throw UnimplementedError();
+  Future<GetViewResponse<T>> view<T>(
+      String ddocId,
+      String viewName,
+      GetViewRequest getViewRequest,
+      T Function(Map<String, dynamic> json) fromJsonT) async {
+    UriBuilder uriBuilder =
+        UriBuilder.fromUri((this.getUri('_design/$ddocId/_view/$viewName')));
+    var json = getViewRequest.toJson();
+    uriBuilder.queryParameters = convertToParams(json);
+    var path = uriBuilder.build().toString();
+    var jreon = jsonDecode((await this.client.get(uriBuilder.build())).body);
+    var sda = GetViewResponse<T>.fromJson(
+        jsonDecode((await this.client.get(uriBuilder.build())).body),
+        (a) => fromJsonT(a as Map<String, dynamic>));
+    return GetViewResponse<T>.fromJson(
+        jsonDecode((await this.client.get(uriBuilder.build())).body),
+        (a) => fromJsonT(a as Map<String, dynamic>));
   }
 }

@@ -4,9 +4,37 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'bulk_get.g.dart';
 
+@JsonSerializable()
+class BulkGetRequestDoc {
+  final String id;
+  @JsonKey(fromJson: RevFromJsonString, toJson: RevToJsonString)
+  final Rev? rev;
+  BulkGetRequestDoc({
+    required this.id,
+    this.rev,
+  });
+
+  factory BulkGetRequestDoc.fromJson(Map<String, dynamic> json) =>
+      _$BulkGetRequestDocFromJson(json);
+  Map<String, dynamic> toJson() => _$BulkGetRequestDocToJson(this);
+}
+
+@JsonSerializable(explicitToJson: true)
+class BulkGetRequest {
+  final List<BulkGetRequestDoc> docs;
+
+  BulkGetRequest({
+    required this.docs,
+  });
+
+  factory BulkGetRequest.fromJson(Map<String, dynamic> json) =>
+      _$BulkGetRequestFromJson(json);
+  Map<String, dynamic> toJson() => _$BulkGetRequestToJson(this);
+}
+
 @JsonSerializable(genericArgumentFactories: true, explicitToJson: true)
 class BulkGetResponse<T> {
-  List<BulkGetIdDocs<T>> results;
+  final List<BulkGetIdDocs<T>> results;
 
   BulkGetResponse({
     required this.results,
@@ -21,8 +49,8 @@ class BulkGetResponse<T> {
 
 @JsonSerializable(genericArgumentFactories: true, explicitToJson: true)
 class BulkGetIdDocs<T> {
-  String id;
-  List<BulkGetDoc<T>> docs;
+  final String id;
+  final List<BulkGetDoc<T>> docs;
 
   BulkGetIdDocs({
     required this.id,
@@ -36,13 +64,35 @@ class BulkGetIdDocs<T> {
       _$BulkGetIdDocsToJson(this, toJsonT);
 }
 
+@JsonSerializable()
+class BulkGetDocError {
+  final String id;
+  final String rev;
+  final String error;
+  final String reason;
+  BulkGetDocError({
+    required this.id,
+    required this.rev,
+    required this.error,
+    required this.reason,
+  });
+
+  factory BulkGetDocError.fromJson(Map<String, dynamic> json) =>
+      _$BulkGetDocErrorFromJson(json);
+  Map<String, dynamic> toJson() => _$BulkGetDocErrorToJson(this);
+}
+
 @JsonSerializable(genericArgumentFactories: true, explicitToJson: true)
 class BulkGetDoc<T> {
   @JsonKey(name: "ok")
-  Doc<T>? doc;
+  final Doc<T>? doc;
+
+  @JsonKey(name: 'error')
+  final BulkGetDocError? error;
 
   BulkGetDoc({
-    required this.doc,
+    this.doc,
+    this.error,
   });
 
   factory BulkGetDoc.fromJson(
@@ -50,33 +100,4 @@ class BulkGetDoc<T> {
       _$BulkGetDocFromJson(json, fromJsonT);
   Map<String, dynamic> toJson(Object? Function(T value) toJsonT) =>
       _$BulkGetDocToJson(this, toJsonT);
-}
-
-@JsonSerializable(explicitToJson: true)
-class BulkGetRequestBody {
-  List<BulkGetRequest> docs;
-
-  BulkGetRequestBody({
-    required this.docs,
-  });
-
-  factory BulkGetRequestBody.fromJson(Map<String, dynamic> json) =>
-      _$BulkGetRequestBodyFromJson(json);
-  Map<String, dynamic> toJson() => _$BulkGetRequestBodyToJson(this);
-}
-
-@JsonSerializable()
-class BulkGetRequest {
-  @JsonKey(fromJson: RevFromJsonString, toJson: RevToJsonString)
-  Rev rev;
-  String id;
-
-  BulkGetRequest({
-    required this.rev,
-    required this.id,
-  });
-
-  factory BulkGetRequest.fromJson(Map<String, dynamic> json) =>
-      _$BulkGetRequestFromJson(json);
-  Map<String, dynamic> toJson() => _$BulkGetRequestToJson(this);
 }

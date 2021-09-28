@@ -16,12 +16,18 @@ mixin _KeyValueAdapterGet on _KeyValueAdapter {
       bool revs = false,
       bool revsInfo = false,
       required T Function(Map<String, dynamic> json) fromJsonT}) async {
-    var json = await keyValueDb.get(DocRecord(), key: id);
-    if (json == null) {
+    var entry = await keyValueDb.get(DocKey(key: id));
+    if (entry == null) {
       return null;
     }
-    var result = DocHistory.fromJson(json);
-    return result.winner?.toDoc(id, fromJsonT);
+    var result = DocHistory.fromJson(entry.value);
+    Doc<T>? doc;
+    if (rev != null) {
+      result.toDoc(Rev.fromString(rev), (json) => json);
+    } else {
+      result.toDoc(result.winner!.rev, (json) => json);
+    }
+    return doc;
   }
 
   @override
@@ -42,23 +48,21 @@ mixin _KeyValueAdapterGet on _KeyValueAdapter {
       required T Function(Map<String, dynamic> json) fromJsonT}) async {
     //revs, open_revs done
 
-    var json = await keyValueDb.get(DocRecord(), key: id);
-    if (json == null) {
+    var entry = await keyValueDb.get(DocKey(key: id));
+    if (entry == null) {
       return [];
     }
-    var docHistory = DocHistory.fromJson(json);
+    var docHistory = DocHistory.fromJson(entry.value);
     if (openRevs.all) {
       return docHistory.docs.values
-          .map((e) => e.toDoc(id, (json) => fromJsonT(json),
-              revisions: revs ? docHistory.getRevision(e.rev) : null))
+          .map((e) => docHistory.toDoc<T>(e.rev, fromJsonT, revs: revs))
           .toList();
     } else {
       List<Doc<T>> list = [];
       openRevs.revs.forEach((rev) {
         if (docHistory.docs.containsKey(rev)) {
-          list.add(docHistory.docs[rev]!.toDoc(id, (json) => fromJsonT(json),
-              revisions:
-                  revs ? docHistory.getRevision(Rev.fromString(rev)) : null));
+          list.add(
+              docHistory.toDoc<T>(Rev.fromString(rev), fromJsonT, revs: revs));
         }
       });
       return list;
@@ -67,10 +71,30 @@ mixin _KeyValueAdapterGet on _KeyValueAdapter {
 
   @override
   Future<BulkGetResponse<T>> bulkGet<T>(
-      {required List<Map<String, dynamic>> body,
+      {required BulkGetRequest body,
       bool revs = false,
-      bool latest = false,
-      required T Function(Map<String, dynamic> json) fromJsonT}) {
-    throw UnimplementedError();
+      required T Function(Map<String, dynamic> json) fromJsonT}) async {
+    List<BulkGetIdDocs<T>> results = [];
+    for (final d in body.docs) {
+      late BulkGetDoc<T> doc;
+      final found = await get(
+          id: d.id,
+          rev: d.rev.toString(),
+          revsInfo: true,
+          fromJsonT: fromJsonT);
+      if (found == null) {
+        doc = BulkGetDoc(
+            error: BulkGetDocError(
+                id: d.id,
+                rev: d.rev?.toString() ?? 'undefined',
+                error: 'not_found',
+                reason: 'missing'));
+      } else {
+        doc = BulkGetDoc(doc: found);
+      }
+      results.add(BulkGetIdDocs(id: d.id, docs: [doc]));
+    }
+
+    return BulkGetResponse(results: results);
   }
 }

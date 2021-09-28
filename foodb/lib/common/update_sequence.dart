@@ -5,7 +5,6 @@ part 'update_sequence.g.dart';
 
 @JsonSerializable()
 class UpdateSequence {
-  String seq;
   String id;
 
   @JsonKey(fromJson: RevFromJsonString, toJson: RevToJsonString)
@@ -15,7 +14,6 @@ class UpdateSequence {
   List<Rev> allLeafRev;
 
   UpdateSequence({
-    required this.seq,
     required this.id,
     required this.winnerRev,
     required this.allLeafRev,

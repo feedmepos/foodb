@@ -67,7 +67,7 @@ class ChangesStream {
         var items = RegExp("^{\".*},?\n?\$", multiLine: true).allMatches(event);
         items.forEach((i) {
           var json = jsonDecode(event.substring(i.start, i.end).trim());
-          onResult?.call(ChangeResult.fromJson(json));
+          if (json['id'] != null) onResult?.call(ChangeResult.fromJson(json));
         });
       } else {
         cache += event;
@@ -81,7 +81,7 @@ class ChangesStream {
           });
           changeResponse.lastSeq = map['last_seq'];
           changeResponse.pending = map['pending'];
-          onComplete?.call(new ChangeResponse(results: _results));
+          onComplete?.call(changeResponse);
         }
       }
     });

@@ -1,28 +1,28 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'all_docs.dart';
+part of 'view.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-GetAllDocsResponse<T> _$GetAllDocsResponseFromJson<T>(
+GetViewResponse<T> _$GetViewResponseFromJson<T>(
   Map<String, dynamic> json,
   T Function(Object? json) fromJsonT,
 ) {
-  return GetAllDocsResponse<T>(
+  return GetViewResponse<T>(
     offset: json['offset'] as int?,
     totalRows: json['total_rows'] as int,
     rows: (json['rows'] as List<dynamic>)
-        .map((e) => AllDocRow.fromJson(
+        .map((e) => ViewRow.fromJson(
             e as Map<String, dynamic>, (value) => fromJsonT(value)))
         .toList(),
     updateSeq: json['update_seq'] as String?,
   );
 }
 
-Map<String, dynamic> _$GetAllDocsResponseToJson<T>(
-  GetAllDocsResponse<T> instance,
+Map<String, dynamic> _$GetViewResponseToJson<T>(
+  GetViewResponse<T> instance,
   Object? Function(T value) toJsonT,
 ) =>
     <String, dynamic>{
@@ -36,14 +36,14 @@ Map<String, dynamic> _$GetAllDocsResponseToJson<T>(
       'update_seq': instance.updateSeq,
     };
 
-AllDocRow<T> _$AllDocRowFromJson<T>(
+ViewRow<T> _$ViewRowFromJson<T>(
   Map<String, dynamic> json,
   T Function(Object? json) fromJsonT,
 ) {
-  return AllDocRow<T>(
+  return ViewRow<T>(
     id: json['id'] as String,
-    key: json['key'] as String,
-    value: AllDocRowValue.fromJson(json['value'] as Map<String, dynamic>),
+    key: json['key'],
+    value: json['value'],
     doc: json['doc'] == null
         ? null
         : Doc.fromJson(
@@ -51,36 +51,24 @@ AllDocRow<T> _$AllDocRowFromJson<T>(
   );
 }
 
-Map<String, dynamic> _$AllDocRowToJson<T>(
-  AllDocRow<T> instance,
+Map<String, dynamic> _$ViewRowToJson<T>(
+  ViewRow<T> instance,
   Object? Function(T value) toJsonT,
 ) =>
     <String, dynamic>{
       'id': instance.id,
       'key': instance.key,
-      'value': instance.value.toJson(),
+      'value': instance.value,
       'doc': instance.doc?.toJson(
         (value) => toJsonT(value),
       ),
     };
 
-AllDocRowValue _$AllDocRowValueFromJson(Map<String, dynamic> json) {
-  return AllDocRowValue(
-    rev: RevFromJsonString(json['rev'] as String?),
-  );
-}
-
-Map<String, dynamic> _$AllDocRowValueToJson(AllDocRowValue instance) =>
-    <String, dynamic>{
-      'rev': RevToJsonString(instance.rev),
-    };
-
-GetAllDocsRequest _$GetAllDocsRequestFromJson(Map<String, dynamic> json) {
-  return GetAllDocsRequest(
+GetViewRequest _$GetViewRequestFromJson(Map<String, dynamic> json) {
+  return GetViewRequest(
     conflicts: json['conflicts'] as bool,
     descending: json['descending'] as bool,
     endkey: json['endkey'],
-    endKeyDocId: json['endkey_docid'] as String?,
     group: json['group'] as bool,
     groupLevel: json['group_level'] as int?,
     includeDocs: json['include_docs'] as bool,
@@ -96,18 +84,16 @@ GetAllDocsRequest _$GetAllDocsRequestFromJson(Map<String, dynamic> json) {
     stable: json['stable'] as bool,
     stale: json['stale'] as String?,
     startkey: json['startkey'],
-    startKeyDocId: json['startkey_docid'] as String?,
     update: json['update'] as String?,
     updateSeq: json['update_seq'] as bool,
   );
 }
 
-Map<String, dynamic> _$GetAllDocsRequestToJson(GetAllDocsRequest instance) =>
+Map<String, dynamic> _$GetViewRequestToJson(GetViewRequest instance) =>
     <String, dynamic>{
       'conflicts': instance.conflicts,
       'descending': instance.descending,
       'endkey': instance.endkey,
-      'endkey_docid': instance.endKeyDocId,
       'group': instance.group,
       'group_level': instance.groupLevel,
       'include_docs': instance.includeDocs,
@@ -123,7 +109,6 @@ Map<String, dynamic> _$GetAllDocsRequestToJson(GetAllDocsRequest instance) =>
       'stable': instance.stable,
       'stale': instance.stale,
       'startkey': instance.startkey,
-      'startkey_docid': instance.startKeyDocId,
       'update': instance.update,
       'update_seq': instance.updateSeq,
     };

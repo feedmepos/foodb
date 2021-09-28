@@ -25,53 +25,51 @@ abstract class AbstractKey<T extends Comparable> implements Comparable {
   }
 }
 
-class DocRecord extends AbstractKey<String> {
-  DocRecord({required String key}) : super(key: key, tableName: "doc");
+class DocKey extends AbstractKey<String> {
+  DocKey({required String key}) : super(key: key, tableName: "doc");
   @override
   copyWithKey({required String newKey}) {
-    return DocRecord(key: newKey);
+    return DocKey(key: newKey);
   }
 }
 
-class LocalDocRecord extends AbstractKey<String> {
-  LocalDocRecord({required String key})
-      : super(key: key, tableName: "local_doc");
+class LocalDocKey extends AbstractKey<String> {
+  LocalDocKey({required String key}) : super(key: key, tableName: "local_doc");
   @override
   copyWithKey({required String newKey}) {
-    return LocalDocRecord(key: newKey);
+    return LocalDocKey(key: newKey);
   }
 }
 
-class SequenceRecord extends AbstractKey<int> {
-  SequenceRecord({required int key}) : super(key: key, tableName: "sequence");
+class SequenceKey extends AbstractKey<int> {
+  SequenceKey({required int key}) : super(key: key, tableName: "sequence");
   @override
   copyWithKey({required int newKey}) {
-    return SequenceRecord(key: newKey);
+    return SequenceKey(key: newKey);
   }
 }
 
-class ViewMetaRecord extends AbstractKey<String> {
-  ViewMetaRecord({required String key})
-      : super(key: key, tableName: "view_meta");
+class ViewMetaKey extends AbstractKey<String> {
+  ViewMetaKey({required String key}) : super(key: key, tableName: "view_meta");
   @override
   copyWithKey({required String newKey}) {
-    return ViewMetaRecord(key: newKey);
+    return ViewMetaKey(key: newKey);
   }
 }
 
-class ViewIdRecord extends AbstractKey<String> {
-  ViewIdRecord({required String key}) : super(key: key, tableName: "view_id");
+class ViewIdKey extends AbstractKey<String> {
+  ViewIdKey({required String key}) : super(key: key, tableName: "view_id");
   @override
   copyWithKey({required String newKey}) {
-    return ViewIdRecord(key: newKey);
+    return ViewIdKey(key: newKey);
   }
 }
 
-class ViewKeyRecord extends AbstractKey<String> {
-  ViewKeyRecord({required String key}) : super(key: key, tableName: "view_key");
+class ViewKeyKey extends AbstractKey<String> {
+  ViewKeyKey({required String key}) : super(key: key, tableName: "view_key");
   @override
   copyWithKey({required String newKey}) {
-    return ViewKeyRecord(key: newKey);
+    return ViewKeyKey(key: newKey);
   }
 }
 
@@ -82,27 +80,28 @@ abstract class KeyValueDatabaseSession {
 abstract class KeyValueDatabase<T extends KeyValueDatabaseSession> {
   late String type;
 
+  Future<bool> initDb();
+
   Future<void> runInSession(Future<void> Function(T) function);
 
   Future<MapEntry<AbstractKey, Map<String, dynamic>>?> get(AbstractKey key,
       {T? session});
   Future<List<MapEntry<AbstractKey, Map<String, dynamic>>?>> getMany(
-      List<AbstractKey> records,
+      List<AbstractKey> keys,
       {T? session});
   Future<MapEntry<AbstractKey, Map<String, dynamic>>?> last(AbstractKey key,
       {T? session});
-  Future<ReadResult> read(
+  Future<ReadResult> read(AbstractKey keyType,
       {AbstractKey? startkey, AbstractKey? endkey, bool? desc, T? session});
 
-  Future<bool> insert(AbstractKey key, {T? session});
-  Future<bool> insertMany(AbstractKey keys, {T? session});
-
-  Future<bool> put(AbstractKey key, {T? session});
-  Future<bool> putMany(List<AbstractKey> records, {T? session});
+  Future<bool> put(AbstractKey key, Map<String, dynamic> value, {T? session});
+  Future<bool> putMany(Map<AbstractKey, Map<String, dynamic>> entries,
+      {T? session});
 
   Future<bool> delete(AbstractKey key, {T? session});
-  Future<bool> deleteMany(List<AbstractKey> records, {T? session});
+  Future<bool> deleteMany(List<AbstractKey> keys, {T? session});
 
-  Future<bool> deleteTable(AbstractKey key, T? session);
-  Future<bool> deleteDatabase({T? session});
+  Future<int> tableSize(AbstractKey key, {T? session});
+  Future<bool> deleteTable(AbstractKey key, {T? session});
+  Future<bool> destroy({T? session});
 }

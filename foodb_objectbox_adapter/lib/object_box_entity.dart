@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:objectbox/objectbox.dart';
 
-abstract class ObjectBoxEntity {
+abstract class ObjectBoxEntity<T> {
   abstract int id;
-  abstract String? key;
+  abstract T? key;
   abstract String? value;
 
   Map<String, dynamic>? get doc {
@@ -59,10 +59,6 @@ class SequenceObject extends ObjectBoxEntity {
   @override
   @Id(assignable: true)
   int id;
-
-  @override
-  @Index()
-  String? key;
 
   @override
   String? value;
