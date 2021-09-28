@@ -7,6 +7,7 @@ import 'package:foodb/foodb.dart';
 import 'package:foodb/adapter/methods/bulk_get.dart';
 import 'package:foodb/adapter/methods/server.dart';
 import 'package:foodb/common/replication.dart';
+import 'package:synchronized/synchronized.dart';
 import 'package:uuid/uuid.dart';
 
 final replicatorVersion = 1;
@@ -150,6 +151,7 @@ parseSeqInt(String seq) {
 }
 
 class _Replicator {
+  final _lock = Lock();
   List<ChangeResult> pendingList = [];
   bool isRunning = false;
   bool cancelled = false;
@@ -171,9 +173,11 @@ class _Replicator {
   cancel() {}
 
   run() async {
-    if (isRunning || cancelled || pendingList.isEmpty) return;
-    try {
+    await _lock.synchronized(() {
+      if (isRunning || cancelled || pendingList.isEmpty) return;
       isRunning = true;
+    });
+    try {
       DateTime startTime = DateTime.now();
       String sessionId = Uuid().v4();
 
@@ -303,24 +307,21 @@ Future<ReplicationStream> replicate(
   late final _Replicator replicator;
   ChangesStream? changeStream;
   var timer = Timer(debounce, () {});
-  refreshTimer(void Function() fn) {
-    timer.cancel();
-    return Timer(debounce, fn);
-  }
 
-  replicator = _Replicator(source, target,
-      maxBatchSize: maxBatchSize,
+  replicator = _Replicator(source, target, maxBatchSize: maxBatchSize,
       onFinishCheckpoint: (log, changes) {
-        _stream.sink.add(ReplicationCheckpointEvent(log, changes));
-        if (replicator.pendingList.isNotEmpty) {
-          replicator.run();
-        } else {
-          if (!continuous) {
-            _stream.sink.add(ReplicationCompleteEvent());
-          }
-        }
-      },
-      onError: (err) => _stream.sink.add(ReplicationErrorEvent(err)));
+    if (!_stream.isClosed)
+      _stream.sink.add(ReplicationCheckpointEvent(log, changes));
+    if (replicator.pendingList.isNotEmpty) {
+      replicator.run();
+    } else {
+      if (!continuous) {
+        _stream.sink.add(ReplicationCompleteEvent());
+      }
+    }
+  }, onError: (err) {
+    if (!_stream.isClosed) _stream.sink.add(ReplicationErrorEvent(err));
+  });
   resultStream = new ReplicationStream(_stream.stream, onCancel: () {
     replicator.cancel();
     changeStream?.cancel();
@@ -389,10 +390,9 @@ Future<ReplicationStream> replicate(
         changeStream!.listen(onResult: (result) {
           if (continuous) {
             replicator.pendingList.add(result);
-            refreshTimer(() {
-              replicator.run();
-            });
-            if (replicator.pendingList.length >= maxBatchSize) {
+            timer.cancel();
+            timer = Timer(debounce, replicator.run);
+            if (replicator.pendingList.length == maxBatchSize) {
               timer.cancel();
               replicator.run();
             }

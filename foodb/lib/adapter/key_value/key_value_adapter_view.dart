@@ -244,20 +244,20 @@ mixin _KeyValueAdapterView on _KeyValueAdapter {
     await _generateView(designDoc);
 
     ReadResult result = await keyValueDb.read(ViewKeyKey(view: viewName),
-        startkey: ViewKeyKey(view:viewName,
-                             key:allDocsRequest.startkey==null?
-                               null:
-                               ViewKey(
-                                  id: allDocsRequest.startkey, 
-                                  key: allDocsRequest.startkey)
-                                  .toString()),
-        endkey: ViewKeyKey(view:viewName,
-                           key: allDocsRequest.endkey==null? 
-                              null:
-                              ViewKey(
-                                id: allDocsRequest.endkey, 
-                                key: allDocsRequest.endkey).
-                                toString()),
+        startkey: ViewKeyKey(
+            view: viewName,
+            key: allDocsRequest.startkey == null
+                ? null
+                : ViewKey(
+                        id: allDocsRequest.startkey,
+                        key: allDocsRequest.startkey)
+                    .toString()),
+        endkey: ViewKeyKey(
+            view: viewName,
+            key: allDocsRequest.endkey == null
+                ? null
+                : ViewKey(id: allDocsRequest.endkey, key: allDocsRequest.endkey)
+                    .toString()),
         desc: allDocsRequest.descending);
 
     // if ((startkey != null && startKeyDocId != null) ||
@@ -270,23 +270,25 @@ mixin _KeyValueAdapterView on _KeyValueAdapter {
     // }
 
     List<ViewRow<T>> rows = [];
-    Map<String,DocHistory> map = {};
-    if (allDocsRequest.includeDocs) {
+    Map<String, DocHistory> map = {};
+    if (allDocsRequest.includeDocs == true) {
       var docs = await keyValueDb.getMany(result.records.keys
           .map<DocKey>(
               (e) => DocKey(key: ViewKey.fromString(e.key!.toString()).id))
           .toList());
-      map = Map.fromIterable(docs, key: (e) => e.key.key, value: (e) => DocHistory.fromJson(e.value));
+      map = Map.fromIterable(docs,
+          key: (e) => e.key.key, value: (e) => DocHistory.fromJson(e.value));
     }
-    
+
     for (var e in result.records.entries) {
       ViewKey key = ViewKey.fromString(e.key.key!.toString());
       ViewRow<T> row = ViewRow<T>(
           id: key.id,
           key: key.key,
           value: e.value,
-          doc: allDocsRequest.includeDocs
-              ? map[key.id]!.toDoc<T>(map[key.id]!.winner!.rev, fromJsonT): null);
+          doc: allDocsRequest.includeDocs == true
+              ? map[key.id]!.toDoc<T>(map[key.id]!.winner!.rev, fromJsonT)
+              : null);
       rows.add(row);
     }
 

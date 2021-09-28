@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:foodb/common/doc.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -45,63 +47,69 @@ class ViewRow<T> {
 
 @JsonSerializable()
 class GetViewRequest {
-  
-  bool conflicts;
-  bool descending;
+  bool? conflicts;
+  bool? descending;
   dynamic endkey;
-  bool group;
+  bool? group;
 
   @JsonKey(name: 'group_level')
   int? groupLevel;
 
   @JsonKey(name: 'include_docs')
-  bool includeDocs;
+  bool? includeDocs;
 
-  bool attachments;
+  bool? attachments;
 
   @JsonKey(name: 'att_encoding_info')
-  bool attEncodingInfo;
+  bool? attEncodingInfo;
 
   @JsonKey(name: 'inclusive_end')
-  bool inclusiveEnd;
+  bool? inclusiveEnd;
 
   Object? key;
   List<Object>? keys;
   int? limit;
   bool? reduce;
   int? skip;
-  bool sorted;
-  bool stable;
+  bool? sorted;
+  bool? stable;
   String? stale;
   dynamic startkey;
   String? update;
 
   @JsonKey(name: 'update_seq')
-  bool updateSeq;
+  bool? updateSeq;
 
   GetViewRequest({
-    this.conflicts = false,
-    this.descending = false,
+    this.conflicts,
+    this.descending,
     this.endkey,
-    this.group = false,
+    this.group,
     this.groupLevel,
-    this.includeDocs = false,
-    this.attachments = false,
-    this.attEncodingInfo = false,
-    this.inclusiveEnd = true,
+    this.includeDocs,
+    this.attachments,
+    this.attEncodingInfo,
+    this.inclusiveEnd,
     this.key,
     this.keys,
     this.limit,
-    this.reduce = false,
+    this.reduce,
     this.skip,
-    this.sorted = true,
-    this.stable = false,
+    this.sorted,
+    this.stable,
     this.stale,
     this.startkey,
     this.update,
-    this.updateSeq = false,
+    this.updateSeq,
   });
   factory GetViewRequest.fromJson(Map<String, dynamic> json) =>
       _$GetViewRequestFromJson(json);
-  Map<String, dynamic> toJson() => _$GetViewRequestToJson(this);
+  Map<String, dynamic> toJson() {
+    var json = _$GetViewRequestToJson(this);
+    if (json['startkey'] != null)
+      json['startkey'] = jsonEncode(json['startkey']);
+    if (json['endkey'] != null) json['endkey'] = jsonEncode(json['endkey']);
+    json.removeWhere((key, value) => value == null);
+    return json;
+  }
 }
