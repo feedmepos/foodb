@@ -106,7 +106,7 @@ class ChangeResponse {
   Map<String, dynamic> toJson() => _$ChangeResponseToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true)
 class ChangeRequest {
   @JsonKey(name: 'doc_ids')
   List<String>? docIds;

@@ -4,8 +4,8 @@ import 'package:foodb/foodb.dart';
 import 'adapter_test.dart';
 
 void main() {
-  final ctx = CouchdbAdapterTestContext();
-  // final ctx = InMemoryAdapterTestContext();
+  // final ctx = CouchdbAdapterTestContext();
+  final ctx = InMemoryAdapterTestContext();
   changeStreamTest().forEach((t) {
     t(ctx);
   });
@@ -96,7 +96,7 @@ List<Function(AdapterTestContext)> changeStreamTest() {
         var completefn = expectAsync1((ChangeResponse res) {
           expect(res.results, hasLength(1));
         });
-        var resultFn = expectAsync1((p0) => null, count: 1);
+        var resultFn = expectAsync1((p0) => print(p0), count: 1);
         await db.put(doc: Doc(id: 'a', model: {}));
         await db.put(doc: Doc(id: 'b', model: {}));
         db
@@ -104,9 +104,10 @@ List<Function(AdapterTestContext)> changeStreamTest() {
                 ChangeRequest(feed: ChangeFeed.longpoll, since: 'now'))
             .then((stream) async {
           stream.listen(onResult: resultFn, onComplete: completefn);
-          await db.bulkDocs(
-              body: [Doc(id: 'c', model: {}), Doc(id: 'd', model: {})]);
         });
+         await db.bulkDocs(
+              body: [Doc(id: 'c', model: {}), Doc(id: 'd', model: {})]);
+
       });
     },
     (AdapterTestContext ctx) {
@@ -123,7 +124,7 @@ List<Function(AdapterTestContext)> changeStreamTest() {
           await db.bulkDocs(body: [
             Doc(id: 'c', model: {}),
             Doc(id: 'd', model: {}),
-          ]);
+          ],newEdits: true);
         });
       });
     }

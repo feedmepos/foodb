@@ -35,7 +35,7 @@ Future<CouchdbAdapter> getCouchDbAdapter(String dbName,
     {bool persist = false}) async {
   HttpOverrides.global = null;
   dotenv.testLoad(fileInput: File('.env').readAsStringSync());
-  String baseUri = dotenv.env['COUCHDB_BASE_URI'] as String;
+  String baseUri = dotenv.env['COUCHDB_LOCAL_URI'] as String;
   var db = new CouchdbAdapter(dbName: dbName, baseUri: Uri.parse(baseUri));
   if (!persist) {
     try {
@@ -52,7 +52,7 @@ Future<CouchdbAdapter> getCouchDbAdapter(String dbName,
 
 void main() {
   final tests = [
-    ...findTest(),
+    //...findTest(),
     ...changeStreamTest(),
     ...getTest(),
     ...putTest(),

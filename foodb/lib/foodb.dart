@@ -108,7 +108,7 @@ abstract class Foodb {
       required T Function(Map<String, dynamic> json) fromJsonT});
 
   Future<BulkDocResponse> bulkDocs(
-      {required List<Doc<Map<String, dynamic>>> body, bool newEdits = false});
+      {required List<Doc<Map<String, dynamic>>> body, bool newEdits = true});
 
   Future<EnsureFullCommitResponse> ensureFullCommit();
 

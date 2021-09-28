@@ -41,10 +41,9 @@ mixin _KeyValueAdapterView on _KeyValueAdapter {
           return null;
         }
       } else if (view is AllDocDesignDocView) {
-        // return [
-        //   MapEntry(ViewKey(id: id, key: id).toString(),
-        //       ViewRowValue(rev: doc.rev).toJson())
-        // ];
+        return [
+          MapEntry(ViewKey(id: id, key: id).toString(), {"rev": doc.rev})
+        ];
       } else {
         throw new UnimplementedError('Unknown Design Doc View');
       }
@@ -74,8 +73,9 @@ mixin _KeyValueAdapterView on _KeyValueAdapter {
             Map<String, dynamic> mapResults = Map.fromIterable(
                 (await keyValueDb
                     .getMany(keys.map<DocKey>((k) => DocKey(key: k)).toList())),
-                key: (e) => e.key,
+                key: (e) => e.key.key!,
                 value: (e) => e.value);
+
             for (var id in keys) {
               var history = DocHistory.fromJson(mapResults[id]);
               var record = await keyValueDb
@@ -104,6 +104,9 @@ mixin _KeyValueAdapterView on _KeyValueAdapter {
                   for (var entry in entries) {
                     mapsForPut[ViewKeyKey(key: entry.key, view: viewName)] =
                         entry.value;
+                    // await keyValueDb.put(
+                    //     ViewKeyKey(view: viewName, key: entry.key),
+                    //     entry.value);
                   }
                   await keyValueDb.put(
                     ViewIdKey(key: history.id, view: viewName),
@@ -233,50 +236,61 @@ mixin _KeyValueAdapterView on _KeyValueAdapter {
   Future<GetViewResponse<T>> allDocs<T>(GetViewRequest allDocsRequest,
       T Function(Map<String, dynamic> json) fromJsonT) async {
     var viewName = _getViewName(designDocId: "all_docs", viewId: "all_docs");
+    Doc<DesignDoc> designDoc = new Doc(
+        id: "all_docs",
+        model: DesignDoc(
+            language: 'query', views: {"all_docs": AllDocDesignDocView()}));
 
-    Doc<DesignDoc>? designDoc = await get(
-        id: "all_docs", fromJsonT: (value) => DesignDoc.fromJson(value));
-    if (designDoc != null) {
-      await _generateView(designDoc);
+    await _generateView(designDoc);
 
-      ReadResult result = await keyValueDb.read(ViewKeyKey(view: viewName),
-          startkey: allDocsRequest.startkey,
-          endkey: allDocsRequest.endkey,
-          desc: allDocsRequest.descending);
+    ReadResult result = await keyValueDb.read(ViewKeyKey(view: viewName),
+        startkey: ViewKeyKey(view:viewName,
+                             key:allDocsRequest.startkey==null?
+                               null:
+                               ViewKey(
+                                  id: allDocsRequest.startkey, 
+                                  key: allDocsRequest.startkey)
+                                  .toString()),
+        endkey: ViewKeyKey(view:viewName,
+                           key: allDocsRequest.endkey==null? 
+                              null:
+                              ViewKey(
+                                id: allDocsRequest.endkey, 
+                                key: allDocsRequest.endkey).
+                                toString()),
+        desc: allDocsRequest.descending);
 
-      // if ((startkey != null && startKeyDocId != null) ||
-      //     (endKey != null && endKeyDocId != null)) {
-      //   result.docs.removeWhere((key, value) =>
-      //       ((startKeyDocId ?? "").compareTo(ViewKey.fromString(key).id) > 0 ||
-      //           (endKeyDocId ?? "\uffff")
-      //                   .compareTo(ViewKey.fromString(key).id) <
-      //               0));
-      // }
+    // if ((startkey != null && startKeyDocId != null) ||
+    //     (endKey != null && endKeyDocId != null)) {
+    //   result.docs.removeWhere((key, value) =>
+    //       ((startKeyDocId ?? "").compareTo(ViewKey.fromString(key).id) > 0 ||
+    //           (endKeyDocId ?? "\uffff")
+    //                   .compareTo(ViewKey.fromString(key).id) <
+    //               0));
+    // }
 
-      List<ViewRow<T>> rows = [];
-
+    List<ViewRow<T>> rows = [];
+    Map<String,DocHistory> map = {};
+    if (allDocsRequest.includeDocs) {
       var docs = await keyValueDb.getMany(result.records.keys
           .map<DocKey>(
               (e) => DocKey(key: ViewKey.fromString(e.key!.toString()).id))
           .toList());
-      var map =
-          Map.fromIterable(docs, key: (e) => e.key, value: (e) => e.value);
-
-      for (var e in result.records.keys) {
-        ViewKey key = ViewKey.fromString(e.key.toString());
-        DocHistory history = DocHistory.fromJson(map[key.id]);
-        ViewRow<T> row = ViewRow<T>(
-            id: key.id,
-            key: key.key,
-            value: {"rev": history.winner!.rev},
-            doc: allDocsRequest.includeDocs? history.toDoc<T>(history.winner!.rev, fromJsonT):null);
-        
-        rows.add(row);
-      }
-
-      return GetViewResponse(offset: result.offset, totalRows: result.totalRows, rows: rows);
-    } else {
-      throw AdapterException(error: "Design Doc Not Exists");
+      map = Map.fromIterable(docs, key: (e) => e.key.key, value: (e) => DocHistory.fromJson(e.value));
     }
+    
+    for (var e in result.records.entries) {
+      ViewKey key = ViewKey.fromString(e.key.key!.toString());
+      ViewRow<T> row = ViewRow<T>(
+          id: key.id,
+          key: key.key,
+          value: e.value,
+          doc: allDocsRequest.includeDocs
+              ? map[key.id]!.toDoc<T>(map[key.id]!.winner!.rev, fromJsonT): null);
+      rows.add(row);
+    }
+
+    return GetViewResponse(
+        offset: result.offset, totalRows: result.totalRows, rows: rows);
   }
 }

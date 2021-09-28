@@ -103,7 +103,6 @@ class CouchdbAdapter extends Foodb {
       }
       return BulkDocResponse(putResponses: putResponses);
     } else {
-      print(response.body);
       throw AdapterException(
           error: 'Invalid status code', reason: response.statusCode.toString());
     }
@@ -114,7 +113,6 @@ class CouchdbAdapter extends Foodb {
     var changeClient = getClient();
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_changes')));
     uriBuilder.queryParameters = convertToParams(request.toJson());
-
     var res = await changeClient.send(Request('get', uriBuilder.build()));
     var streamedRes = res.stream.transform(utf8.decoder);
     var streamedResponse = ChangesStream(
@@ -256,7 +254,6 @@ class CouchdbAdapter extends Foodb {
       return MapEntry<String, RevsDiff>(k, RevsDiff.fromJson(v));
     });
   }
-
 
   @override
   Future<IndexResponse> createIndex(

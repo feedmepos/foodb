@@ -45,11 +45,10 @@ class ViewRow<T> {
 
 @JsonSerializable()
 class GetViewRequest {
+  
   bool conflicts;
   bool descending;
-
   dynamic endkey;
-
   bool group;
 
   @JsonKey(name: 'group_level')
@@ -75,7 +74,6 @@ class GetViewRequest {
   bool stable;
   String? stale;
   dynamic startkey;
-
   String? update;
 
   @JsonKey(name: 'update_seq')

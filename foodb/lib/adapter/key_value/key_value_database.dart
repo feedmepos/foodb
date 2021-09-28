@@ -18,7 +18,8 @@ abstract class AbstractKey<T extends Comparable> implements Comparable {
   });
   AbstractKey copyWithKey({required T newKey});
   int compareTo(other) {
-    if (key!=null && other is AbstractKey) {
+    if (key != null && other is AbstractKey) {
+      if (other.key == null) return 0;
       return key!.compareTo(other.key);
     }
     return -1;
@@ -27,7 +28,7 @@ abstract class AbstractKey<T extends Comparable> implements Comparable {
 
 class DocKey extends AbstractKey<String> {
   DocKey({String? key}) : super(key: key, tableName: "doc");
-  
+
   @override
   copyWithKey({required String newKey}) {
     return DocKey(key: newKey);
@@ -44,7 +45,7 @@ class LocalDocKey extends AbstractKey<String> {
 
 class SequenceKey extends AbstractKey<int> {
   SequenceKey({int? key}) : super(key: key, tableName: "sequence");
-  
+
   @override
   copyWithKey({required int newKey}) {
     return SequenceKey(key: newKey);
@@ -53,7 +54,7 @@ class SequenceKey extends AbstractKey<int> {
 
 class ViewMetaKey extends AbstractKey<String> {
   ViewMetaKey({String? key}) : super(key: key, tableName: "view_meta");
-  
+
   @override
   copyWithKey({required String newKey}) {
     return ViewMetaKey(key: newKey);
@@ -65,7 +66,7 @@ class ViewIdKey extends AbstractKey<String> {
 
   ViewIdKey({String? key, required this.view})
       : super(key: key, tableName: "view_id");
-  
+
   @override
   copyWithKey({required String newKey}) {
     return ViewIdKey(key: newKey, view: this.view);
@@ -75,7 +76,8 @@ class ViewIdKey extends AbstractKey<String> {
 class ViewKeyKey extends AbstractKey<String> {
   String view;
 
-  ViewKeyKey({String? key, required this.view}) : super(key: key, tableName: "view_key");
+  ViewKeyKey({String? key, required this.view})
+      : super(key: key, tableName: "view_key");
   @override
   copyWithKey({required String newKey}) {
     return ViewKeyKey(key: newKey, view: this.view);

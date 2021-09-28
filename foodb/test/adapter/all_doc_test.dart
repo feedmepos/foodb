@@ -5,7 +5,7 @@ import 'adapter_test.dart';
 
 void main() {
   final ctx = CouchdbAdapterTestContext();
-  // final ctx = InMemoryAdapterTestContext();
+  //final ctx = InMemoryAdapterTestContext();
   allDocTest().forEach((t) {
     t(ctx);
   });
@@ -16,12 +16,68 @@ List<Function(AdapterTestContext)> allDocTest() {
     (AdapterTestContext ctx) {
       test("all docs", () async {
         final db = await ctx.db('test-all-docs');
-        await db.put(doc: Doc(id: '1', model: {}));
-        await db.put(doc: Doc(id: '2', model: {}));
+        await db.put(doc: Doc(id: 'a', model: {}));
+        await db.put(doc: Doc(id: 'b', model: {}));
+        await db.put(doc: Doc(id: 'c', model: {}));
+
         var result = await db.allDocs<Map<String, dynamic>>(
-            GetViewRequest(includeDocs: true), (value) => value);
-        expect(result.totalRows, 2);
+            GetViewRequest(includeDocs: true, startkey: 'a', endkey: 'a\uffff'),
+            (value) => value);
+        expect(result.totalRows, 3);
+        expect(result.rows, hasLength(1));
+      });
+    },
+    (AdapterTestContext ctx) {
+      test("all docs with descending", () async {
+        final db = await ctx.db('test-all-docs-with-descending');
+        await db.put(doc: Doc(id: 'a', model: {}));
+        await db.put(doc: Doc(id: 'b', model: {}));
+        await db.put(doc: Doc(id: 'c', model: {}));
+        await db.put(doc: Doc(id: 'e', model: {}));
+
+        var result = await db.allDocs<Map<String, dynamic>>(
+            GetViewRequest(
+                includeDocs: true,
+                startkey: 'b\uffff',
+                endkey: 'b',
+                descending: true),
+            (value) => value);
+        expect(result.totalRows, 4);
+        expect(result.rows, hasLength(1));
+        expect(result.offset, 2);
+      });
+    },
+    (AdapterTestContext ctx) {
+      test("all docs with startkey only", () async {
+        final db = await ctx.db('test-all-docs-with-startkey-only');
+        await db.put(doc: Doc(id: 'a', model: {}));
+        await db.put(doc: Doc(id: 'b', model: {}));
+        await db.put(doc: Doc(id: 'c', model: {}));
+        await db.put(doc: Doc(id: 'e', model: {}));
+
+        var result = await db.allDocs<Map<String, dynamic>>(
+            GetViewRequest(includeDocs: true, startkey: 'c', descending: true),
+            (value) => value);
+        print(result.toJson((value) => value));
+        expect(result.totalRows, 4);
+        expect(result.rows, hasLength(3));
+        expect(result.offset, 1);
+      });
+    },
+    (AdapterTestContext ctx) {
+      test("all docs with endkey only", () async {
+        final db = await ctx.db('test-all-docs-with-endkey-only');
+        await db.put(doc: Doc(id: 'a', model: {}));
+        await db.put(doc: Doc(id: 'b', model: {}));
+        await db.put(doc: Doc(id: 'c', model: {}));
+        await db.put(doc: Doc(id: 'e', model: {}));
+
+        var result = await db.allDocs<Map<String, dynamic>>(
+            GetViewRequest(includeDocs: true, endkey: 'c', descending: true),
+            (value) => value);
+        expect(result.totalRows, 4);
         expect(result.rows, hasLength(2));
+        expect(result.offset, 0);
       });
     },
   ];

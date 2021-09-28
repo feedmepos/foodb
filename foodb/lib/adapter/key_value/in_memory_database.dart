@@ -110,10 +110,12 @@ class InMemoryDatabase implements KeyValueDatabase<InMemoryDatabaseSession> {
     var keys = table.keys.toList();
     if (desc == true) {
       keys = keys.reversed.toList();
+      var temp = startkey;
+      startkey = endkey;
+      endkey = temp;
     }
     for (int x = 0; x < table.length; x++) {
-      if ((startkey == null || keys[x].compareTo(startkey) >= 0) &&
-          (endkey == null || keys[x].compareTo(endkey) < 0)) {
+      if (keys[x].compareTo(startkey) >= 0 && keys[x].compareTo(endkey) <= 0) {
         result.putIfAbsent(keys[x], () => table[keys[x]]!);
         offSet ??= x;
       }
@@ -136,9 +138,9 @@ class InMemoryDatabase implements KeyValueDatabase<InMemoryDatabaseSession> {
   @override
   Future<bool> putMany(Map<AbstractKey, Map<String, dynamic>> entries,
       {InMemoryDatabaseSession? session}) async {
-    for (final entry in entries.entries) {
+    await Future.forEach(entries.entries, (MapEntry entry) async {
       await put(entry.key, entry.value, session: session);
-    }
+    });
     return true;
   }
 
