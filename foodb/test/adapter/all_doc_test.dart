@@ -14,6 +14,38 @@ void main() {
 List<Function(AdapterTestContext)> allDocTest() {
   return [
     (AdapterTestContext ctx) {
+      test("allDocs with corrent rebuild", () async {
+        final db = await ctx.db('test-all-docs');
+        await db.put(doc: Doc(id: '1', model: {}));
+        await db.put(
+            doc: Doc(id: '2', rev: Rev.fromString('1-a'), model: {}),
+            newEdits: false);
+        var result = await db.allDocs<Map<String, dynamic>>(
+            GetViewRequest(includeDocs: true), (value) => value);
+        expect(result.totalRows, 2);
+        expect(result.rows, hasLength(2));
+        await db.put(
+            doc: Doc(id: '3', rev: Rev.fromString('1-a'), model: {}),
+            newEdits: false);
+        result = await db.allDocs<Map<String, dynamic>>(
+            GetViewRequest(includeDocs: true), (value) => value);
+        expect(result.totalRows, 3);
+        expect(result.rows, hasLength(3));
+        await db.delete(id: '3', rev: Rev.fromString('1-a'));
+        result = await db.allDocs<Map<String, dynamic>>(
+            GetViewRequest(includeDocs: true), (value) => value);
+        expect(result.totalRows, 2);
+        expect(result.rows, hasLength(2));
+        await db.put(
+            doc: Doc(id: '2', rev: Rev.fromString('1-b'), model: {}),
+            newEdits: false);
+        result = await db.allDocs<Map<String, dynamic>>(
+            GetViewRequest(includeDocs: true), (value) => value);
+        expect(result.totalRows, 2);
+        expect(result.rows, hasLength(2));
+      });
+    },
+    (AdapterTestContext ctx) {
       test("all docs", () async {
         final db = await ctx.db('test-all-docs');
         await db.put(doc: Doc(id: 'a', model: {}));

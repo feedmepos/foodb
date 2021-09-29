@@ -10,7 +10,6 @@ GetViewResponse<T> _$GetViewResponseFromJson<T>(
   Map<String, dynamic> json,
   T Function(Object? json) fromJsonT,
 ) {
-  print(json);
   return GetViewResponse<T>(
     offset: json['offset'] as int?,
     totalRows: json['total_rows'] as int,
