@@ -11,22 +11,22 @@ void main() {
           "1-a": InternalDoc(
               rev: Rev.fromString("1-a"),
               deleted: false,
-              localSeq: "1",
+              //localSeq: "1",
               data: {}),
           "2-b": InternalDoc(
               rev: Rev.fromString("2-b"),
               deleted: false,
-              localSeq: "2",
+              //localSeq: "2",
               data: {}),
           "3-c": InternalDoc(
               rev: Rev.fromString("3-c"),
               deleted: false,
-              localSeq: "3",
+              //localSeq: "3",
               data: {}),
           "4-d": InternalDoc(
               rev: Rev.fromString("4-d"),
               deleted: false,
-              localSeq: "4",
+              //localSeq: "4",
               data: {})
         },
         revisions: RevisionTree(nodes: [
@@ -40,7 +40,7 @@ void main() {
         ]));
 
     RevsDiff revsDiff =
-        await history.revsDiff(["1-a", "4-c", "1-c", "4-d", "5-e"]);
+        await history.revsDiff([Rev.fromString("1-a"), Rev.fromString("4-c"), Rev.fromString("1-c"), Rev.fromString("4-d"), Rev.fromString("5-e")]);
 
     expect(history.docs.length, equals(4));
 
@@ -55,22 +55,18 @@ void main() {
           "1-a": InternalDoc(
               rev: Rev.fromString("1-a"),
               deleted: false,
-              localSeq: "1",
               data: {}),
           "2-b": InternalDoc(
               rev: Rev.fromString("2-b"),
               deleted: false,
-              localSeq: "2",
               data: {}),
           "3-c": InternalDoc(
               rev: Rev.fromString("3-c"),
               deleted: false,
-              localSeq: "3",
               data: {}),
           "4-d": InternalDoc(
               rev: Rev.fromString("4-d"),
               deleted: false,
-              localSeq: "4",
               data: {})
         },
         revisions: RevisionTree(nodes: [
@@ -99,22 +95,18 @@ void main() {
             "1-a": InternalDoc(
                 rev: Rev.fromString("1-a"),
                 deleted: false,
-                localSeq: "1",
                 data: {}),
             "2-b": InternalDoc(
                 rev: Rev.fromString("2-b"),
                 deleted: false,
-                localSeq: "2",
                 data: {}),
             "3-c": InternalDoc(
                 rev: Rev.fromString("3-c"),
                 deleted: false,
-                localSeq: "3",
                 data: {}),
             "4-d": InternalDoc(
                 rev: Rev.fromString("4-d"),
                 deleted: false,
-                localSeq: "4",
                 data: {})
           },
           revisions: RevisionTree(nodes: [
@@ -141,22 +133,18 @@ void main() {
             "1-a": InternalDoc(
                 rev: Rev.fromString("1-a"),
                 deleted: false,
-                localSeq: "1",
                 data: {}),
             "2-b": InternalDoc(
                 rev: Rev.fromString("2-b"),
                 deleted: false,
-                localSeq: "2",
                 data: {}),
             "3-c": InternalDoc(
                 rev: Rev.fromString("3-c"),
                 deleted: false,
-                localSeq: "3",
                 data: {}),
             "4-d": InternalDoc(
                 rev: Rev.fromString("2-d"),
                 deleted: false,
-                localSeq: "4",
                 data: {})
           },
           revisions: RevisionTree(nodes: [
@@ -182,22 +170,18 @@ void main() {
             "1-a": InternalDoc(
                 rev: Rev.fromString("1-a"),
                 deleted: false,
-                localSeq: "1",
                 data: {}),
             "2-b": InternalDoc(
                 rev: Rev.fromString("2-b"),
                 deleted: false,
-                localSeq: "2",
                 data: {}),
             "3-c": InternalDoc(
                 rev: Rev.fromString("2-d"),
                 deleted: false,
-                localSeq: "3",
                 data: {}),
             "4-d": InternalDoc(
                 rev: Rev.fromString("2-c"),
                 deleted: false,
-                localSeq: "4",
                 data: {})
           },
           revisions: RevisionTree(nodes: [
@@ -224,22 +208,18 @@ void main() {
             "1-a": InternalDoc(
                 rev: Rev.fromString("1-a"),
                 deleted: false,
-                localSeq: "1",
                 data: {}),
             "2-b": InternalDoc(
                 rev: Rev.fromString("2-b"),
                 deleted: false,
-                localSeq: "2",
                 data: {}),
             "3-c": InternalDoc(
                 rev: Rev.fromString("2-d"),
                 deleted: true,
-                localSeq: "3",
                 data: {}),
             "4-d": InternalDoc(
                 rev: Rev.fromString("2-c"),
                 deleted: false,
-                localSeq: "4",
                 data: {})
           },
           revisions: RevisionTree(nodes: [
