@@ -15,7 +15,6 @@ import 'package:foodb/adapter/methods/explain.dart';
 import 'package:foodb/adapter/methods/find.dart';
 import 'package:foodb/adapter/methods/index.dart';
 import 'package:foodb/adapter/methods/info.dart';
-import 'package:foodb/adapter/methods/open_revs.dart';
 import 'package:foodb/adapter/methods/put.dart';
 import 'package:foodb/adapter/methods/revs_diff.dart';
 import 'package:foodb/adapter/methods/server.dart';
@@ -48,6 +47,14 @@ abstract class _KeyValueAdapter extends Foodb {
 
   _KeyValueAdapter({required dbName, required this.keyValueDb, this.jsRuntime})
       : super(dbName: dbName);
+
+  encodeSeq(int seq) {
+    return '$seq-0';
+  }
+
+  decodeSeq(String seq) {
+    return int.parse(seq.split('-')[0]);
+  }
 }
 
 class KeyValueAdapter extends _KeyValueAdapter

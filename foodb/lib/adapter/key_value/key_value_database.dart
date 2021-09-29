@@ -1,7 +1,12 @@
-class ReadResult {
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:json_annotation/json_annotation.dart';
+
+class ReadResult<T extends AbstractKey> {
   int totalRows;
   int offset;
-  Map<AbstractKey, Map<String, dynamic>> records;
+  Map<T, Map<String, dynamic>> records;
   ReadResult({
     required this.totalRows,
     required this.offset,
@@ -18,6 +23,7 @@ abstract class AbstractKey<T extends Comparable> implements Comparable {
   });
   AbstractKey copyWithKey({required T newKey});
   int compareTo(other) {
+    if (other == null) return 0;
     if (key != null && other is AbstractKey) {
       if (other.key == null) return 0;
       return key!.compareTo(other.key);
@@ -61,26 +67,76 @@ class ViewMetaKey extends AbstractKey<String> {
   }
 }
 
-class ViewIdKey extends AbstractKey<String> {
-  String view;
-
-  ViewIdKey({String? key, required this.view})
-      : super(key: key, tableName: "view_id");
+class ViewDocMetaKey extends AbstractKey<String> {
+  String viewName;
+  ViewDocMetaKey({required String key, required this.viewName})
+      : super(key: key, tableName: "view_doc_meta");
 
   @override
   copyWithKey({required String newKey}) {
-    return ViewIdKey(key: newKey, view: this.view);
+    return ViewDocMetaKey(key: newKey, viewName: viewName);
+  }
+
+  @override
+  int compareTo(other) {
+    if (other is ViewDocMetaKey) {
+      final viewCompare = viewName.compareTo(other.viewName);
+      if (viewCompare != 0) return viewCompare;
+      super.compareTo(other);
+    }
+    return -1;
   }
 }
 
-class ViewKeyKey extends AbstractKey<String> {
-  String view;
+class ViewKeyMeta implements Comparable {
+  final String key;
+  final String docId;
+  final int index;
+  ViewKeyMeta({required this.key, required this.docId, required this.index});
+  int compareTo(other) {
+    if (other is ViewKeyMeta) {
+      final keyCompare = key.compareTo(other.key);
+      if (keyCompare != 0) return keyCompare;
+      final docIdCompare = docId.compareTo(other.docId);
+      if (docIdCompare != 0) return docIdCompare;
+      final indexCompare = index.compareTo(other.index);
+      if (indexCompare != 0) return indexCompare;
+      return 0;
+    }
+    return -1;
+  }
 
-  ViewKeyKey({String? key, required this.view})
+  factory ViewKeyMeta.fromJson(Map<String, dynamic> json) {
+    return ViewKeyMeta(
+        key: json['key'], docId: json['docId'], index: json['index']);
+  }
+  Map<String, dynamic> toJson() {
+    return {
+      'key': key,
+      'docId': docId,
+      'index': index,
+    };
+  }
+}
+
+class ViewKeyMetaKey extends AbstractKey<ViewKeyMeta> {
+  final String viewName;
+  ViewKeyMetaKey({ViewKeyMeta? key, required this.viewName})
       : super(key: key, tableName: "view_key");
   @override
-  copyWithKey({required String newKey}) {
-    return ViewKeyKey(key: newKey, view: this.view);
+  copyWithKey({required ViewKeyMeta newKey}) {
+    return ViewKeyMetaKey(key: newKey, viewName: viewName);
+  }
+
+  @override
+  int compareTo(other) {
+    if (other == null) return 0;
+    if (other is ViewKeyMetaKey) {
+      final viewCompare = viewName.compareTo(other.viewName);
+      if (viewCompare != 0) return viewCompare;
+      return super.compareTo(other);
+    }
+    return -1;
   }
 }
 
@@ -95,15 +151,20 @@ abstract class KeyValueDatabase<T extends KeyValueDatabaseSession> {
 
   Future<void> runInSession(Future<void> Function(T) function);
 
-  Future<MapEntry<AbstractKey, Map<String, dynamic>>?> get(AbstractKey key,
+  Future<MapEntry<T2, Map<String, dynamic>>?> get<T2 extends AbstractKey>(
+      T2 key,
       {T? session});
-  Future<List<MapEntry<AbstractKey, Map<String, dynamic>>?>> getMany(
-      List<AbstractKey> keys,
+
+  Future<Map<T2, Map<String, dynamic>?>> getMany<T2 extends AbstractKey>(
+      List<T2> keys,
       {T? session});
-  Future<MapEntry<AbstractKey, Map<String, dynamic>>?> last(AbstractKey key,
+
+  Future<MapEntry<T2, Map<String, dynamic>>?> last<T2 extends AbstractKey>(
+      T2 key,
       {T? session});
-  Future<ReadResult> read(AbstractKey keyType,
-      {AbstractKey? startkey, AbstractKey? endkey, bool? desc, T? session});
+
+  Future<ReadResult<T2>> read<T2 extends AbstractKey>(T2 keyType,
+      {T2? startkey, T2? endkey, bool? desc, T? session});
 
   Future<bool> put(AbstractKey key, Map<String, dynamic> value, {T? session});
   Future<bool> putMany(Map<AbstractKey, Map<String, dynamic>> entries,

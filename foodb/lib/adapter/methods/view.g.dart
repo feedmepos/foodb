@@ -66,26 +66,26 @@ Map<String, dynamic> _$ViewRowToJson<T>(
 
 GetViewRequest _$GetViewRequestFromJson(Map<String, dynamic> json) {
   return GetViewRequest(
-    conflicts: json['conflicts'] as bool,
-    descending: json['descending'] as bool,
+    conflicts: json['conflicts'] as bool?,
+    descending: json['descending'] as bool?,
     endkey: json['endkey'],
-    group: json['group'] as bool,
+    group: json['group'] as bool?,
     groupLevel: json['group_level'] as int?,
-    includeDocs: json['include_docs'] as bool,
-    attachments: json['attachments'] as bool,
-    attEncodingInfo: json['att_encoding_info'] as bool,
-    inclusiveEnd: json['inclusive_end'] as bool,
+    includeDocs: json['include_docs'] as bool?,
+    attachments: json['attachments'] as bool?,
+    attEncodingInfo: json['att_encoding_info'] as bool?,
+    inclusiveEnd: json['inclusive_end'] as bool?,
     key: json['key'],
     keys: (json['keys'] as List<dynamic>?)?.map((e) => e as Object).toList(),
     limit: json['limit'] as int?,
     reduce: json['reduce'] as bool?,
     skip: json['skip'] as int?,
-    sorted: json['sorted'] as bool,
-    stable: json['stable'] as bool,
+    sorted: json['sorted'] as bool?,
+    stable: json['stable'] as bool?,
     stale: json['stale'] as String?,
     startkey: json['startkey'],
     update: json['update'] as String?,
-    updateSeq: json['update_seq'] as bool,
+    updateSeq: json['update_seq'] as bool?,
   );
 }
 

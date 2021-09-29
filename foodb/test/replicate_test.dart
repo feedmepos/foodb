@@ -97,7 +97,7 @@ List<Function(AdapterTestContext sourceCtx, AdapterTestContext targetCtx)>
           if (docs.rows.length == 30) {
             expect(stopwatch.elapsed.inSeconds, lessThan(10));
             complete();
-            await stream.abort();
+            stream.abort();
           }
         });
         Future.delayed(Duration(seconds: 1), () {

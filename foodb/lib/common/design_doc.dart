@@ -1,5 +1,6 @@
 import 'dart:ffi';
 
+import 'package:foodb/adapter/key_value/key_value_database.dart';
 import 'package:foodb/adapter/methods/index.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -74,35 +75,15 @@ class SelectorDecomposer {
   }
 }
 
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true)
 class ViewDocMeta {
-  List<String> keys;
+  List<ViewKeyMeta> keys;
 
   ViewDocMeta({required this.keys});
 
   factory ViewDocMeta.fromJson(Map<String, dynamic> json) =>
       _$ViewDocMetaFromJson(json);
   Map<String, dynamic> toJson() => _$ViewDocMetaToJson(this);
-}
-
-class ViewKey {
-  String id;
-  String key;
-  ViewKey({
-    required this.id,
-    required this.key,
-  });
-
-  static final _seperator = '_\$foodb_';
-
-  String toString() {
-    return '$key$_seperator$id';
-  }
-
-  factory ViewKey.fromString(String str) {
-    var seperated = str.split(_seperator);
-    return ViewKey(id: seperated[1], key: seperated[0]);
-  }
 }
 
 class DesignDoc {
