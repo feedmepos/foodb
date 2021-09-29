@@ -67,7 +67,7 @@ class ReplicationStream {
     });
   }
 
-  abort(){
+  abort() {
     this.onCancel();
   }
 
@@ -151,6 +151,7 @@ parseSeqInt(String seq) {
 
 class _Replicator {
   final _lock = Lock();
+  int _runCount = 0;
   List<ChangeResult> pendingList = [];
   bool isRunning = false;
   bool cancelled = false;
@@ -177,6 +178,7 @@ class _Replicator {
     await _lock.synchronized(() {
       if (isRunning || cancelled || pendingList.isEmpty) return;
       isRunning = true;
+      _runCount += 1;
     });
     try {
       DateTime startTime = DateTime.now();
@@ -314,9 +316,8 @@ Future<ReplicationStream> replicate(
     if (!_stream.isClosed) {
       _stream.sink.add(ReplicationCheckpointEvent(log, changes));
       if (replicator.pendingList.isNotEmpty) {
-         replicator.run();
-      } 
-      else {
+        replicator.run();
+      } else {
         if (!continuous) {
           _stream.sink.add(ReplicationCompleteEvent());
         }
@@ -394,7 +395,7 @@ Future<ReplicationStream> replicate(
           if (continuous) {
             replicator.pendingList.add(result);
             timer.cancel();
-            timer = Timer(debounce,  replicator.run);
+            timer = Timer(debounce, replicator.run);
             if (replicator.pendingList.length == maxBatchSize) {
               timer.cancel();
               replicator.run();
@@ -420,5 +421,3 @@ Future<ReplicationStream> replicate(
   }();
   return resultStream;
 }
-
-fastInitialReplicate(Foodb source, Foodb target) {}

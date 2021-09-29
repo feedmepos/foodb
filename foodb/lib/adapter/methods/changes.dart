@@ -53,8 +53,8 @@ class ChangesStream {
         _feed = feed;
 
   cancel() async {
-    if (_subscription != null) await _subscription!.cancel();
-    if (_onCancel != null) await _onCancel!();
+    _subscription?.cancel();
+    _onCancel?.call();
   }
 
   void listen(

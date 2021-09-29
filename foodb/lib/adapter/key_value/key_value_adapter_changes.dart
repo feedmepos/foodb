@@ -89,9 +89,9 @@ mixin _KeyValueAdapterChange on _KeyValueAdapter {
     return ChangesStream(
         feed: request.feed,
         stream: streamController.stream,
-        onCancel: () async {
-          await subscription?.cancel();
-          await streamController.close();
+        onCancel: () {
+          subscription?.cancel();
+          streamController.close();
         });
   }
 }
