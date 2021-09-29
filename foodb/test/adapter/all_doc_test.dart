@@ -5,7 +5,7 @@ import 'adapter_test.dart';
 
 void main() {
   final ctx = CouchdbAdapterTestContext();
-  //final ctx = InMemoryAdapterTestContext();
+  // final ctx = InMemoryAdapterTestContext();
   allDocTest().forEach((t) {
     t(ctx);
   });

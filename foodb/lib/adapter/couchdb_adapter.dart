@@ -136,11 +136,9 @@ class CouchdbAdapter extends Foodb {
   Future<GetViewResponse<T>> allDocs<T>(GetViewRequest getViewRequest,
       T Function(Map<String, dynamic> json) fromJsonT) async {
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_all_docs')));
-    var json = getViewRequest.toJson();
-    var body = (await this.client.post(uriBuilder.build(),
-            body: jsonEncode(json),
-            headers: {'Content-Type': 'application/json'}))
-        .body;
+    uriBuilder.queryParameters = convertToParams(getViewRequest.toJson());
+    
+    var body = (await this.client.get(uriBuilder.build())).body;
     return GetViewResponse<T>.fromJson(
         jsonDecode(body), (a) => fromJsonT(a as Map<String, dynamic>));
   }

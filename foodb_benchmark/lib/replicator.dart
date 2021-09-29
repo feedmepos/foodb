@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:foodb/adapter/couchdb_adapter.dart';
 import 'package:foodb/adapter/key_value/key_value_adapter.dart';
-import 'package:foodb/replicator.dart';
 import 'package:foodb_objectbox_adapter/foodb_objectbox_adapter.dart';
 
 class ReplicatorPage extends StatefulWidget {

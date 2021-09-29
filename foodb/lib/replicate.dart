@@ -67,8 +67,8 @@ class ReplicationStream {
     });
   }
 
-  abort()  {
-     this.onCancel();
+  abort(){
+    this.onCancel();
   }
 
   retry() {
@@ -169,7 +169,9 @@ class _Replicator {
     this.onFinishCheckpoint,
   });
 
-  cancel() {}
+  cancel() {
+    cancelled = true;
+  }
 
   run() async {
     await _lock.synchronized(() {
@@ -309,13 +311,15 @@ Future<ReplicationStream> replicate(
 
   replicator = _Replicator(source, target, maxBatchSize: maxBatchSize,
       onFinishCheckpoint: (log, changes) {
-    if (!_stream.isClosed)
+    if (!_stream.isClosed) {
       _stream.sink.add(ReplicationCheckpointEvent(log, changes));
-    if (replicator.pendingList.isNotEmpty) {
-      replicator.run();
-    } else {
-      if (!continuous) {
-        _stream.sink.add(ReplicationCompleteEvent());
+      if (replicator.pendingList.isNotEmpty) {
+         replicator.run();
+      } 
+      else {
+        if (!continuous) {
+          _stream.sink.add(ReplicationCompleteEvent());
+        }
       }
     }
   }, onError: (err) {
@@ -390,7 +394,7 @@ Future<ReplicationStream> replicate(
           if (continuous) {
             replicator.pendingList.add(result);
             timer.cancel();
-            timer = Timer(debounce, replicator.run);
+            timer = Timer(debounce,  replicator.run);
             if (replicator.pendingList.length == maxBatchSize) {
               timer.cancel();
               replicator.run();

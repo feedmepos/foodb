@@ -11,15 +11,16 @@ import 'adapter/adapter_test.dart';
 void main() {
   final couchdb = CouchdbAdapterTestContext();
   final inMemory = InMemoryAdapterTestContext();
-  // replicateTest().forEach((t) {
-  //   t(couchdb, couchdb);
-  // });
+
+  replicateTest().forEach((t) {
+    t(couchdb, couchdb);
+  });
   // replicateTest().forEach((t) {
   //   t(couchdb, inMemory);
   // });
-  replicateTest().forEach((t) {
-    t(inMemory, couchdb);
-  });
+  // replicateTest().forEach((t) {
+  //   t(inMemory, couchdb);
+  // });
   // replicateTest().forEach((t) {
   //   t(inMemory, inMemory);
   // });
@@ -79,7 +80,7 @@ List<Function(AdapterTestContext sourceCtx, AdapterTestContext targetCtx)>
         });
       });
       test(
-          'repliacte continuous, long debouce, small maxBatchSize, will finish before debounce',
+          'replicate continuous, long debouce, small maxBatchSize, will finish before debounce',
           () async {
         final source = await sourceCtx.db('test-replicate-source');
         final target = await targetCtx.db('test-replicate-target');
@@ -94,13 +95,13 @@ List<Function(AdapterTestContext sourceCtx, AdapterTestContext targetCtx)>
             debounce: Duration(seconds: 10));
         stream.listen(onCheckpoint: (_) async {
           var docs = await target.allDocs(GetViewRequest(), (json) => json);
-          if (docs.rows.length == 30) {
+          if (docs.rows.length == 31) {
             expect(stopwatch.elapsed.inSeconds, lessThan(10));
             complete();
-            stream.abort();
+            await stream.abort();
           }
         });
-        Future.delayed(Duration(seconds: 1), () {
+        Future.delayed(Duration(seconds: 1), () async {
           source.bulkDocs(
               body: List.generate(30, (index) => Doc(id: '$index', model: {})));
         });
