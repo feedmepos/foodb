@@ -14,12 +14,12 @@ void main() {
   // replicateTest().forEach((t) {
   //   t(couchdb, couchdb);
   // });
-  replicateTest().forEach((t) {
-    t(couchdb, inMemory);
-  });
   // replicateTest().forEach((t) {
-  //   t(inMemory, couchdb);
+  //   t(couchdb, inMemory);
   // });
+  replicateTest().forEach((t) {
+    t(inMemory, couchdb);
+  });
   // replicateTest().forEach((t) {
   //   t(inMemory, inMemory);
   // });
@@ -29,7 +29,7 @@ List<Function(AdapterTestContext sourceCtx, AdapterTestContext targetCtx)>
     replicateTest() {
   return [
     (AdapterTestContext sourceCtx, AdapterTestContext targetCtx) {
-      test('repliacte correct doc with revisions and deleted', () async {
+      test('replicate correct doc with revisions and deleted', () async {
         final source = await sourceCtx.db('test-replicate-source');
         final target = await targetCtx.db('test-replicate-target');
 
@@ -59,7 +59,7 @@ List<Function(AdapterTestContext sourceCtx, AdapterTestContext targetCtx)>
           complete();
         });
       });
-      test('repliacte non-continuous, max-batch-size', () async {
+      test('replicate non-continuous, max-batch-size', () async {
         final source = await sourceCtx.db('test-replicate-source');
         final target = await targetCtx.db('test-replicate-target');
 
@@ -92,15 +92,14 @@ List<Function(AdapterTestContext sourceCtx, AdapterTestContext targetCtx)>
             continuous: true,
             maxBatchSize: 10,
             debounce: Duration(seconds: 10));
-        stream.listen(
-          onCheckpoint: (_) async {
-            var docs = await target.allDocs(GetViewRequest(), (json) => json);
-            if (docs.rows.length == 30) {
-              expect(stopwatch.elapsed.inSeconds, lessThan(10));
-              complete();
-            }
-          },
-        );
+        stream.listen(onCheckpoint: (_) async {
+          var docs = await target.allDocs(GetViewRequest(), (json) => json);
+          if (docs.rows.length == 30) {
+            expect(stopwatch.elapsed.inSeconds, lessThan(10));
+            complete();
+            await stream.abort();
+          }
+        });
         Future.delayed(Duration(seconds: 1), () {
           source.bulkDocs(
               body: List.generate(30, (index) => Doc(id: '$index', model: {})));
@@ -126,6 +125,7 @@ List<Function(AdapterTestContext sourceCtx, AdapterTestContext targetCtx)>
             if (docs.rows.length == 30) {
               expect(stopwatch.elapsed.inSeconds, greaterThan(10));
               complete();
+              await stream.abort();
             }
           },
         );
@@ -148,8 +148,8 @@ List<Function(AdapterTestContext sourceCtx, AdapterTestContext targetCtx)>
           checkpoint();
           var doc = await target.get(id: 'a', fromJsonT: (json) => json);
           expect(doc, isNotNull);
-          stream.abort();
           complete();
+          stream.abort();
         });
         Future.delayed(Duration(seconds: 1),
             () => source.put(doc: Doc(id: 'b', model: {})));

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
-
 import "package:crypto/crypto.dart";
 import 'package:foodb/foodb.dart';
 import 'package:foodb/adapter/methods/bulk_get.dart';
@@ -37,7 +36,7 @@ class ReplicationCompleteEvent extends ReplicationEvent {}
 
 class ReplicationStream {
   Stream<ReplicationEvent> _stream;
-  final void Function() onCancel;
+  final Future<void> Function() onCancel;
   final void Function() onRetry;
   ReplicationStream(this._stream,
       {required this.onCancel, required this.onRetry});
@@ -67,8 +66,8 @@ class ReplicationStream {
     });
   }
 
-  abort() {
-    this.onCancel();
+  abort() async {
+    await this.onCancel();
   }
 
   retry() {
@@ -308,23 +307,21 @@ Future<ReplicationStream> replicate(
     return Timer(debounce, fn);
   }
 
-  replicator = _Replicator(source, target,
-      maxBatchSize: maxBatchSize,
+  replicator = _Replicator(source, target, maxBatchSize: maxBatchSize,
       onFinishCheckpoint: (log, changes) {
-        _stream.sink.add(ReplicationCheckpointEvent(log, changes));
-        if (replicator.pendingList.isNotEmpty) {
-          replicator.run();
-        } else {
-          if (!continuous) {
-            _stream.sink.add(ReplicationCompleteEvent());
-          }
-        }
-      },
-      onError: (err) => _stream.sink.add(ReplicationErrorEvent(err)));
-  resultStream = new ReplicationStream(_stream.stream, onCancel: () {
-    replicator.cancel();
-    changeStream?.cancel();
-    _stream.close();
+    _stream.sink.add(ReplicationCheckpointEvent(log, changes));
+    if (replicator.pendingList.isNotEmpty) {
+      replicator.run();
+    } else {
+      if (!continuous) {
+        _stream.sink.add(ReplicationCompleteEvent());
+      }
+    }
+  }, onError: (err) =>_stream.sink.add(ReplicationErrorEvent(err)));
+  resultStream = new ReplicationStream(_stream.stream, onCancel: () async {
+    await _stream.close();
+    await changeStream?.cancel();
+    await replicator.cancel();
   }, onRetry: () {
     if (changeStream == null) {
       throw ReplicationException(
