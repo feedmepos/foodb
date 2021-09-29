@@ -83,14 +83,8 @@ mixin _KeyValueAdapterPut on _KeyValueAdapter {
   @override
   Future<DeleteResponse> delete({required String id, required Rev rev}) async {
     var history = (await keyValueDb.get(DocKey(key: id)))?.value;
-    DocHistory docHistory = history == null
-        ? DocHistory(id: id, docs: {}, revisions: RevisionTree(nodes: []))
-        : DocHistory.fromJson(history);
-    var winnerBeforeUpdate = docHistory.winner;
-
-    if (winnerBeforeUpdate == null) {
-      throw AdapterException(error: 'doc not found');
-    }
+    if (history == null) throw AdapterException(error: 'doc not found');
+    DocHistory docHistory = DocHistory.fromJson(history);
     var result =
         await put(doc: Doc(id: id, model: {}, deleted: true, rev: rev));
 
@@ -111,7 +105,11 @@ mixin _KeyValueAdapterPut on _KeyValueAdapter {
     }
     var history = (await keyValueDb.get(baseType))?.value;
     DocHistory docHistory = history == null
-        ? DocHistory(id: doc.id, docs: {}, revisions: RevisionTree(nodes: []))
+        ? DocHistory(
+            id: doc.id,
+            docs: {},
+            revisions: RevisionTree(nodes: []),
+          )
         : DocHistory.fromJson(history);
     var docJson = doc.toJson((value) => value);
     var winnerBeforeUpdate = docHistory.winner;
@@ -151,7 +149,8 @@ mixin _KeyValueAdapterPut on _KeyValueAdapter {
         data: doc.deleted == true ? {} : doc.model);
     DocHistory newDocHistoryObject = docHistory.copyWith(
         docs: {...docHistory.docs, newDocObject.rev.toString(): newDocObject},
-        revisions: newRevisionTreeObject);
+        revisions: newRevisionTreeObject,
+        lastSeq: newUpdateSeq);
 
     // perform actual database operation base on local doc or normal doc
     if (!isLocal) {

@@ -1,14 +1,14 @@
 import 'dart:convert';
+import 'package:foodb/adapter/key_value/key_value_database.dart';
 import 'package:objectbox/objectbox.dart';
 
 abstract class ObjectBoxEntity<T> {
   abstract int id;
-  abstract T? key;
+  abstract T key;
   abstract String? value;
 
   Map<String, dynamic>? get doc {
-    print(value);
-    return jsonDecode(this.value ?? "{}");
+    return jsonDecode(this.value ?? "null");
   }
 
   set doc(Map<String, dynamic>? value) {
@@ -17,111 +17,140 @@ abstract class ObjectBoxEntity<T> {
 }
 
 @Entity()
-class DocObject extends ObjectBoxEntity {
+class DocEntity extends ObjectBoxEntity<String> {
   @override
   @Id(assignable: true)
   int id;
 
   @override
   @Index()
-  String? key;
+  String key;
 
   @override
   String? value;
 
-  factory DocObject.get(int id, String? key, String? value) =>
-      DocObject(id: id, key: key, value: value);
+  factory DocEntity.get(int id, String key, String? value) =>
+      DocEntity(id: id, key: key, value: value);
 
-  DocObject({this.id = 0, this.key, this.value});
+  DocEntity({this.id = 0, required this.key, this.value});
 }
 
 @Entity()
-class LocalDocObject extends ObjectBoxEntity {
+class LocalDocEntity extends ObjectBoxEntity<String> {
   @override
   @Id(assignable: true)
   int id;
 
   @override
   @Index()
-  String? key;
+  String key;
 
   @override
   String? value;
 
-  factory LocalDocObject.get(int id, String? key, String? value) =>
-      LocalDocObject(id: id, key: key, value: value);
+  factory LocalDocEntity.get(int id, String key, String? value) =>
+      LocalDocEntity(id: id, key: key, value: value);
 
-  LocalDocObject({this.id = 0, this.key, this.value});
+  LocalDocEntity({this.id = 0, required this.key, this.value});
 }
 
 @Entity()
-class SequenceObject extends ObjectBoxEntity {
+class SequenceEntity extends ObjectBoxEntity<int> {
   @override
   @Id(assignable: true)
   int id;
 
   @override
-  String? value;
-
-  factory SequenceObject.getObject(int id, String? key, String? value) =>
-      SequenceObject(id: id, key: key, value: value);
-
-  SequenceObject({this.id = 0, this.key, this.value});
-}
-
-@Entity()
-class ViewMetaObject extends ObjectBoxEntity {
-  @override
-  @Id(assignable: true)
-  int id;
-
-  @override
-  @Index()
-  String? key;
+  int key;
 
   @override
   String? value;
 
-  factory ViewMetaObject.get(int id, String? key, String? value) =>
-      ViewMetaObject(id: id, key: key, value: value);
+  factory SequenceEntity.getObject(int id, int key, String? value) =>
+      SequenceEntity(id: id, key: key, value: value);
 
-  ViewMetaObject({this.id = 0, this.key, this.value});
+  SequenceEntity({this.id = 0, required this.key, this.value});
 }
 
 @Entity()
-class ViewIdObject extends ObjectBoxEntity {
+class ViewMetaEntity extends ObjectBoxEntity<String> {
   @override
   @Id(assignable: true)
   int id;
 
   @override
   @Index()
-  String? key;
+  String key;
 
   @override
   String? value;
 
-  factory ViewIdObject.get(int id, String? key, String? value) =>
-      ViewIdObject(id: id, key: key, value: value);
+  factory ViewMetaEntity.get(int id, String key, String? value) =>
+      ViewMetaEntity(id: id, key: key, value: value);
 
-  ViewIdObject({this.id = 0, this.key, this.value});
+  ViewMetaEntity({this.id = 0, required this.key, this.value});
 }
 
 @Entity()
-class ViewKeyObject extends ObjectBoxEntity {
+class ViewDocMetaEntity extends ObjectBoxEntity<String> {
   @override
   @Id(assignable: true)
   int id;
 
   @override
   @Index()
-  String? key;
+  String key;
 
   @override
   String? value;
 
-  factory ViewKeyObject.get(int id, String? key, String? value) =>
-      ViewKeyObject(id: id, key: key, value: value);
+  factory ViewDocMetaEntity.get(int id, String key, String? value) =>
+      ViewDocMetaEntity(id: id, key: key, value: value);
 
-  ViewKeyObject({this.id = 0, this.key, this.value});
+  ViewDocMetaEntity({this.id = 0, required this.key, this.value});
+}
+
+class ViewAllDocMetaEntity extends ObjectBoxEntity<String> {
+  @override
+  @Id(assignable: true)
+  int id;
+
+  @override
+  @Index()
+  String key;
+
+  @override
+  String? value;
+
+  factory ViewAllDocMetaEntity.get(int id, String key, String? value) =>
+      ViewAllDocMetaEntity(id: id, key: key, value: value);
+
+  ViewAllDocMetaEntity({this.id = 0, required this.key, this.value});
+}
+
+@Entity()
+class ViewKeyMetaEntity extends ObjectBoxEntity<String> {
+  @override
+  @Id(assignable: true)
+  int id;
+
+  @override
+  @Index()
+  String key;
+
+  @override
+  String? value;
+
+  ViewKeyMeta get metaKey {
+    return ViewKeyMeta.fromJson(jsonDecode(key));
+  }
+
+  set metaKey(ViewKeyMeta metaKey) {
+    key = jsonEncode(metaKey.toJson());
+  }
+
+  factory ViewKeyMetaEntity.get(int id, String key, String? value) =>
+      ViewKeyMetaEntity(id: id, key: key, value: value);
+
+  ViewKeyMetaEntity({this.id = 0, required this.key, this.value});
 }

@@ -8,7 +8,7 @@ part of 'view_meta.dart';
 
 ViewMeta _$ViewMetaFromJson(Map<String, dynamic> json) {
   return ViewMeta(
-    lastSeq: json['lastSeq'] as String,
+    lastSeq: json['lastSeq'] as int,
   );
 }
 

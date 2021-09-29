@@ -50,7 +50,15 @@ class InMemoryDatabase implements KeyValueDatabase<InMemoryDatabaseSession> {
     return true;
   }
 
-  SplayTreeMap<AbstractKey, Map<String, dynamic>> _getTable(String tableName) {
+  SplayTreeMap<AbstractKey, Map<String, dynamic>> _getTable(AbstractKey key) {
+    String tableName;
+    if (key is ViewKeyMetaKey) {
+      tableName = '${key.tableName}_${key.viewName}';
+    } else if (key is ViewDocMetaKey) {
+      tableName = '${key.tableName}_${key.viewName}';
+    } else {
+      tableName = key.tableName;
+    }
     var table = _stores[tableName];
     if (table == null) {
       table = _stores[tableName] = SplayTreeMap();
@@ -67,9 +75,9 @@ class InMemoryDatabase implements KeyValueDatabase<InMemoryDatabaseSession> {
   // }
 
   @override
-  Future<MapEntry<AbstractKey, Map<String, dynamic>>?> get(AbstractKey key,
+  Future<MapEntry<T, Map<String, dynamic>>?> get<T extends AbstractKey>(T key,
       {InMemoryDatabaseSession? session}) async {
-    var val = _getTable(key.tableName)[key];
+    var val = _getTable(key)[key];
     if (val != null) {
       return MapEntry(key, val);
     }
@@ -77,35 +85,36 @@ class InMemoryDatabase implements KeyValueDatabase<InMemoryDatabaseSession> {
   }
 
   @override
-  Future<List<MapEntry<AbstractKey, Map<String, dynamic>>?>> getMany(
-      List<AbstractKey> keys,
+  Future<Map<T, Map<String, dynamic>?>> getMany<T extends AbstractKey>(
+      List<T> keys,
       {InMemoryDatabaseSession? session}) async {
-    List<MapEntry<AbstractKey, Map<String, dynamic>>?> result = [];
+    Map<T, Map<String, dynamic>?> result = {};
     for (final r in keys) {
-      result.add(await get(r, session: session));
+      final value = await get(r, session: session);
+      result.putIfAbsent(r, () => value?.value);
     }
     return result;
   }
 
   @override
-  Future<MapEntry<AbstractKey, Map<String, dynamic>>?> last(AbstractKey key,
+  Future<MapEntry<T, Map<String, dynamic>>?> last<T extends AbstractKey>(T key,
       {InMemoryDatabaseSession? session}) async {
-    final lastKey = _getTable(key.tableName).lastKey();
+    final lastKey = _getTable(key).lastKey();
     if (lastKey != null) {
-      final lastVal = _getTable(key.tableName)[lastKey]!;
-      return MapEntry(lastKey, lastVal);
+      final lastVal = _getTable(key)[lastKey]!;
+      return MapEntry(lastKey as T, lastVal);
     }
     return null;
   }
 
   @override
-  Future<ReadResult> read(AbstractKey keyType,
-      {AbstractKey? startkey,
-      AbstractKey? endkey,
+  Future<ReadResult<T>> read<T extends AbstractKey>(T keyType,
+      {T? startkey,
+      T? endkey,
       bool? desc,
       InMemoryDatabaseSession? session}) async {
-    var table = _getTable(keyType.tableName);
-    Map<AbstractKey, Map<String, dynamic>> result = {};
+    var table = _getTable(keyType);
+    Map<T, Map<String, dynamic>> result = {};
     int? offSet = null;
     var keys = table.keys.toList();
     if (desc == true) {
@@ -116,7 +125,7 @@ class InMemoryDatabase implements KeyValueDatabase<InMemoryDatabaseSession> {
     }
     for (int x = 0; x < table.length; x++) {
       if (keys[x].compareTo(startkey) >= 0 && keys[x].compareTo(endkey) <= 0) {
-        result.putIfAbsent(keys[x], () => table[keys[x]]!);
+        result.putIfAbsent(keys[x] as T, () => table[keys[x]]!);
         offSet ??= x;
       }
     }
@@ -127,10 +136,7 @@ class InMemoryDatabase implements KeyValueDatabase<InMemoryDatabaseSession> {
   @override
   Future<bool> put(AbstractKey key, Map<String, dynamic> value,
       {InMemoryDatabaseSession? session}) async {
-    var table = _stores[key.tableName];
-    if (table == null) {
-      table = _stores[key.tableName] = SplayTreeMap();
-    }
+    var table = _getTable(key);
     table.update(key, (v) => value, ifAbsent: () => value);
     return true;
   }
@@ -147,7 +153,7 @@ class InMemoryDatabase implements KeyValueDatabase<InMemoryDatabaseSession> {
   @override
   Future<bool> delete(AbstractKey key,
       {InMemoryDatabaseSession? session}) async {
-    var table = _getTable(key.tableName);
+    var table = _getTable(key);
     table.remove(key);
     return true;
   }
@@ -164,7 +170,7 @@ class InMemoryDatabase implements KeyValueDatabase<InMemoryDatabaseSession> {
   @override
   Future<bool> deleteTable(AbstractKey key,
       {InMemoryDatabaseSession? session}) async {
-    _stores[key.tableName]?.clear();
+    _stores[key]?.clear();
     return true;
   }
 
@@ -179,6 +185,6 @@ class InMemoryDatabase implements KeyValueDatabase<InMemoryDatabaseSession> {
   @override
   Future<int> tableSize(AbstractKey key,
       {InMemoryDatabaseSession? session}) async {
-    return _stores[key.tableName]?.length ?? 0;
+    return _stores[key]?.length ?? 0;
   }
 }

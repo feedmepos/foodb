@@ -15,152 +15,151 @@ export 'package:objectbox/objectbox.dart'; // so that callers only have to impor
 
 final _entities = <ModelEntity>[
   ModelEntity(
-      id: const IdUid(1, 6622174301463535485),
-      name: 'DocObject',
-      lastPropertyId: const IdUid(4, 1163700573801916292),
+      id: const IdUid(1, 4854730747853972500),
+      name: 'DocEntity',
+      lastPropertyId: const IdUid(3, 1752656350797282282),
       flags: 0,
       properties: <ModelProperty>[
         ModelProperty(
-            id: const IdUid(1, 1781864446410536219),
+            id: const IdUid(1, 3560900380125780084),
             name: 'id',
             type: 6,
             flags: 129),
         ModelProperty(
-            id: const IdUid(3, 4226611598113381983),
-            name: 'value',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(4, 1163700573801916292),
+            id: const IdUid(2, 8649292410431973453),
             name: 'key',
             type: 9,
             flags: 2048,
-            indexId: const IdUid(8, 6635848602395745881))
+            indexId: const IdUid(1, 8705665511744785782)),
+        ModelProperty(
+            id: const IdUid(3, 1752656350797282282),
+            name: 'value',
+            type: 9,
+            flags: 0)
       ],
       relations: <ModelRelation>[],
       backlinks: <ModelBacklink>[]),
   ModelEntity(
-      id: const IdUid(2, 8429717446124032204),
-      name: 'LocalDocObject',
-      lastPropertyId: const IdUid(4, 2662669015074907462),
+      id: const IdUid(2, 5653666955598801934),
+      name: 'LocalDocEntity',
+      lastPropertyId: const IdUid(3, 603761560879078782),
       flags: 0,
       properties: <ModelProperty>[
         ModelProperty(
-            id: const IdUid(1, 3935624190090915669),
+            id: const IdUid(1, 8783753655029484921),
             name: 'id',
             type: 6,
             flags: 129),
         ModelProperty(
-            id: const IdUid(3, 684882806072693233),
-            name: 'value',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(4, 2662669015074907462),
+            id: const IdUid(2, 8202346143928025691),
             name: 'key',
             type: 9,
             flags: 2048,
-            indexId: const IdUid(9, 279971503199994650))
+            indexId: const IdUid(2, 8514582379727866698)),
+        ModelProperty(
+            id: const IdUid(3, 603761560879078782),
+            name: 'value',
+            type: 9,
+            flags: 0)
       ],
       relations: <ModelRelation>[],
       backlinks: <ModelBacklink>[]),
   ModelEntity(
-      id: const IdUid(3, 7563831767817202335),
-      name: 'SequenceObject',
-      lastPropertyId: const IdUid(4, 7660747485539849916),
+      id: const IdUid(3, 3091503247941740088),
+      name: 'SequenceEntity',
+      lastPropertyId: const IdUid(3, 3498585876108965148),
       flags: 0,
       properties: <ModelProperty>[
         ModelProperty(
-            id: const IdUid(1, 5953570059821218213),
+            id: const IdUid(1, 8971544107699572723),
             name: 'id',
             type: 6,
             flags: 129),
         ModelProperty(
-            id: const IdUid(3, 8689971109704308935),
-            name: 'value',
-            type: 9,
+            id: const IdUid(2, 2539298652646182720),
+            name: 'key',
+            type: 6,
             flags: 0),
         ModelProperty(
-            id: const IdUid(4, 7660747485539849916),
-            name: 'key',
+            id: const IdUid(3, 3498585876108965148),
+            name: 'value',
             type: 9,
-            flags: 2048,
-            indexId: const IdUid(10, 3826840651276068019))
+            flags: 0)
       ],
       relations: <ModelRelation>[],
       backlinks: <ModelBacklink>[]),
   ModelEntity(
-      id: const IdUid(4, 746405745216575659),
-      name: 'ViewIdObject',
-      lastPropertyId: const IdUid(4, 2663949986019418151),
+      id: const IdUid(4, 641085905396968232),
+      name: 'ViewDocMetaEntity',
+      lastPropertyId: const IdUid(3, 2870714443298554116),
       flags: 0,
       properties: <ModelProperty>[
         ModelProperty(
-            id: const IdUid(1, 2851309909731352415),
+            id: const IdUid(1, 2139584183479834493),
             name: 'id',
             type: 6,
             flags: 129),
         ModelProperty(
-            id: const IdUid(3, 5487010102948749176),
-            name: 'value',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(4, 2663949986019418151),
+            id: const IdUid(2, 206341734760607277),
             name: 'key',
             type: 9,
             flags: 2048,
-            indexId: const IdUid(11, 1100169669688902450))
+            indexId: const IdUid(3, 8598412494874542398)),
+        ModelProperty(
+            id: const IdUid(3, 2870714443298554116),
+            name: 'value',
+            type: 9,
+            flags: 0)
       ],
       relations: <ModelRelation>[],
       backlinks: <ModelBacklink>[]),
   ModelEntity(
-      id: const IdUid(5, 4276919897303836959),
-      name: 'ViewKeyObject',
-      lastPropertyId: const IdUid(4, 8683450472321783788),
+      id: const IdUid(5, 5267071683743213251),
+      name: 'ViewKeyMetaEntity',
+      lastPropertyId: const IdUid(3, 7449931206461472570),
       flags: 0,
       properties: <ModelProperty>[
         ModelProperty(
-            id: const IdUid(1, 5455334887915348687),
+            id: const IdUid(1, 6619617028869102825),
             name: 'id',
             type: 6,
             flags: 129),
         ModelProperty(
-            id: const IdUid(3, 2769170428104305903),
-            name: 'value',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(4, 8683450472321783788),
+            id: const IdUid(2, 5242110540656940172),
             name: 'key',
             type: 9,
             flags: 2048,
-            indexId: const IdUid(12, 2944651458473695848))
+            indexId: const IdUid(4, 7758849780118126889)),
+        ModelProperty(
+            id: const IdUid(3, 7449931206461472570),
+            name: 'value',
+            type: 9,
+            flags: 0)
       ],
       relations: <ModelRelation>[],
       backlinks: <ModelBacklink>[]),
   ModelEntity(
-      id: const IdUid(6, 6738579724716991720),
-      name: 'ViewMetaObject',
-      lastPropertyId: const IdUid(4, 5232102712710831581),
+      id: const IdUid(6, 820739159260059303),
+      name: 'ViewMetaEntity',
+      lastPropertyId: const IdUid(3, 4570345311730615598),
       flags: 0,
       properties: <ModelProperty>[
         ModelProperty(
-            id: const IdUid(1, 2903015649845273127),
+            id: const IdUid(1, 5830120471729097525),
             name: 'id',
             type: 6,
             flags: 129),
         ModelProperty(
-            id: const IdUid(3, 2511425265660318828),
-            name: 'value',
-            type: 9,
-            flags: 0),
-        ModelProperty(
-            id: const IdUid(4, 5232102712710831581),
+            id: const IdUid(2, 9015251116945556721),
             name: 'key',
             type: 9,
             flags: 2048,
-            indexId: const IdUid(13, 6556323116993261429))
+            indexId: const IdUid(5, 327414111484451485)),
+        ModelProperty(
+            id: const IdUid(3, 4570345311730615598),
+            name: 'value',
+            type: 9,
+            flags: 0)
       ],
       relations: <ModelRelation>[],
       backlinks: <ModelBacklink>[])
@@ -186,61 +185,35 @@ Future<Store> openStore(
 ModelDefinition getObjectBoxModel() {
   final model = ModelInfo(
       entities: _entities,
-      lastEntityId: const IdUid(9, 8885801200855639251),
-      lastIndexId: const IdUid(14, 6675191802812265413),
+      lastEntityId: const IdUid(6, 820739159260059303),
+      lastIndexId: const IdUid(5, 327414111484451485),
       lastRelationId: const IdUid(0, 0),
       lastSequenceId: const IdUid(0, 0),
-      retiredEntityUids: const [
-        8842027470902956381,
-        2504612080459907327,
-        8885801200855639251
-      ],
-      retiredIndexUids: const [
-        2217445087064918579,
-        7700873384517221477,
-        7939697965383828459,
-        1281371319672271839,
-        6019366859744502701,
-        3354992963094360112
-      ],
-      retiredPropertyUids: const [
-        4279795125970217286,
-        7179168706175075876,
-        938973070722999951,
-        8613433438281843076,
-        4228196814866234055,
-        4450188941046813122,
-        749149001067822069,
-        4990794649388996325,
-        3885460492299160645,
-        8336902243284899585,
-        8900985955392074497,
-        5167927408010917924,
-        2281881436387328474
-      ],
+      retiredEntityUids: const [],
+      retiredIndexUids: const [],
+      retiredPropertyUids: const [],
       retiredRelationUids: const [],
       modelVersion: 5,
       modelVersionParserMinimum: 5,
       version: 1);
 
   final bindings = <Type, EntityDefinition>{
-    DocObject: EntityDefinition<DocObject>(
+    DocEntity: EntityDefinition<DocEntity>(
         model: _entities[0],
-        toOneRelations: (DocObject object) => [],
-        toManyRelations: (DocObject object) => {},
-        getId: (DocObject object) => object.id,
-        setId: (DocObject object, int id) {
+        toOneRelations: (DocEntity object) => [],
+        toManyRelations: (DocEntity object) => {},
+        getId: (DocEntity object) => object.id,
+        setId: (DocEntity object, int id) {
           object.id = id;
         },
-        objectToFB: (DocObject object, fb.Builder fbb) {
+        objectToFB: (DocEntity object, fb.Builder fbb) {
+          final keyOffset = fbb.writeString(object.key);
           final valueOffset =
               object.value == null ? null : fbb.writeString(object.value!);
-          final keyOffset =
-              object.key == null ? null : fbb.writeString(object.key!);
-          fbb.startTable(5);
+          fbb.startTable(4);
           fbb.addInt64(0, object.id);
+          fbb.addOffset(1, keyOffset);
           fbb.addOffset(2, valueOffset);
-          fbb.addOffset(3, keyOffset);
           fbb.finish(fbb.endTable());
           return object.id;
         },
@@ -248,32 +221,30 @@ ModelDefinition getObjectBoxModel() {
           final buffer = fb.BufferContext(fbData);
           final rootOffset = buffer.derefObject(0);
 
-          final object = DocObject(
+          final object = DocEntity(
               id: const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0),
-              key: const fb.StringReader()
-                  .vTableGetNullable(buffer, rootOffset, 10),
+              key: const fb.StringReader().vTableGet(buffer, rootOffset, 6, ''),
               value: const fb.StringReader()
                   .vTableGetNullable(buffer, rootOffset, 8));
 
           return object;
         }),
-    LocalDocObject: EntityDefinition<LocalDocObject>(
+    LocalDocEntity: EntityDefinition<LocalDocEntity>(
         model: _entities[1],
-        toOneRelations: (LocalDocObject object) => [],
-        toManyRelations: (LocalDocObject object) => {},
-        getId: (LocalDocObject object) => object.id,
-        setId: (LocalDocObject object, int id) {
+        toOneRelations: (LocalDocEntity object) => [],
+        toManyRelations: (LocalDocEntity object) => {},
+        getId: (LocalDocEntity object) => object.id,
+        setId: (LocalDocEntity object, int id) {
           object.id = id;
         },
-        objectToFB: (LocalDocObject object, fb.Builder fbb) {
+        objectToFB: (LocalDocEntity object, fb.Builder fbb) {
+          final keyOffset = fbb.writeString(object.key);
           final valueOffset =
               object.value == null ? null : fbb.writeString(object.value!);
-          final keyOffset =
-              object.key == null ? null : fbb.writeString(object.key!);
-          fbb.startTable(5);
+          fbb.startTable(4);
           fbb.addInt64(0, object.id);
+          fbb.addOffset(1, keyOffset);
           fbb.addOffset(2, valueOffset);
-          fbb.addOffset(3, keyOffset);
           fbb.finish(fbb.endTable());
           return object.id;
         },
@@ -281,32 +252,29 @@ ModelDefinition getObjectBoxModel() {
           final buffer = fb.BufferContext(fbData);
           final rootOffset = buffer.derefObject(0);
 
-          final object = LocalDocObject(
+          final object = LocalDocEntity(
               id: const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0),
-              key: const fb.StringReader()
-                  .vTableGetNullable(buffer, rootOffset, 10),
+              key: const fb.StringReader().vTableGet(buffer, rootOffset, 6, ''),
               value: const fb.StringReader()
                   .vTableGetNullable(buffer, rootOffset, 8));
 
           return object;
         }),
-    SequenceObject: EntityDefinition<SequenceObject>(
+    SequenceEntity: EntityDefinition<SequenceEntity>(
         model: _entities[2],
-        toOneRelations: (SequenceObject object) => [],
-        toManyRelations: (SequenceObject object) => {},
-        getId: (SequenceObject object) => object.id,
-        setId: (SequenceObject object, int id) {
+        toOneRelations: (SequenceEntity object) => [],
+        toManyRelations: (SequenceEntity object) => {},
+        getId: (SequenceEntity object) => object.id,
+        setId: (SequenceEntity object, int id) {
           object.id = id;
         },
-        objectToFB: (SequenceObject object, fb.Builder fbb) {
+        objectToFB: (SequenceEntity object, fb.Builder fbb) {
           final valueOffset =
               object.value == null ? null : fbb.writeString(object.value!);
-          final keyOffset =
-              object.key == null ? null : fbb.writeString(object.key!);
-          fbb.startTable(5);
+          fbb.startTable(4);
           fbb.addInt64(0, object.id);
+          fbb.addInt64(1, object.key);
           fbb.addOffset(2, valueOffset);
-          fbb.addOffset(3, keyOffset);
           fbb.finish(fbb.endTable());
           return object.id;
         },
@@ -314,32 +282,30 @@ ModelDefinition getObjectBoxModel() {
           final buffer = fb.BufferContext(fbData);
           final rootOffset = buffer.derefObject(0);
 
-          final object = SequenceObject(
+          final object = SequenceEntity(
               id: const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0),
-              key: const fb.StringReader()
-                  .vTableGetNullable(buffer, rootOffset, 10),
+              key: const fb.Int64Reader().vTableGet(buffer, rootOffset, 6, 0),
               value: const fb.StringReader()
                   .vTableGetNullable(buffer, rootOffset, 8));
 
           return object;
         }),
-    ViewIdObject: EntityDefinition<ViewIdObject>(
+    ViewDocMetaEntity: EntityDefinition<ViewDocMetaEntity>(
         model: _entities[3],
-        toOneRelations: (ViewIdObject object) => [],
-        toManyRelations: (ViewIdObject object) => {},
-        getId: (ViewIdObject object) => object.id,
-        setId: (ViewIdObject object, int id) {
+        toOneRelations: (ViewDocMetaEntity object) => [],
+        toManyRelations: (ViewDocMetaEntity object) => {},
+        getId: (ViewDocMetaEntity object) => object.id,
+        setId: (ViewDocMetaEntity object, int id) {
           object.id = id;
         },
-        objectToFB: (ViewIdObject object, fb.Builder fbb) {
+        objectToFB: (ViewDocMetaEntity object, fb.Builder fbb) {
+          final keyOffset = fbb.writeString(object.key);
           final valueOffset =
               object.value == null ? null : fbb.writeString(object.value!);
-          final keyOffset =
-              object.key == null ? null : fbb.writeString(object.key!);
-          fbb.startTable(5);
+          fbb.startTable(4);
           fbb.addInt64(0, object.id);
+          fbb.addOffset(1, keyOffset);
           fbb.addOffset(2, valueOffset);
-          fbb.addOffset(3, keyOffset);
           fbb.finish(fbb.endTable());
           return object.id;
         },
@@ -347,32 +313,30 @@ ModelDefinition getObjectBoxModel() {
           final buffer = fb.BufferContext(fbData);
           final rootOffset = buffer.derefObject(0);
 
-          final object = ViewIdObject(
+          final object = ViewDocMetaEntity(
               id: const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0),
-              key: const fb.StringReader()
-                  .vTableGetNullable(buffer, rootOffset, 10),
+              key: const fb.StringReader().vTableGet(buffer, rootOffset, 6, ''),
               value: const fb.StringReader()
                   .vTableGetNullable(buffer, rootOffset, 8));
 
           return object;
         }),
-    ViewKeyObject: EntityDefinition<ViewKeyObject>(
+    ViewKeyMetaEntity: EntityDefinition<ViewKeyMetaEntity>(
         model: _entities[4],
-        toOneRelations: (ViewKeyObject object) => [],
-        toManyRelations: (ViewKeyObject object) => {},
-        getId: (ViewKeyObject object) => object.id,
-        setId: (ViewKeyObject object, int id) {
+        toOneRelations: (ViewKeyMetaEntity object) => [],
+        toManyRelations: (ViewKeyMetaEntity object) => {},
+        getId: (ViewKeyMetaEntity object) => object.id,
+        setId: (ViewKeyMetaEntity object, int id) {
           object.id = id;
         },
-        objectToFB: (ViewKeyObject object, fb.Builder fbb) {
+        objectToFB: (ViewKeyMetaEntity object, fb.Builder fbb) {
+          final keyOffset = fbb.writeString(object.key);
           final valueOffset =
               object.value == null ? null : fbb.writeString(object.value!);
-          final keyOffset =
-              object.key == null ? null : fbb.writeString(object.key!);
-          fbb.startTable(5);
+          fbb.startTable(4);
           fbb.addInt64(0, object.id);
+          fbb.addOffset(1, keyOffset);
           fbb.addOffset(2, valueOffset);
-          fbb.addOffset(3, keyOffset);
           fbb.finish(fbb.endTable());
           return object.id;
         },
@@ -380,32 +344,30 @@ ModelDefinition getObjectBoxModel() {
           final buffer = fb.BufferContext(fbData);
           final rootOffset = buffer.derefObject(0);
 
-          final object = ViewKeyObject(
+          final object = ViewKeyMetaEntity(
               id: const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0),
-              key: const fb.StringReader()
-                  .vTableGetNullable(buffer, rootOffset, 10),
+              key: const fb.StringReader().vTableGet(buffer, rootOffset, 6, ''),
               value: const fb.StringReader()
                   .vTableGetNullable(buffer, rootOffset, 8));
 
           return object;
         }),
-    ViewMetaObject: EntityDefinition<ViewMetaObject>(
+    ViewMetaEntity: EntityDefinition<ViewMetaEntity>(
         model: _entities[5],
-        toOneRelations: (ViewMetaObject object) => [],
-        toManyRelations: (ViewMetaObject object) => {},
-        getId: (ViewMetaObject object) => object.id,
-        setId: (ViewMetaObject object, int id) {
+        toOneRelations: (ViewMetaEntity object) => [],
+        toManyRelations: (ViewMetaEntity object) => {},
+        getId: (ViewMetaEntity object) => object.id,
+        setId: (ViewMetaEntity object, int id) {
           object.id = id;
         },
-        objectToFB: (ViewMetaObject object, fb.Builder fbb) {
+        objectToFB: (ViewMetaEntity object, fb.Builder fbb) {
+          final keyOffset = fbb.writeString(object.key);
           final valueOffset =
               object.value == null ? null : fbb.writeString(object.value!);
-          final keyOffset =
-              object.key == null ? null : fbb.writeString(object.key!);
-          fbb.startTable(5);
+          fbb.startTable(4);
           fbb.addInt64(0, object.id);
+          fbb.addOffset(1, keyOffset);
           fbb.addOffset(2, valueOffset);
-          fbb.addOffset(3, keyOffset);
           fbb.finish(fbb.endTable());
           return object.id;
         },
@@ -413,10 +375,9 @@ ModelDefinition getObjectBoxModel() {
           final buffer = fb.BufferContext(fbData);
           final rootOffset = buffer.derefObject(0);
 
-          final object = ViewMetaObject(
+          final object = ViewMetaEntity(
               id: const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0),
-              key: const fb.StringReader()
-                  .vTableGetNullable(buffer, rootOffset, 10),
+              key: const fb.StringReader().vTableGet(buffer, rootOffset, 6, ''),
               value: const fb.StringReader()
                   .vTableGetNullable(buffer, rootOffset, 8));
 
@@ -427,90 +388,90 @@ ModelDefinition getObjectBoxModel() {
   return ModelDefinition(model, bindings);
 }
 
-/// [DocObject] entity fields to define ObjectBox queries.
-class DocObject_ {
-  /// see [DocObject.id]
-  static final id = QueryIntegerProperty<DocObject>(_entities[0].properties[0]);
+/// [DocEntity] entity fields to define ObjectBox queries.
+class DocEntity_ {
+  /// see [DocEntity.id]
+  static final id = QueryIntegerProperty<DocEntity>(_entities[0].properties[0]);
 
-  /// see [DocObject.value]
+  /// see [DocEntity.key]
+  static final key = QueryStringProperty<DocEntity>(_entities[0].properties[1]);
+
+  /// see [DocEntity.value]
   static final value =
-      QueryStringProperty<DocObject>(_entities[0].properties[1]);
-
-  /// see [DocObject.key]
-  static final key = QueryStringProperty<DocObject>(_entities[0].properties[2]);
+      QueryStringProperty<DocEntity>(_entities[0].properties[2]);
 }
 
-/// [LocalDocObject] entity fields to define ObjectBox queries.
-class LocalDocObject_ {
-  /// see [LocalDocObject.id]
+/// [LocalDocEntity] entity fields to define ObjectBox queries.
+class LocalDocEntity_ {
+  /// see [LocalDocEntity.id]
   static final id =
-      QueryIntegerProperty<LocalDocObject>(_entities[1].properties[0]);
+      QueryIntegerProperty<LocalDocEntity>(_entities[1].properties[0]);
 
-  /// see [LocalDocObject.value]
-  static final value =
-      QueryStringProperty<LocalDocObject>(_entities[1].properties[1]);
-
-  /// see [LocalDocObject.key]
+  /// see [LocalDocEntity.key]
   static final key =
-      QueryStringProperty<LocalDocObject>(_entities[1].properties[2]);
+      QueryStringProperty<LocalDocEntity>(_entities[1].properties[1]);
+
+  /// see [LocalDocEntity.value]
+  static final value =
+      QueryStringProperty<LocalDocEntity>(_entities[1].properties[2]);
 }
 
-/// [SequenceObject] entity fields to define ObjectBox queries.
-class SequenceObject_ {
-  /// see [SequenceObject.id]
+/// [SequenceEntity] entity fields to define ObjectBox queries.
+class SequenceEntity_ {
+  /// see [SequenceEntity.id]
   static final id =
-      QueryIntegerProperty<SequenceObject>(_entities[2].properties[0]);
+      QueryIntegerProperty<SequenceEntity>(_entities[2].properties[0]);
 
-  /// see [SequenceObject.value]
-  static final value =
-      QueryStringProperty<SequenceObject>(_entities[2].properties[1]);
-
-  /// see [SequenceObject.key]
+  /// see [SequenceEntity.key]
   static final key =
-      QueryStringProperty<SequenceObject>(_entities[2].properties[2]);
+      QueryIntegerProperty<SequenceEntity>(_entities[2].properties[1]);
+
+  /// see [SequenceEntity.value]
+  static final value =
+      QueryStringProperty<SequenceEntity>(_entities[2].properties[2]);
 }
 
-/// [ViewIdObject] entity fields to define ObjectBox queries.
-class ViewIdObject_ {
-  /// see [ViewIdObject.id]
+/// [ViewDocMetaEntity] entity fields to define ObjectBox queries.
+class ViewDocMetaEntity_ {
+  /// see [ViewDocMetaEntity.id]
   static final id =
-      QueryIntegerProperty<ViewIdObject>(_entities[3].properties[0]);
+      QueryIntegerProperty<ViewDocMetaEntity>(_entities[3].properties[0]);
 
-  /// see [ViewIdObject.value]
-  static final value =
-      QueryStringProperty<ViewIdObject>(_entities[3].properties[1]);
-
-  /// see [ViewIdObject.key]
+  /// see [ViewDocMetaEntity.key]
   static final key =
-      QueryStringProperty<ViewIdObject>(_entities[3].properties[2]);
+      QueryStringProperty<ViewDocMetaEntity>(_entities[3].properties[1]);
+
+  /// see [ViewDocMetaEntity.value]
+  static final value =
+      QueryStringProperty<ViewDocMetaEntity>(_entities[3].properties[2]);
 }
 
-/// [ViewKeyObject] entity fields to define ObjectBox queries.
-class ViewKeyObject_ {
-  /// see [ViewKeyObject.id]
+/// [ViewKeyMetaEntity] entity fields to define ObjectBox queries.
+class ViewKeyMetaEntity_ {
+  /// see [ViewKeyMetaEntity.id]
   static final id =
-      QueryIntegerProperty<ViewKeyObject>(_entities[4].properties[0]);
+      QueryIntegerProperty<ViewKeyMetaEntity>(_entities[4].properties[0]);
 
-  /// see [ViewKeyObject.value]
-  static final value =
-      QueryStringProperty<ViewKeyObject>(_entities[4].properties[1]);
-
-  /// see [ViewKeyObject.key]
+  /// see [ViewKeyMetaEntity.key]
   static final key =
-      QueryStringProperty<ViewKeyObject>(_entities[4].properties[2]);
+      QueryStringProperty<ViewKeyMetaEntity>(_entities[4].properties[1]);
+
+  /// see [ViewKeyMetaEntity.value]
+  static final value =
+      QueryStringProperty<ViewKeyMetaEntity>(_entities[4].properties[2]);
 }
 
-/// [ViewMetaObject] entity fields to define ObjectBox queries.
-class ViewMetaObject_ {
-  /// see [ViewMetaObject.id]
+/// [ViewMetaEntity] entity fields to define ObjectBox queries.
+class ViewMetaEntity_ {
+  /// see [ViewMetaEntity.id]
   static final id =
-      QueryIntegerProperty<ViewMetaObject>(_entities[5].properties[0]);
+      QueryIntegerProperty<ViewMetaEntity>(_entities[5].properties[0]);
 
-  /// see [ViewMetaObject.value]
-  static final value =
-      QueryStringProperty<ViewMetaObject>(_entities[5].properties[1]);
-
-  /// see [ViewMetaObject.key]
+  /// see [ViewMetaEntity.key]
   static final key =
-      QueryStringProperty<ViewMetaObject>(_entities[5].properties[2]);
+      QueryStringProperty<ViewMetaEntity>(_entities[5].properties[1]);
+
+  /// see [ViewMetaEntity.value]
+  static final value =
+      QueryStringProperty<ViewMetaEntity>(_entities[5].properties[2]);
 }

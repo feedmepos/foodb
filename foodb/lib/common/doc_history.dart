@@ -200,6 +200,7 @@ class DocHistory {
     String? id,
     Map<String, InternalDoc>? docs,
     RevisionTree? revisions,
+    int? lastSeq,
   }) {
     return DocHistory(
       id: id ?? this.id,

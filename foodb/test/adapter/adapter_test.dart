@@ -9,7 +9,6 @@ import 'all_doc_Test.dart';
 import 'bulk_doc_test.dart';
 import 'change_stream_test.dart';
 import 'delete_test.dart';
-import 'find_test.dart';
 import 'get_test.dart';
 import 'put_test.dart';
 import 'util_test.dart';

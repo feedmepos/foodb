@@ -8,11 +8,13 @@ part of 'design_doc.dart';
 
 ViewDocMeta _$ViewDocMetaFromJson(Map<String, dynamic> json) {
   return ViewDocMeta(
-    keys: (json['keys'] as List<dynamic>).map((e) => e as String).toList(),
+    keys: (json['keys'] as List<dynamic>)
+        .map((e) => ViewKeyMeta.fromJson(e as Map<String, dynamic>))
+        .toList(),
   );
 }
 
 Map<String, dynamic> _$ViewDocMetaToJson(ViewDocMeta instance) =>
     <String, dynamic>{
-      'keys': instance.keys,
+      'keys': instance.keys.map((e) => e.toJson()).toList(),
     };

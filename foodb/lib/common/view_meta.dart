@@ -4,7 +4,7 @@ part 'view_meta.g.dart';
 
 @JsonSerializable()
 class ViewMeta {
-  String lastSeq;
+  int lastSeq;
 
   ViewMeta({required this.lastSeq});
 

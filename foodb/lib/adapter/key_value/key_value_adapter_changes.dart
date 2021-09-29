@@ -4,7 +4,7 @@ mixin _KeyValueAdapterChange on _KeyValueAdapter {
   _encodeUpdateSequence(SequenceKey key, UpdateSequence update,
       {bool? includeDocs = false, String? style = 'main_only'}) async {
     Map<String, dynamic> changeResult = {
-      "seq": '${key.key}-0',
+      "seq": encodeSeq(key.key!),
       "id": update.id,
       "changes": style == 'all_docs'
           ? update.allLeafRev.map((rev) => {"rev": rev.toString()}).toList()
@@ -67,7 +67,7 @@ mixin _KeyValueAdapterChange on _KeyValueAdapter {
         (request.feed == ChangeFeed.longpoll && changeCount > 0)) {
       streamController.sink.add("],");
       streamController.sink
-          .add('"last_seq":"$lastSeq-0", "pending": $pending}');
+          .add('"last_seq":"${encodeSeq(lastSeq)}", "pending": $pending}');
       streamController.close();
     } else {
       subscription = localChangeStreamController.stream.listen(null);
@@ -79,7 +79,8 @@ mixin _KeyValueAdapterChange on _KeyValueAdapter {
         if (request.feed == ChangeFeed.longpoll) {
           subscription?.cancel();
           streamController.sink.add("],");
-          streamController.sink.add('"last_seq":"$lastSeq-0", "pending": 0}');
+          streamController.sink
+              .add('"last_seq":"${encodeSeq(lastSeq)}", "pending": 0}');
           streamController.close();
         }
       });
