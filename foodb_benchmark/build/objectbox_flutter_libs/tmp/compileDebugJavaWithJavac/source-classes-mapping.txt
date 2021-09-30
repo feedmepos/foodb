@@ -1,0 +1,4 @@
+io/objectbox/objectbox_flutter_libs/BuildConfig.java
+ io.objectbox.objectbox_flutter_libs.BuildConfig
+io/objectbox/objectbox_flutter_libs/ObjectboxFlutterLibsPlugin.java
+ io.objectbox.objectbox_flutter_libs.ObjectboxFlutterLibsPlugin
