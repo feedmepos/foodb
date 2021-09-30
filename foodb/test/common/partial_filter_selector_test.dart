@@ -1,8 +1,6 @@
 import 'dart:convert';
-import 'dart:math';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:foodb/adapter/methods/index.dart';
-import 'package:foodb/common/design_doc.dart';
+import 'package:foodb/design_doc.dart';
 
 // class PartialFilterSelector {
 //   Map<String, dynamic> value = {};

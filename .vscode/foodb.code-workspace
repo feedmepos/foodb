@@ -9,10 +9,6 @@
       "path": "../foodb"
     },
     {
-      "name": "foodb_benchmark",
-      "path": "../foodb_benchmark"
-    },
-    {
       "name": "foodb_objectbox_adapter",
       "path": "../foodb_objectbox_adapter"
     }
@@ -20,10 +16,8 @@
   "settings": {
     "dart.allowTestsOutsideTestFolder": true,
     "files.exclude": {
-      "foodb_core/": true,
-      "foodb/": true,
-      "foodb_objectbox_adapter/": true,
-      "foodb_benchmark/": true,
+      "foodb/": false,
+      "foodb_objectbox_adapter/": false,
     }
   }
 }
