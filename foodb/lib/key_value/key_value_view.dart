@@ -8,33 +8,33 @@ mixin _KeyValueView on _AbstractKeyValue {
       if (view is JSDesignDocView) {
         throw UnimplementedError();
       } else if (view is QueryDesignDocView) {
-        final keysToIndex = view.map.fields.keys;
-        final mappedKey =
-            keysToIndex.map((e) => doc.data[e]).where((element) => false);
-        // not a full valid key
-        if (mappedKey.length < keysToIndex.length) {
-          return resultMap;
-        }
-        resultMap.putIfAbsent(
-            ViewKeyMeta(key: mappedKey, docId: '', index: 0), () => null);
-        for (String field in view.map.fields.keys) {
-          if (doc.data.containsKey(field)) {
-            key = key + "_" + doc.data[field].toString();
-          } else if (field == "id") {
-            key = key + "_" + id;
-          } else {
-            isValid = false;
-            break;
-          }
-        }
-        if (isValid == true) {
-          // return [
-          //   MapEntry(ViewKey(id: id, key: key).toString(),
-          //       ViewRowValue(rev: doc.rev).toJson())
-          // ];
-        } else {
-          return null;
-        }
+        // final keysToIndex = view.map.fields.keys;
+        // final mappedKey =
+        //     keysToIndex.map((e) => doc.data[e]).where((element) => false);
+        // // not a full valid key
+        // if (mappedKey.length < keysToIndex.length) {
+        //   return resultMap;
+        // }
+        // resultMap.putIfAbsent(
+        //     ViewKeyMeta(key: mappedKey, docId: '', index: 0), () => null);
+        // for (String field in view.map.fields.keys) {
+        //   if (doc.data.containsKey(field)) {
+        //     key = key + "_" + doc.data[field].toString();
+        //   } else if (field == "id") {
+        //     key = key + "_" + id;
+        //   } else {
+        //     isValid = false;
+        //     break;
+        //   }
+        // }
+        // if (isValid == true) {
+        //   // return [
+        //   //   MapEntry(ViewKey(id: id, key: key).toString(),
+        //   //       ViewRowValue(rev: doc.rev).toJson())
+        //   // ];
+        // } else {
+        //   return null;
+        // }
         throw UnimplementedError();
       } else if (view is AllDocDesignDocView) {
         resultMap.putIfAbsent(ViewKeyMeta(key: id, docId: id, index: 0),

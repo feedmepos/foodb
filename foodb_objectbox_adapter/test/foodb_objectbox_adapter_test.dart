@@ -22,7 +22,7 @@ class ObjectBoxTestContext extends FoodbTestContext {
 void main() {
   final objectBox = ObjectBoxTestContext();
   final couchdb = CouchdbTestContext();
-  replicateBenchmarkTest(1000, 10, objectBox);
+  replicateBenchmarkTest(1000, 3, objectBox);
   // group('couchdb > objectBox', () {
   //   replicateTest().forEach((t) {
   //     t(couchdb, objectBox);
