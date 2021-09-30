@@ -1,61 +1,69 @@
-import 'package:foodb/adapter/couchdb_adapter.dart';
-import 'package:foodb/adapter/key_value/in_memory_database.dart';
-import 'package:foodb/adapter/key_value/key_value_adapter.dart';
-import 'package:foodb/adapter/key_value/key_value_database.dart';
-// import 'package:foodb/adapter/key_value/key_value_adapter.dart';
-// import 'package:foodb/adapter/key_value/key_value_database.dart';
-import 'package:foodb/adapter/methods/view.dart';
-import 'package:foodb/adapter/methods/bulk_docs.dart';
-import 'package:foodb/adapter/methods/bulk_get.dart';
-import 'package:foodb/adapter/methods/changes.dart';
-import 'package:foodb/adapter/methods/delete.dart';
-import 'package:foodb/adapter/methods/ensure_full_commit.dart';
-import 'package:foodb/adapter/methods/explain.dart';
-import 'package:foodb/adapter/methods/find.dart';
-import 'package:foodb/adapter/methods/index.dart';
-import 'package:foodb/adapter/methods/info.dart';
-import 'package:foodb/adapter/methods/server.dart';
-import 'package:foodb/adapter/methods/open_revs.dart';
-import 'package:foodb/adapter/methods/put.dart';
-import 'package:foodb/adapter/methods/revs_diff.dart';
-import 'package:foodb/common/design_doc.dart';
-import 'package:foodb/common/doc.dart';
-import 'package:foodb/common/rev.dart';
+library foodb;
+
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart' as crypto;
+import 'package:foodb/common.dart';
+import 'package:foodb/design_doc.dart';
+import 'package:foodb/exception.dart';
+import 'package:foodb/key_value/common.dart';
+import 'package:foodb/key_value_adapter.dart';
+import 'package:foodb/methods/bulk_docs.dart';
+import 'package:foodb/methods/bulk_get.dart';
+import 'package:foodb/methods/changes.dart';
+import 'package:foodb/methods/delete.dart';
+import 'package:foodb/methods/ensure_full_commit.dart';
+import 'package:foodb/methods/explain.dart';
+import 'package:foodb/methods/find.dart';
+import 'package:foodb/methods/index.dart';
+import 'package:foodb/methods/info.dart';
+import 'package:foodb/methods/put.dart';
+import 'package:foodb/methods/revs_diff.dart';
+import 'package:foodb/methods/server.dart';
+import 'package:foodb/methods/view.dart';
+import 'package:http/http.dart' as http;
+import 'package:uri/uri.dart';
+
+export 'package:foodb/common.dart';
+export 'package:foodb/design_doc.dart';
+export 'package:foodb/exception.dart';
+export 'package:foodb/in_memory_adapter.dart';
+export 'package:foodb/methods/bulk_docs.dart';
+export 'package:foodb/methods/bulk_get.dart';
+export 'package:foodb/methods/changes.dart';
+export 'package:foodb/methods/delete.dart';
+export 'package:foodb/methods/ensure_full_commit.dart';
+export 'package:foodb/methods/explain.dart';
+export 'package:foodb/methods/find.dart';
+export 'package:foodb/methods/index.dart';
+export 'package:foodb/methods/info.dart';
+export 'package:foodb/methods/put.dart';
+export 'package:foodb/methods/revs_diff.dart';
+export 'package:foodb/methods/server.dart';
+export 'package:foodb/methods/view.dart';
 
 export 'foodb.dart';
-export './common/doc.dart';
-export './common/design_doc.dart';
-export './common/rev.dart';
-export 'adapter/methods/view.dart';
-export './adapter/methods/bulk_docs.dart';
-export './adapter/methods/changes.dart';
-export './adapter/methods/delete.dart';
-export './adapter/methods/ensure_full_commit.dart';
-export './adapter/methods/explain.dart';
-export './adapter/methods/find.dart';
-export './adapter/methods/index.dart';
-export './adapter/methods/info.dart';
-export './adapter/methods/open_revs.dart';
-export './adapter/methods/put.dart';
-export './adapter/methods/revs_diff.dart';
-export 'adapter/couchdb_adapter.dart';
 
-class ChangeFeed {
-  static final continuous = "continuous";
-  static final longpoll = "longpoll";
-  static final normal = "normal";
-}
+part 'couchdb.dart';
+part 'key_value/key_value_changes.dart';
+part 'key_value/key_value_find.dart';
+part 'key_value/key_value_get.dart';
+part 'key_value/key_value_put.dart';
+part 'key_value/key_value_util.dart';
+part 'key_value/key_value_view.dart';
 
 abstract class Foodb {
   String dbName;
   Foodb({required this.dbName});
 
   factory Foodb.couchdb({required String dbName, required Uri baseUri}) {
-    return CouchdbAdapter(dbName: dbName, baseUri: baseUri);
+    return _Couchdb(dbName: dbName, baseUri: baseUri);
   }
 
-  factory Foodb.inMemoryDb({required String dbName}) {
-    return KeyValueAdapter(dbName: dbName, keyValueDb: InMemoryDatabase());
+  factory Foodb.keyvalue(
+      {required String dbName, required KeyValueAdapter keyValueDb}) {
+    return _KeyValue(dbName: dbName, keyValueDb: keyValueDb);
   }
 
   String get dbUri;
@@ -73,7 +81,6 @@ abstract class Foodb {
       bool latest = false,
       bool localSeq = false,
       bool meta = false,
-      // Object? openRevs,
       String? rev,
       bool revs = false,
       bool revsInfo = false,
@@ -118,7 +125,7 @@ abstract class Foodb {
       T Function(Map<String, dynamic> json) fromJsonT);
 
   Future<IndexResponse> createIndex(
-      {required List<String> indexFields,
+      {required QueryViewOptionsDef index,
       String? ddoc,
       String? name,
       String type = 'json',
@@ -138,4 +145,66 @@ abstract class Foodb {
       String viewName,
       GetViewRequest getViewRequest,
       T Function(Map<String, dynamic> json) fromJsonT);
+}
+
+abstract class JSRuntime {
+  evaluate(String script);
+}
+
+String getViewName({required String designDocId, required String viewId}) {
+  return '${designDocId}/_view/$viewId';
+}
+
+String allDocViewName =
+    getViewName(designDocId: "all_docs", viewId: "all_docs");
+
+final allDocDesignDoc = new Doc(
+    id: "all_docs",
+    model: DesignDoc(
+        language: 'query', views: {"all_docs": AllDocDesignDocView()}));
+
+abstract class _AbstractKeyValue extends Foodb {
+  KeyValueAdapter keyValueDb;
+  JSRuntime? jsRuntime;
+
+  StreamController<MapEntry<SequenceKey, UpdateSequence>>
+      localChangeStreamController = StreamController.broadcast();
+
+  @override
+  String get dbUri => '${this.keyValueDb.type}://${this.dbName}';
+
+  _AbstractKeyValue({required dbName, required this.keyValueDb, this.jsRuntime})
+      : super(dbName: dbName);
+
+  encodeSeq(int seq) {
+    return '$seq-0';
+  }
+
+  decodeSeq(String seq) {
+    return int.parse(seq.split('-')[0]);
+  }
+}
+
+class _KeyValue extends _AbstractKeyValue
+    with
+        _KeyValueGet,
+        _KeyValueFind,
+        _KeyValueUtil,
+        _KeyValuePut,
+        _KeyValueChange,
+        _KeyValueView {
+  _KeyValue(
+      {required dbName,
+      required KeyValueAdapter keyValueDb,
+      JSRuntime? jsRuntime})
+      : super(dbName: dbName, keyValueDb: keyValueDb, jsRuntime: jsRuntime);
+}
+
+timed(String step, Function fn) async {
+  Stopwatch stopwatch = Stopwatch();
+  stopwatch.reset();
+  stopwatch.start();
+  await fn();
+  stopwatch.stop();
+  print('$step: ${stopwatch.elapsed.inMilliseconds}ms');
 }

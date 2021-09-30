@@ -75,3 +75,5 @@ build/
 !**/ios/**/default.perspectivev3
 
 *.env
+
+temp/

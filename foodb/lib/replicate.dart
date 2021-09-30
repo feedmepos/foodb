@@ -3,9 +3,6 @@ import 'dart:convert';
 import 'dart:math';
 import "package:crypto/crypto.dart";
 import 'package:foodb/foodb.dart';
-import 'package:foodb/adapter/methods/bulk_get.dart';
-import 'package:foodb/adapter/methods/server.dart';
-import 'package:foodb/common/replication.dart';
 import 'package:synchronized/synchronized.dart';
 import 'package:uuid/uuid.dart';
 
@@ -191,19 +188,22 @@ class _Replicator {
           0, toProcess.lastIndexWhere((element) => element.seq != null) + 1);
 
       // get revs diff
+      late Map<String, RevsDiff> revsDiff;
+      // await timed('get revs diff', () async {
       Map<String, List<Rev>> groupedChange = new Map();
       toProcess.forEach((changeResult) {
         groupedChange[changeResult.id] =
             changeResult.changes.map((e) => e.rev).toList();
       });
-      Map<String, RevsDiff> revsDiff =
-          await _target.revsDiff(body: groupedChange);
+      revsDiff = await _target.revsDiff(body: groupedChange);
+      // });
 
       // have revs diff, need fetch doc
       if (revsDiff.isNotEmpty) {
         List<Doc<Map<String, dynamic>>> toInsert = [];
 
         // optimization from pouchdb, use allDoc to get doc that missing only 1 generation
+        // await timed('handle gen-1 through bulkGet', () async {
         final gen1Ids = revsDiff.keys
             .where((key) =>
                 revsDiff[key]!.missing.length == 1 &&
@@ -226,8 +226,10 @@ class _Replicator {
             revsDiff.remove(row.id);
           });
         }
+        // });
 
         // handle the rest through bulkGet
+        // await timed('handle through bulkGet', () async {
         toInsert.addAll((await _source.bulkGet<Map<String, dynamic>>(
                 body: BulkGetRequest(
                     docs: revsDiff.keys
@@ -243,16 +245,22 @@ class _Replicator {
                     (BulkGetDoc<Map<String, dynamic>> item) => item.doc != null)
                 .expand((BulkGetDoc<Map<String, dynamic>> item) => [item.doc!])
                 .toList()));
+        // });
 
         // perform bulkDoc
+        // await timed('perform bulkDoc', () async {
         await _target.bulkDocs(body: toInsert, newEdits: false);
+        // });
 
         // ensure full commit
+        // await timed('ensure full commit', () async {
         await _target.ensureFullCommit();
+        // });
       }
       String lastSeq = toProcess.last.seq!;
 
       // add checkpoint
+      // await timed('add checkpoint', () async {
       sourceLog = await _setReplicationCheckpoint(
           db: _source,
           oldLog: sourceLog,
@@ -265,6 +273,7 @@ class _Replicator {
           startime: startTime,
           lastSeq: lastSeq,
           sessionId: sessionId);
+      // });
       pendingList = pendingList.sublist(toProcess.length);
       isRunning = false;
       onFinishCheckpoint?.call(targetLog, toProcess);
