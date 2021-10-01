@@ -1,7 +1,6 @@
 library foodb_objectbox_adapter;
 
 import 'dart:convert';
-
 import 'package:foodb/foodb.dart';
 import 'package:foodb/key_value_adapter.dart';
 import 'package:foodb_objectbox_adapter/object_box_entity.dart';
@@ -217,6 +216,15 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<bool> deleteTable(AbstractKey<Comparable> key,
       {KeyValueAdapterSession? session}) async {
     final boxType = _getBoxFromKey(key);
+    if (key is AbstractViewKey) {
+      var list = boxType.readBetween(store,
+          startkey: key.viewName, endkey: key.viewName);
+      await Future.forEach(list, (ObjectBoxEntity element) async{
+        await boxType.remove(store, element.key);
+      });
+      return true;
+    }
+    
     await boxType.box(store).removeAll();
     return true;
   }
