@@ -72,7 +72,7 @@ List<Function(FoodbTestContext)> putTest() {
         expect(doc, isNotNull);
         expect(doc!.conflicts!.length, 1);
         expect(doc.revisions!.ids.length, 1);
-        db.delete(id: id, rev: Rev.fromString('2-a'));
+        await db.delete(id: id, rev: Rev.fromString('2-a'));
       });
     },
     (FoodbTestContext ctx) {
@@ -97,7 +97,7 @@ List<Function(FoodbTestContext)> putTest() {
         expect(doc, isNotNull);
         expect(doc!.conflicts, isNull);
         expect(doc.revisions!.ids.length, 2);
-        db.delete(id: id, rev: Rev.fromString('2-a'));
+        await db.delete(id: id, rev: Rev.fromString('2-a'));
       });
     },
     (FoodbTestContext ctx) {

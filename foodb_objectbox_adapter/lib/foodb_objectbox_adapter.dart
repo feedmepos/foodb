@@ -79,13 +79,19 @@ class ObjectBoxIntKey<T extends ObjectBoxEntity>
 class ObjectBoxType<T1 extends ObjectBoxEntity, T2> {
   ObjectBoxKey<T1, T2> keyQuery;
   T1 Function() factory;
+  Future<bool> Function(Box<T1>, T2)? _removeAll;
   ObjectBoxType({
     required this.keyQuery,
     required this.factory,
-  });
+    Future<bool> Function(Box<T1>, T2)? removeAll,
+  }) : _removeAll = removeAll;
 
   Box<T1> box(Store store) {
     return store.box<T1>();
+  }
+
+  removeAll(Store store, T2 key) {
+    return _removeAll?.call(box(store), key) ?? box(store).removeAll();
   }
 
   put(Store store, T2 key, String val) {
@@ -184,16 +190,38 @@ final viewMetaBox = ObjectBoxType<ViewMetaEntity, String>(
     factory: () => ViewMetaEntity());
 final viewDocMetaBox = ObjectBoxType<ViewDocMetaEntity, String>(
     keyQuery: ObjectBoxStringKey(queryKey: ViewDocMetaEntity_.key),
-    factory: () => ViewDocMetaEntity());
+    factory: () => ViewDocMetaEntity(),
+    removeAll: (box, key) async {
+      await box.query(ViewDocMetaEntity_.key.startsWith(key)).build().remove();
+      return true;
+    });
 final viewKeyMetaBox = ObjectBoxType<ViewKeyMetaEntity, String>(
     keyQuery: ObjectBoxStringKey(queryKey: ViewKeyMetaEntity_.key),
-    factory: () => ViewKeyMetaEntity());
+    factory: () => ViewKeyMetaEntity(),
+    removeAll: (box, key) async {
+      await box.query(ViewKeyMetaEntity_.key.startsWith(key)).build().remove();
+      return true;
+    });
 final allDocViewDocMetaBox = ObjectBoxType<AllDocViewDocMetaEntity, String>(
     keyQuery: ObjectBoxStringKey(queryKey: AllDocViewDocMetaEntity_.key),
-    factory: () => AllDocViewDocMetaEntity());
+    factory: () => AllDocViewDocMetaEntity(),
+    removeAll: (box, key) async {
+      await box
+          .query(AllDocViewDocMetaEntity_.key.startsWith(key))
+          .build()
+          .remove();
+      return true;
+    });
 final allDocViewKeyMetaBox = ObjectBoxType<AllDocViewKeyMetaEntity, String>(
     keyQuery: ObjectBoxStringKey(queryKey: AllDocViewKeyMetaEntity_.key),
-    factory: () => AllDocViewKeyMetaEntity());
+    factory: () => AllDocViewKeyMetaEntity(),
+    removeAll: (box, key) async {
+      await box
+          .query(AllDocViewKeyMetaEntity_.key.startsWith(key))
+          .build()
+          .remove();
+      return true;
+    });
 
 class ObjectBoxAdapter implements KeyValueAdapter {
   @override
@@ -227,8 +255,13 @@ class ObjectBoxAdapter implements KeyValueAdapter {
 
   dynamic encodeKey(AbstractKey? key) {
     dynamic result = key?.key;
-    if (key is ViewKeyMetaKey) {
-      result = key.key?.encode();
+    if (key is AbstractViewKey) {
+      final viewName = key.viewName;
+      var stringKey = key.key;
+      if (key is ViewKeyMetaKey) {
+        stringKey = key.key?.encode();
+      }
+      result = '${viewName}!${stringKey}';
     }
     if (result is String) {
       result = stripReservedCharacter(result);
@@ -240,6 +273,13 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     if (objectBoxKey is String) {
       objectBoxKey = revertStripReservedCharacter(objectBoxKey);
     }
+
+    if (type is AbstractViewKey) {
+      objectBoxKey as String;
+      int index = objectBoxKey.indexOf('!');
+      objectBoxKey = objectBoxKey.substring(index + 1);
+    }
+
     if (type is ViewKeyMetaKey) {
       return type.copyWithKey(newKey: ViewKeyMeta.decode(objectBoxKey));
     }
@@ -267,7 +307,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<bool> deleteTable(AbstractKey<Comparable> key,
       {KeyValueAdapterSession? session}) async {
     final boxType = _getBoxFromKey(key);
-    await boxType.box(store).removeAll();
+    await boxType.removeAll(store, encodeKey(key));
     return true;
   }
 

@@ -14,7 +14,7 @@ List<Function(FoodbTestContext)> utilTest() {
   return [
     (FoodbTestContext ctx) {
       test('info()', () async {
-        final db = await ctx.db('info');
+        final db = await ctx.db('test-info');
         var result = await db.info();
         expect(result, isNotNull);
         expect(result.dbName, equals('test-info'));

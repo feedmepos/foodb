@@ -45,9 +45,12 @@ void main() {
   //     t(objectBox, couchdb);
   //   });
   // });
-  allDocTest().forEach((fn) {
+  findTest().forEach((fn) {
     fn(objectBox);
   });
+  // allDocTest().forEach((fn) {
+  //   fn(objectBox);
+  // });
   // getTest().forEach((fn) {
   //   fn(objectBox);
   // });

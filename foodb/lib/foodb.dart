@@ -152,7 +152,7 @@ abstract class JSRuntime {
 }
 
 String getViewName({required String designDocId, required String viewId}) {
-  return '${designDocId}/_view/$viewId';
+  return '_design/${designDocId}/_view/$viewId';
 }
 
 const String allDocDesignDocId = "all_docs";

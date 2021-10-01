@@ -31,6 +31,23 @@ abstract class AbstractKey<T extends Comparable> implements Comparable {
   }
 }
 
+abstract class AbstractViewKey<T extends Comparable> extends AbstractKey<T> {
+  String viewName;
+  AbstractViewKey(
+      {required String tableName, required T? key, required this.viewName})
+      : super(tableName: tableName, key: key);
+
+  @override
+  int compareTo(other) {
+    if (other is AbstractViewKey) {
+      final viewCompare = viewName.compareTo(other.viewName);
+      if (viewCompare != 0) return viewCompare;
+      return super.compareTo(other);
+    }
+    return -1;
+  }
+}
+
 class DocKey extends AbstractKey<String> {
   DocKey({String? key}) : super(key: key, tableName: "doc");
 
@@ -66,24 +83,13 @@ class ViewMetaKey extends AbstractKey<String> {
   }
 }
 
-class ViewDocMetaKey extends AbstractKey<String> {
-  String viewName;
-  ViewDocMetaKey({required String key, required this.viewName})
-      : super(key: key, tableName: "view_doc_meta");
+class ViewDocMetaKey extends AbstractViewKey<String> {
+  ViewDocMetaKey({String? key, required String viewName})
+      : super(viewName: viewName, key: key, tableName: "view_doc_meta");
 
   @override
   copyWithKey({required String newKey}) {
     return ViewDocMetaKey(key: newKey, viewName: viewName);
-  }
-
-  @override
-  int compareTo(other) {
-    if (other is ViewDocMetaKey) {
-      final viewCompare = viewName.compareTo(other.viewName);
-      if (viewCompare != 0) return viewCompare;
-      return super.compareTo(other);
-    }
-    return -1;
   }
 }
 
@@ -118,22 +124,12 @@ ListOfViewKeyMetaToJsonString(List<ViewKeyMeta> instances) {
   return jsonEncode(instances.map((e) => e.encode()).toList());
 }
 
-class ViewKeyMetaKey extends AbstractKey<ViewKeyMeta> {
-  final String viewName;
-  ViewKeyMetaKey({ViewKeyMeta? key, required this.viewName})
-      : super(key: key, tableName: "view_key");
+class ViewKeyMetaKey extends AbstractViewKey<ViewKeyMeta> {
+  ViewKeyMetaKey({ViewKeyMeta? key, required String viewName})
+      : super(viewName: viewName, key: key, tableName: "view_key");
   @override
   copyWithKey({required ViewKeyMeta newKey}) {
     return ViewKeyMetaKey(key: newKey, viewName: viewName);
-  }
-
-  @override
-  int compareTo(other) {
-    if (other is ViewKeyMetaKey) {
-      final viewCompare = viewName.compareTo(other.viewName);
-      if (viewCompare != 0) return viewCompare;
-    }
-    return super.compareTo(other);
   }
 }
 

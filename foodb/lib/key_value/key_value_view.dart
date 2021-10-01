@@ -97,15 +97,14 @@ mixin _KeyValueView on _AbstractKeyValue {
       String viewId,
       GetViewRequest getViewRequest,
       T Function(Map<String, dynamic> json) fromJsonT) async {
-    ddocId = "_design/$ddocId";
+    String fullDdocId = "_design/$ddocId";
     var viewName = getViewName(designDocId: ddocId, viewId: viewId);
     Doc<DesignDoc>? designDoc;
     final isAllDoc = viewName == allDocViewName;
     if (isAllDoc) {
       designDoc = allDocDesignDoc;
     } else {
-      designDoc = await get(
-          id: ddocId, fromJsonT: (value) => DesignDoc.fromJson(value));
+      designDoc = await fetchDesignDoc(id: fullDdocId);
     }
 
     if (designDoc != null) {
@@ -133,7 +132,8 @@ mixin _KeyValueView on _AbstractKeyValue {
       Map<String, DocHistory> map = {};
       if (getViewRequest.includeDocs == true) {
         var docs = (await keyValueDb.getMany(result.records.keys
-            .map((e) => DocKey(key: e.key!.docId))
+            .map((e) =>
+                DocKey(key: isAllDoc ? e.key!.key as String : e.key!.docId))
             .toList()));
         docs.removeWhere((key, value) => value == null);
         map = docs.map<String, DocHistory>(
