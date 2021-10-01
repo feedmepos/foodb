@@ -22,36 +22,36 @@ class ObjectBoxTestContext extends FoodbTestContext {
 void main() {
   final objectBox = ObjectBoxTestContext();
   final couchdb = CouchdbTestContext();
-  replicateBenchmarkTest(1000, 3, objectBox);
-  // group('couchdb > objectBox', () {
-  //   replicateTest().forEach((t) {
-  //     t(couchdb, objectBox);
-  //   });
-  // });
-  // group('objectBox > couchbdb', () {
-  //   replicateTest().forEach((t) {
-  //     t(objectBox, couchdb);
-  //   });
-  // });
-  // allDocTest().forEach((fn) {
-  //   fn(objectBox);
-  // });
-  // getTest().forEach((fn) {
-  //   fn(objectBox);
-  // });
-  // bulkDocTest().forEach((fn) {
-  //   fn(objectBox);
-  // });
-  // changeStreamTest().forEach((fn) {
-  //   fn(objectBox);
-  // });
-  // deleteTest().forEach((fn) {
-  //   fn(objectBox);
-  // });
-  // putTest().forEach((fn) {
-  //   fn(objectBox);
-  // });
-  // utilTest().forEach((fn) {
-  //   fn(objectBox);
-  // });
+  // replicateBenchmarkTest(1000, 3, objectBox);
+  group('couchdb > objectBox', () {
+    replicateTest().forEach((t) {
+      t(couchdb, objectBox);
+    });
+  });
+  group('objectBox > couchbdb', () {
+    replicateTest().forEach((t) {
+      t(objectBox, couchdb);
+    });
+  });
+  allDocTest().forEach((fn) {
+    fn(objectBox);
+  });
+  getTest().forEach((fn) {
+    fn(objectBox);
+  });
+  bulkDocTest().forEach((fn) {
+    fn(objectBox);
+  });
+  changeStreamTest().forEach((fn) {
+    fn(objectBox);
+  });
+  deleteTest().forEach((fn) {
+    fn(objectBox);
+  });
+  putTest().forEach((fn) {
+    fn(objectBox);
+  });
+  utilTest().forEach((fn) {
+    fn(objectBox);
+  });
 }
