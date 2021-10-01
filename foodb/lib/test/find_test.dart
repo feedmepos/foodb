@@ -14,7 +14,7 @@ List<Function(FoodbTestContext)> findTest() {
   return [
     (FoodbTestContext ctx) {
       test('fetchDesignDoc()', () async {
-        final db = await ctx.db('test-fetch-design-doc');
+        final db = await ctx.db('fetch-design-doc');
         await db.createIndex(
             index: QueryViewOptionsDef(fields: ['name']),
             ddoc: "type_user_name",
@@ -36,7 +36,7 @@ List<Function(FoodbTestContext)> findTest() {
     },
     (FoodbTestContext ctx) {
       test('fetchDesignDocs()', () async {
-        final db = await ctx.db('test-fetch-all-design-docs');
+        final db = await ctx.db('fetch-all-design-docs');
         await db.createIndex(
             index: QueryViewOptionsDef(fields: ['_id']), ddoc: "type_user_id");
         await db.createIndex(
@@ -48,7 +48,7 @@ List<Function(FoodbTestContext)> findTest() {
     },
     (FoodbTestContext ctx) {
       test("view", () async {
-        final db = await ctx.db('test-view');
+        final db = await ctx.db('view');
         await db.put(doc: Doc(id: "a", model: {"name": "a", "no": 99}));
         await db.put(doc: Doc(id: "b", model: {"name": "b", "no": 88}));
 
@@ -72,7 +72,7 @@ List<Function(FoodbTestContext)> findTest() {
     },
     (FoodbTestContext ctx) {
       test('create with indexFields only', () async {
-        final db = await ctx.db('test-index');
+        final db = await ctx.db('index');
         IndexResponse indexResponse =
             await db.createIndex(index: QueryViewOptionsDef(fields: ['_id']));
         expect(indexResponse, isNotNull);
@@ -84,7 +84,7 @@ List<Function(FoodbTestContext)> findTest() {
     },
     (FoodbTestContext ctx) {
       test('find()', () async {
-        final db = await ctx.db('test-find');
+        final db = await ctx.db('find');
         await db.createIndex(index: QueryViewOptionsDef(fields: ['_id']));
         await db.put(doc: Doc(id: "user_123", model: {}));
         FindResponse<Map<String, dynamic>> findResponse =
@@ -100,7 +100,7 @@ List<Function(FoodbTestContext)> findTest() {
     },
     (FoodbTestContext ctx) {
       test('explain()', () async {
-        final db = await ctx.db('test-explain');
+        final db = await ctx.db('explain');
         await db.createIndex(index: QueryViewOptionsDef(fields: ['_id']));
         ExplainResponse explainResponse =
             await db.explain(FindRequest(selector: {

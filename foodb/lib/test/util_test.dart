@@ -14,7 +14,7 @@ List<Function(FoodbTestContext)> utilTest() {
   return [
     (FoodbTestContext ctx) {
       test('info()', () async {
-        final db = await ctx.db('test-info');
+        final db = await ctx.db('info');
         var result = await db.info();
         expect(result, isNotNull);
         expect(result.dbName, equals('test-info'));
@@ -22,7 +22,7 @@ List<Function(FoodbTestContext)> utilTest() {
     },
     (FoodbTestContext ctx) {
       test('EnsureFullCommit In CouchDB adish', () async {
-        final db = await ctx.db('test-ensure-commit');
+        final db = await ctx.db('ensure-commit');
         EnsureFullCommitResponse ensureFullCommitResponse =
             await db.ensureFullCommit();
         expect(ensureFullCommitResponse.ok, isTrue);
@@ -30,7 +30,7 @@ List<Function(FoodbTestContext)> utilTest() {
     },
     (FoodbTestContext ctx) {
       test('delete db', () async {
-        final db = await ctx.db('test-destroy');
+        final db = await ctx.db('destroy');
         await db.destroy();
         try {
           await db.info();
@@ -41,7 +41,7 @@ List<Function(FoodbTestContext)> utilTest() {
     },
     (FoodbTestContext ctx) {
       test('revsDiff', () async {
-        final db = await ctx.db('test-revs-diff');
+        final db = await ctx.db('revs-diff');
         await db.put(
             doc: Doc(id: 'a', rev: Rev.fromString('1-a'), model: {}),
             newEdits: false);

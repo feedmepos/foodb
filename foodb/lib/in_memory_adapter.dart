@@ -111,20 +111,32 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
   Future<ReadResult<T>> read<T extends AbstractKey>(T keyType,
       {T? startkey,
       T? endkey,
-      bool? desc,
+      required bool desc,
+      required bool inclusiveStart,
+      required bool inclusiveEnd,
       InMemoryAdapterSession? session}) async {
     var table = _getTable(keyType);
     Map<T, Map<String, dynamic>> result = {};
     int? offSet = null;
     var keys = table.keys.toList();
-    if (desc == true) {
+    if (desc) {
       keys = keys.reversed.toList();
-      var temp = startkey;
-      startkey = endkey;
-      endkey = temp;
     }
     for (int x = 0; x < table.length; x++) {
-      if (keys[x].compareTo(startkey) >= 0 && keys[x].compareTo(endkey) <= 0) {
+      var startCmp = 0;
+      if (startkey != null) {
+        final a = keys[x];
+        final b = startkey;
+        startCmp = desc ? b.compareTo(a) : a.compareTo(b);
+      }
+      var endCmp = -1;
+      if (endkey != null) {
+        final a = keys[x];
+        final b = endkey;
+        endCmp = desc ? b.compareTo(a) : a.compareTo(b);
+      }
+      if ((inclusiveEnd ? startCmp >= 0 : startCmp > 0) &&
+          (inclusiveEnd ? endCmp <= 0 : endCmp < 0)) {
         result.putIfAbsent(keys[x] as T, () => table[keys[x]]!);
         offSet ??= x;
       }

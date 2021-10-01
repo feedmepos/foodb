@@ -14,7 +14,7 @@ List<Function(FoodbTestContext)> getTest() {
   return [
     (FoodbTestContext ctx) {
       test('get()', () async {
-        final db = await ctx.db('test-put-get');
+        final db = await ctx.db('put-get');
         PutResponse putResponse =
             await db.put(doc: Doc(id: "test-get", model: {}));
         expect(putResponse.ok, isTrue);
@@ -28,7 +28,7 @@ List<Function(FoodbTestContext)> getTest() {
     },
     (FoodbTestContext ctx) {
       test("bulkget with doc and error ", () async {
-        final db = await ctx.db('test-bulkget');
+        final db = await ctx.db('bulkget');
         await db.put(
             doc: Doc(
                 id: "test-bulkget-conflict",

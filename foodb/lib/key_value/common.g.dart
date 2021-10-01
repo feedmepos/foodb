@@ -18,15 +18,13 @@ Map<String, dynamic> _$ViewMetaToJson(ViewMeta instance) => <String, dynamic>{
 
 ViewDocMeta _$ViewDocMetaFromJson(Map<String, dynamic> json) {
   return ViewDocMeta(
-    keys: (json['keys'] as List<dynamic>)
-        .map((e) => ViewKeyMeta.fromJson(e as Map<String, dynamic>))
-        .toList(),
+    keys: ListOfViewKeyMetaFromJsonString(json['keys'] as String),
   );
 }
 
 Map<String, dynamic> _$ViewDocMetaToJson(ViewDocMeta instance) =>
     <String, dynamic>{
-      'keys': instance.keys.map((e) => e.toJson()).toList(),
+      'keys': ListOfViewKeyMetaToJsonString(instance.keys),
     };
 
 UpdateSequence _$UpdateSequenceFromJson(Map<String, dynamic> json) {

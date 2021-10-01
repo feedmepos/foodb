@@ -30,13 +30,14 @@ abstract class FoodbTestContext {
 
 class CouchdbTestContext extends FoodbTestContext {
   Future<Foodb> db(String dbName) async {
-    return getCouchDb(dbName);
+    return getCouchDb('test-$dbName');
   }
 }
 
 class InMemoryTestContext extends FoodbTestContext {
   Future<Foodb> db(String dbName) async {
-    return Foodb.keyvalue(dbName: dbName, keyValueDb: InMemoryAdapter());
+    return Foodb.keyvalue(
+        dbName: 'test-$dbName', keyValueDb: InMemoryAdapter());
   }
 }
 

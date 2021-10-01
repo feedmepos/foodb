@@ -137,11 +137,11 @@ class ViewKeyMetaEntity extends ObjectBoxEntity<String> {
   String value;
 
   ViewKeyMeta get metaKey {
-    return ViewKeyMeta.fromJson(jsonDecode(key));
+    return ViewKeyMeta.decode(key);
   }
 
   set metaKey(ViewKeyMeta metaKey) {
-    key = jsonEncode(metaKey.toJson());
+    key = metaKey.encode();
   }
 
   factory ViewKeyMetaEntity.get(int id, String key, String value) =>

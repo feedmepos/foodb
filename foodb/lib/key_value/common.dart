@@ -17,6 +17,9 @@ class ViewMeta {
 
 @JsonSerializable(explicitToJson: true)
 class ViewDocMeta {
+  @JsonKey(
+      fromJson: ListOfViewKeyMetaFromJsonString,
+      toJson: ListOfViewKeyMetaToJsonString)
   List<ViewKeyMeta> keys;
 
   ViewDocMeta({required this.keys});

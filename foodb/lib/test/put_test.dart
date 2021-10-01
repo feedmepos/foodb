@@ -14,7 +14,7 @@ List<Function(FoodbTestContext)> putTest() {
   return [
     (FoodbTestContext ctx) {
       test('with Rev should be success put', () async {
-        final db = await ctx.db('test-put-new-edits-true');
+        final db = await ctx.db('put-new-edits-true');
         await db.put(
             doc: Doc(id: "a", rev: Rev.fromString("1-a"), model: {}),
             newEdits: false);
@@ -27,7 +27,7 @@ List<Function(FoodbTestContext)> putTest() {
     (FoodbTestContext ctx) {
       const id = "put-new-edits-false";
       test('with Rev should be success put', () async {
-        final db = await ctx.db('test-put-new-edits-false');
+        final db = await ctx.db('put-new-edits-false');
         PutResponse putResponse = await db.put(
             doc: Doc(
                 id: id,
@@ -41,7 +41,7 @@ List<Function(FoodbTestContext)> putTest() {
     (FoodbTestContext ctx) {
       const id = "put-new-edits-false";
       test('without Rev should catch error', () async {
-        final db = await ctx.db('test-put-new-edit-false-no-rev');
+        final db = await ctx.db('put-new-edit-false-no-rev');
         try {
           await db.put(
               doc: Doc(id: id, model: {"name": "wgg", "no": 300}),
@@ -54,7 +54,7 @@ List<Function(FoodbTestContext)> putTest() {
     (FoodbTestContext ctx) {
       const id = "put-new-edits-false";
       test('empty revisions, create new history', () async {
-        final db = await ctx.db('test-put-new-edit-false-empty-revisions');
+        final db = await ctx.db('put-new-edit-false-empty-revisions');
         await db.put(
             doc: Doc(
                 id: id,
@@ -78,7 +78,7 @@ List<Function(FoodbTestContext)> putTest() {
     (FoodbTestContext ctx) {
       const id = "put-new-edits-false";
       test('with revision, link to existing', () async {
-        final db = await ctx.db('test-put-new-edits-false-with-reivisions');
+        final db = await ctx.db('put-new-edits-false-with-reivisions');
         await db.put(
             doc: Doc(
                 id: id,
@@ -104,7 +104,7 @@ List<Function(FoodbTestContext)> putTest() {
       test(
           "put 1-a. 2-a, 3-a, then put 3-a > 2-a > 1-a reivision, then put 3-a > 2-b > 1-b, should remain 3-a > 2-a > 1-a",
           () async {
-        final db = await ctx.db('test-put-with-update-revision');
+        final db = await ctx.db('put-with-update-revision');
 
         await db.put(
             doc: Doc(id: "a", rev: Rev.fromString("1-a"), model: {}),

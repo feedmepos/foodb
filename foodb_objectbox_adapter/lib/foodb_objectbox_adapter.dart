@@ -2,6 +2,7 @@ library foodb_objectbox_adapter;
 
 import 'dart:convert';
 
+import 'package:foodb/collate.dart';
 import 'package:foodb/foodb.dart';
 import 'package:foodb/key_value_adapter.dart';
 import 'package:foodb_objectbox_adapter/object_box_entity.dart';
@@ -15,6 +16,8 @@ abstract class ObjectBoxKey<T1 extends ObjectBoxEntity, T2> {
   Condition<T1> equals(T2 key);
   Condition<T1> greaterOrEqual(T2 key);
   Condition<T1> lessOrEqual(T2 key);
+  Condition<T1> greaterThan(T2 key);
+  Condition<T1> lessThan(T2 key);
 }
 
 class ObjectBoxStringKey<T extends ObjectBoxEntity>
@@ -26,6 +29,14 @@ class ObjectBoxStringKey<T extends ObjectBoxEntity>
 
   Condition<T> equals(String key) {
     return queryKey.equals(key);
+  }
+
+  Condition<T> greaterThan(String key) {
+    return queryKey.greaterThan(key);
+  }
+
+  Condition<T> lessThan(String key) {
+    return queryKey.lessThan(key);
   }
 
   Condition<T> greaterOrEqual(String key) {
@@ -46,6 +57,14 @@ class ObjectBoxIntKey<T extends ObjectBoxEntity>
 
   Condition<T> equals(int key) {
     return queryKey.equals(key);
+  }
+
+  Condition<T> greaterThan(int key) {
+    return queryKey.greaterThan(key);
+  }
+
+  Condition<T> lessThan(int key) {
+    return queryKey.lessThan(key);
   }
 
   Condition<T> greaterOrEqual(int key) {
@@ -79,6 +98,11 @@ class ObjectBoxType<T1 extends ObjectBoxEntity, T2> {
   }
 
   remove(Store store, key) {
+    var all = box(store).getAll();
+    var dartHasEqual = all.where((element) {
+      return element.key == key;
+    });
+    final exist = get(store, key);
     return box(store).query(keyQuery.equals(key)).build().remove();
   }
 
@@ -89,16 +113,34 @@ class ObjectBoxType<T1 extends ObjectBoxEntity, T2> {
   }
 
   List<T1> readBetween(Store store,
-      {T2? startkey, T2? endkey, bool? descending}) {
+      {T2? startkey,
+      T2? endkey,
+      required bool descending,
+      required bool inclusiveStart,
+      required bool inclusiveEnd}) {
     List<Condition<T1>> conditions = [];
-    if (startkey != null)
-      conditions.add(descending == true
-          ? keyQuery.lessOrEqual(startkey)
-          : keyQuery.greaterOrEqual(startkey));
-    if (endkey != null)
-      conditions.add(descending == true
-          ? keyQuery.greaterOrEqual(endkey)
-          : keyQuery.lessOrEqual(endkey));
+    if (startkey != null) {
+      if (inclusiveStart) {
+        conditions.add(descending == true
+            ? keyQuery.lessOrEqual(startkey)
+            : keyQuery.greaterOrEqual(startkey));
+      } else {
+        conditions.add(descending == true
+            ? keyQuery.lessThan(startkey)
+            : keyQuery.greaterThan(startkey));
+      }
+    }
+    if (endkey != null) {
+      if (inclusiveEnd) {
+        conditions.add(descending == true
+            ? keyQuery.greaterOrEqual(endkey)
+            : keyQuery.lessOrEqual(endkey));
+      } else {
+        conditions.add(descending == true
+            ? keyQuery.greaterThan(endkey)
+            : keyQuery.lessThan(endkey));
+      }
+    }
 
     Condition<T1>? finalContidion;
     if (conditions.isNotEmpty) {
@@ -107,7 +149,7 @@ class ObjectBoxType<T1 extends ObjectBoxEntity, T2> {
     }
 
     QueryBuilder<T1> query = box(store).query(finalContidion);
-    if (descending != null)
+    if (descending)
       query.order(keyQuery.property,
           flags: (descending == true) ? Order.descending : 0);
 
@@ -184,13 +226,20 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   }
 
   dynamic encodeKey(AbstractKey? key) {
+    dynamic result = key?.key;
     if (key is ViewKeyMetaKey) {
-      return key.key?.encode();
+      result = key.key?.encode();
     }
-    return key?.key;
+    if (result is String) {
+      result = stripReservedCharacter(result);
+    }
+    return result;
   }
 
   AbstractKey decodeKey(AbstractKey type, dynamic objectBoxKey) {
+    if (objectBoxKey is String) {
+      objectBoxKey = revertStripReservedCharacter(objectBoxKey);
+    }
     if (type is ViewKeyMetaKey) {
       return type.copyWithKey(newKey: ViewKeyMeta.decode(objectBoxKey));
     }
@@ -201,7 +250,8 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<bool> delete(AbstractKey<Comparable> key,
       {KeyValueAdapterSession? session}) async {
     final boxType = _getBoxFromKey(key);
-    return (await boxType.remove(store, encodeKey(key)) == 1) ? true : false;
+    final deleteResult = await boxType.remove(store, encodeKey(key));
+    return deleteResult == 1 ? true : false;
   }
 
   @override
@@ -292,7 +342,9 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<ReadResult<T2>> read<T2 extends AbstractKey<Comparable>>(T2 keyType,
       {T2? startkey,
       T2? endkey,
-      bool? desc,
+      required bool desc,
+      required bool inclusiveEnd,
+      required bool inclusiveStart,
       KeyValueAdapterSession? session}) async {
     final boxType = _getBoxFromKey(keyType);
     final totalRows = boxType.box(store).count();
@@ -300,7 +352,9 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     final record = await boxType.readBetween(store,
         startkey: encodeKey(startkey),
         endkey: encodeKey(endkey),
-        descending: desc);
+        descending: desc,
+        inclusiveEnd: inclusiveEnd,
+        inclusiveStart: inclusiveStart);
 
     return ReadResult(
         totalRows: totalRows,

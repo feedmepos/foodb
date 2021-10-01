@@ -142,7 +142,7 @@ abstract class Foodb {
 
   Future<GetViewResponse<T>> view<T>(
       String ddocId,
-      String viewName,
+      String viewId,
       GetViewRequest getViewRequest,
       T Function(Map<String, dynamic> json) fromJsonT);
 }
@@ -155,8 +155,10 @@ String getViewName({required String designDocId, required String viewId}) {
   return '${designDocId}/_view/$viewId';
 }
 
-String allDocViewName =
-    getViewName(designDocId: "all_docs", viewId: "all_docs");
+const String allDocDesignDocId = "all_docs";
+const String allDocViewId = "all_docs";
+final String allDocViewName =
+    getViewName(designDocId: allDocDesignDocId, viewId: allDocViewId);
 
 final allDocDesignDoc = new Doc(
     id: "all_docs",

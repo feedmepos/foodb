@@ -14,7 +14,7 @@ List<Function(FoodbTestContext)> deleteTest() {
   return [
     (FoodbTestContext ctx) {
       test('delete()', () async {
-        final db = await ctx.db('test-delete');
+        final db = await ctx.db('delete');
         await db.put(
             doc: Doc(id: "test", rev: Rev.fromString("1-a"), model: {}),
             newEdits: false);

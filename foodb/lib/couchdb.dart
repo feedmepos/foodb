@@ -328,11 +328,11 @@ class _Couchdb extends Foodb {
   @override
   Future<GetViewResponse<T>> view<T>(
       String ddocId,
-      String viewName,
+      String viewId,
       GetViewRequest getViewRequest,
       T Function(Map<String, dynamic> json) fromJsonT) async {
     UriBuilder uriBuilder =
-        UriBuilder.fromUri((this.getUri('_design/$ddocId/_view/$viewName')));
+        UriBuilder.fromUri((this.getUri('_design/$ddocId/_view/$viewId')));
     return GetViewResponse<T>.fromJson(
         jsonDecode((await this.client.post(
           uriBuilder.build(),

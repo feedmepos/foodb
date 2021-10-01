@@ -14,7 +14,7 @@ List<Function(FoodbTestContext)> changeStreamTest() {
   return [
     (FoodbTestContext ctx) {
       test('Test change stream: normal feed', () async {
-        final db = await ctx.db('test-change-stream-normal-feed');
+        final db = await ctx.db('change-stream-normal-feed');
         var completefn = expectAsync1((ChangeResponse res) {
           expect(res.results, hasLength(2));
           expect(res.pending, 0);
@@ -34,7 +34,7 @@ List<Function(FoodbTestContext)> changeStreamTest() {
     },
     (FoodbTestContext ctx) {
       test('Test change stream: normal feed, limit 1', () async {
-        final db = await ctx.db('test-change-stream-normal-feed-limit-1');
+        final db = await ctx.db('change-stream-normal-feed-limit-1');
         var completefn = expectAsync1((ChangeResponse res) {
           expect(res.results, hasLength(1));
           expect(res.pending, 1);
@@ -54,7 +54,7 @@ List<Function(FoodbTestContext)> changeStreamTest() {
     },
     (FoodbTestContext ctx) {
       test('Test change stream: longpolling feed, since 0', () async {
-        final db = await ctx.db('test-change-stream-long-polling-since-0');
+        final db = await ctx.db('change-stream-long-polling-since-0');
         var completefn = expectAsync1((ChangeResponse res) {
           expect(res.results, hasLength(2));
           expect(res.pending, 0);
@@ -74,8 +74,7 @@ List<Function(FoodbTestContext)> changeStreamTest() {
     },
     (FoodbTestContext ctx) {
       test('Test change stream: longpolling feed, since 0, limit 1', () async {
-        final db =
-            await ctx.db('test-change-stream-long-polling-since-0-limit-1');
+        final db = await ctx.db('change-stream-long-polling-since-0-limit-1');
         var completefn = expectAsync1((ChangeResponse res) {
           expect(res.results, hasLength(1));
           expect(res.pending, 1);
@@ -95,7 +94,7 @@ List<Function(FoodbTestContext)> changeStreamTest() {
     },
     (FoodbTestContext ctx) {
       test('Test change stream: longpolling feed, since now', () async {
-        final db = await ctx.db('test-change-stream-long-polling-since-now');
+        final db = await ctx.db('change-stream-long-polling-since-now');
         var completefn = expectAsync1((ChangeResponse res) {
           expect(res.results, hasLength(1));
         });
@@ -114,7 +113,7 @@ List<Function(FoodbTestContext)> changeStreamTest() {
     },
     (FoodbTestContext ctx) {
       test('Test change stream: continuous feed', () async {
-        final db = await ctx.db('test-change-stream-continuous-feed');
+        final db = await ctx.db('change-stream-continuous-feed');
         var resultFn = expectAsync1((p0) => {}, count: 4);
         await db.put(doc: Doc(id: 'a', model: {}));
         await db.put(doc: Doc(id: 'b', model: {}));

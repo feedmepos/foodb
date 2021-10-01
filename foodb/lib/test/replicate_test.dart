@@ -34,9 +34,9 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
     (FoodbTestContext sourceCtx, FoodbTestContext targetCtx) {
       test('repliacte correct doc with revisions and deleted', () async {
         final source =
-            await sourceCtx.db('test-replicate-source-revisions-and-deleted');
+            await sourceCtx.db('replicate-source-revisions-and-deleted');
         final target =
-            await targetCtx.db('test-replicate-target-revisions-and-deleted');
+            await targetCtx.db('replicate-target-revisions-and-deleted');
 
         var complete = expectAsync0(() => {});
 
@@ -64,10 +64,8 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
         });
       });
       test('repliacte non-continuous, max-batch-size', () async {
-        final source =
-            await sourceCtx.db('test-replicate-source-max-batch-size');
-        final target =
-            await targetCtx.db('test-replicate-target-max-batch-size');
+        final source = await sourceCtx.db('replicate-source-max-batch-size');
+        final target = await targetCtx.db('replicate-target-max-batch-size');
 
         var complete = expectAsync0(() => {});
         var checkpoint = expectAsync0(() => {}, count: 2);
