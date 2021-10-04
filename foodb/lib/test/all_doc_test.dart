@@ -52,7 +52,7 @@ List<Function(FoodbTestContext)> allDocTest() {
         await db.put(doc: Doc(id: 'c', model: {}));
 
         var result = await db.allDocs<Map<String, dynamic>>(
-            GetViewRequest(includeDocs: true, startkey: 'a', endkey: 'a\uffff'),
+            GetViewRequest(includeDocs: true, startkey: 'a', endkey: 'a\ufff0'),
             (value) => value);
         expect(result.totalRows, 3);
         expect(result.rows, hasLength(1));
@@ -69,7 +69,7 @@ List<Function(FoodbTestContext)> allDocTest() {
         var result = await db.allDocs<Map<String, dynamic>>(
             GetViewRequest(
                 includeDocs: true,
-                startkey: 'b\uffff',
+                startkey: 'b\ufff0',
                 endkey: 'b',
                 descending: true),
             (value) => value);
@@ -90,7 +90,7 @@ List<Function(FoodbTestContext)> allDocTest() {
         var result = await db.allDocs<Map<String, dynamic>>(
             GetViewRequest(
                 includeDocs: true,
-                startkey: 'b\uffff',
+                startkey: 'b\ufff0',
                 endkey: 'b',
                 descending: true,
                 inclusiveEnd: false),

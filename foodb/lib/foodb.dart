@@ -96,7 +96,7 @@ abstract class Foodb {
   Future<List<Doc<DesignDoc>>> fetchAllDesignDocs() async {
     GetViewResponse<DesignDoc> docs = await allDocs<DesignDoc>(
         GetViewRequest(
-            includeDocs: true, startkey: "_design/", endkey: "_design/\uffff"),
+            includeDocs: true, startkey: "_design/", endkey: "_design/\ufff0"),
         (json) => DesignDoc.fromJson(json));
     return docs.rows.map<Doc<DesignDoc>>((e) => e.doc!).toList();
   }
@@ -152,18 +152,18 @@ abstract class JSRuntime {
 }
 
 String getViewName({required String designDocId, required String viewId}) {
-  return '_design/${designDocId}/_view/$viewId';
+  // for debugging
+  return 'd-${designDocId}-v-${viewId}';
+  // return 'v-${crypto.md5.convert(utf8.encode(designDocId + viewId))}';
 }
 
-const String allDocDesignDocId = "all_docs";
-const String allDocViewId = "all_docs";
-final String allDocViewName =
-    getViewName(designDocId: allDocDesignDocId, viewId: allDocViewId);
-
 final allDocDesignDoc = new Doc(
-    id: "all_docs",
+    id: "_design/all_docs",
     model: DesignDoc(
         language: 'query', views: {"all_docs": AllDocDesignDocView()}));
+final String allDocViewName = getViewName(
+    designDocId: allDocDesignDoc.id,
+    viewId: allDocDesignDoc.model.views.keys.first);
 
 abstract class _AbstractKeyValue extends Foodb {
   KeyValueAdapter keyValueDb;

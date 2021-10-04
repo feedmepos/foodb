@@ -98,9 +98,8 @@ mixin _KeyValueView on _AbstractKeyValue {
       GetViewRequest getViewRequest,
       T Function(Map<String, dynamic> json) fromJsonT) async {
     String fullDdocId = "_design/$ddocId";
-    var viewName = getViewName(designDocId: ddocId, viewId: viewId);
     Doc<DesignDoc>? designDoc;
-    final isAllDoc = viewName == allDocViewName;
+    final isAllDoc = ddocId == allDocDesignDoc.id;
     if (isAllDoc) {
       designDoc = allDocDesignDoc;
     } else {
@@ -109,7 +108,7 @@ mixin _KeyValueView on _AbstractKeyValue {
 
     if (designDoc != null) {
       await _generateView(designDoc);
-
+      var viewName = getViewName(designDocId: designDoc.id, viewId: viewId);
       final result = await keyValueDb.read<ViewKeyMetaKey>(
           ViewKeyMetaKey(viewName: viewName),
           startkey: getViewRequest.startkey == null
@@ -127,7 +126,6 @@ mixin _KeyValueView on _AbstractKeyValue {
           desc: getViewRequest.descending == true,
           inclusiveEnd: getViewRequest.inclusiveEnd != false,
           inclusiveStart: true);
-
       List<ViewRow<T>> rows = [];
       Map<String, DocHistory> map = {};
       if (getViewRequest.includeDocs == true) {
@@ -163,6 +161,7 @@ mixin _KeyValueView on _AbstractKeyValue {
   @override
   Future<GetViewResponse<T>> allDocs<T>(GetViewRequest allDocsRequest,
       T Function(Map<String, dynamic> json) fromJsonT) async {
-    return view<T>(allDocDesignDocId, allDocViewId, allDocsRequest, fromJsonT);
+    return view<T>(allDocDesignDoc.id, allDocDesignDoc.model.views.keys.first,
+        allDocsRequest, fromJsonT);
   }
 }

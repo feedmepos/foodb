@@ -20,7 +20,9 @@ Future<ObjectBoxAdapter> getAdapter(String dbName,
     });
   }
   store = await openStore(directory: directory);
-  return ObjectBoxAdapter(store);
+  final adapter = ObjectBoxAdapter(store);
+  await adapter.initDb();
+  return adapter;
 }
 
 class ObjectBoxTestContext extends FoodbTestContext {

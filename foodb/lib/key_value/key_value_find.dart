@@ -6,7 +6,7 @@ mixin _KeyValueFind on _AbstractKeyValue {
   //     List<Map<String, String>> sort) async {
   // ReadResult readResult = await keyValueDb.read(DocKey(key: ''),
   //     startkey: DocKey(key: "_design/"),
-  //     endkey: DocKey(key: "_design\uffff"));
+  //     endkey: DocKey(key: "_design\ufff0"));
   // List<String> keys = sort.map<String>((e) => e.keys.toList()[0]).toList();
 
   // Map<ViewKey, int> matchedPositions = {};
