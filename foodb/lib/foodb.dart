@@ -153,8 +153,8 @@ abstract class JSRuntime {
 
 String getViewName({required String designDocId, required String viewId}) {
   // for debugging
-  return 'd-${designDocId}-v-${viewId}';
-  // return 'v-${crypto.md5.convert(utf8.encode(designDocId + viewId))}';
+  // return 'd-${designDocId}-v-${viewId}';
+  return 'v-${crypto.md5.convert(utf8.encode(designDocId + viewId))}';
 }
 
 final allDocDesignDoc = new Doc(

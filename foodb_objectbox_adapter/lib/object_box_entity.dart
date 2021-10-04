@@ -22,7 +22,7 @@ class DocEntity extends ObjectBoxEntity<String> {
   int id;
 
   @override
-  @Index(type: IndexType.value)
+  @Index()
   String key;
 
   @override
@@ -40,7 +40,7 @@ class LocalDocEntity extends ObjectBoxEntity<String> {
   int id;
 
   @override
-  @Index(type: IndexType.value)
+  @Index()
   String key;
 
   @override
@@ -76,7 +76,7 @@ class ViewMetaEntity extends ObjectBoxEntity<String> {
   int id;
 
   @override
-  @Index(type: IndexType.value)
+  @Index()
   String key;
 
   @override
@@ -94,7 +94,7 @@ class ViewDocMetaEntity extends ObjectBoxEntity<String> {
   int id;
 
   @override
-  @Index(type: IndexType.value)
+  @Index()
   String key;
 
   @override
@@ -112,7 +112,7 @@ class AllDocViewDocMetaEntity extends ObjectBoxEntity<String> {
   int id;
 
   @override
-  @Index(type: IndexType.value)
+  @Index()
   String key;
 
   @override
@@ -130,7 +130,7 @@ class ViewKeyMetaEntity extends ObjectBoxEntity<String> {
   int id;
 
   @override
-  @Index(type: IndexType.value)
+  @Index()
   String key;
 
   @override
@@ -156,7 +156,7 @@ class AllDocViewKeyMetaEntity extends ViewKeyMetaEntity {
   int id;
 
   @override
-  @Index(type: IndexType.value)
+  @Index()
   String key;
 
   @override
