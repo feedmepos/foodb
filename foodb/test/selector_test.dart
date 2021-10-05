@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:foodb/exception.dart';
 import 'package:foodb/selector.dart';
 
 void main() {
@@ -76,7 +77,7 @@ void main() {
     final greaterThan2 = GreaterThanOperator();
     greaterThan2.value = "nasi lemak";
     greaterThan2.expected = "ayam";
-    and.operators.addAll([greaterThan1,greaterThan2]);
+    and.operators.addAll([greaterThan1, greaterThan2]);
     expect(and.evaluate(), true);
   });
 
@@ -162,8 +163,12 @@ void main() {
     type2.expected = ["c", "b", "a"];
 
     final type3 = NotInOperator();
-    type3.value = [1,2];
-    type3.expected = [[1], 2, 3];
+    type3.value = [1, 2];
+    type3.expected = [
+      [1],
+      2,
+      3
+    ];
 
     final type4 = NotInOperator();
     type4.value = 1;
@@ -223,5 +228,71 @@ void main() {
 
     and.operators.addAll([regex1, regex2]);
     expect(and.evaluate(), true);
+  });
+
+  group("error handling", () {
+    test("exists operator", () {
+      try {
+        final exists = ExistsOperator();
+        exists.expected = "10";
+        exists.value = 10;
+        exists.evaluate();
+      } catch (e) {
+        expect(e, isInstanceOf<AdapterException>());
+      }
+    });
+    test("In Operator", () {
+      try {
+        final inOperator = InOperator();
+        inOperator.expected = "10";
+        inOperator.value = 10;
+        inOperator.evaluate();
+      } catch (e) {
+        expect(e, isInstanceOf<AdapterException>());
+      }
+    });
+    test("Not In Operator", () {
+      try {
+        final inOperator = InOperator();
+        inOperator.expected = {10: 10};
+        inOperator.value = 10;
+        inOperator.evaluate();
+      } catch (e) {
+        expect(e, isInstanceOf<AdapterException>());
+      }
+    });
+    test("Size operator", () {
+      try {
+        final size = SizeOperator();
+        size.expected = "1";
+        size.value = ["a"];
+        size.evaluate();
+      } catch (e) {
+        expect(e, isInstanceOf<AdapterException>());
+      }
+    });
+
+    test("Mod Operator", () {
+      try {
+        final mod = ModOperator();
+        mod.expected = [12.5,12];
+        mod.value = 100;
+        mod.evaluate();
+      } catch (e) {
+        expect(e, isInstanceOf<AdapterException>());
+      }  
+    });
+
+    test("Regex Operator", () {
+      try {
+        final mod = ModOperator();
+        mod.expected = 12;
+        mod.value = "12";
+        mod.evaluate();
+      } catch (e) {
+        expect(e, isInstanceOf<AdapterException>());
+      }  
+    });
+
   });
 }

@@ -1,5 +1,6 @@
 //for _index and _find func
 import 'package:collection/equality.dart';
+import 'package:foodb/exception.dart';
 
 abstract class Operator {
   late String operator;
@@ -124,7 +125,12 @@ class ExistsOperator extends ConditionOperator {
 
   @override
   bool evaluate() {
-    return (value != null) == expected;
+    if (expected is bool) {
+      return (value != null) == expected;
+    }
+    throw AdapterException(
+        error: "bad_arg",
+        reason: "Bad argument for operator \$exists: $expected");
   }
 }
 
@@ -168,7 +174,8 @@ class InOperator extends ConditionOperator {
       }
       return expected.contains(value);
     }
-    return false;
+    throw AdapterException(
+        error: "bad_arg", reason: "Bad argument for operator \$in: $expected");
   }
 }
 
@@ -189,7 +196,8 @@ class NotInOperator extends ConditionOperator {
       }
       return !expected.contains(value);
     }
-    return false;
+    throw AdapterException(
+        error: "bad_arg", reason: "Bad argument for operator \$nin: $expected");
   }
 }
 
@@ -199,10 +207,15 @@ class SizeOperator extends ConditionOperator {
 
   @override
   bool evaluate() {
-    if (value is List) {
-      return value.length == expected;
+    if (expected is int) {
+      if (value is List) {
+        return value.length == expected;
+      }
+      return false;
     }
-    return false;
+    throw AdapterException(
+        error: "bad_arg",
+        reason: "Bad argument for operator \$size: $expected");
   }
 }
 
@@ -212,10 +225,14 @@ class ModOperator extends ConditionOperator {
 
   @override
   bool evaluate() {
-    if (value is int && expected is List && expected.length == 2) {
-      return value % expected[0] == expected[1];
+    if (expected is List<int> && expected.length == 2) {
+      if (value is int) {
+        return value % expected[0] == expected[1];
+      }
+      return false;
     }
-    return false;
+    throw AdapterException(
+        error: "bad_arg", reason: "Bad argument for operator \$mod: $expected");
   }
 }
 
@@ -225,10 +242,12 @@ class RegexOperator extends ConditionOperator {
 
   @override
   bool evaluate() {
-    if (value is String && expected is String) {
-      return RegExp(expected).hasMatch(value);
+    if (expected is String) {
+      if (value is String) {
+        return RegExp(expected).hasMatch(value);
+      }
     }
-    return false;
+   throw AdapterException(error: "invalid_operator",reason: "Invalid operator: \$regex");
   }
 }
 
