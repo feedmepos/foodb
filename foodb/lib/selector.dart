@@ -1,5 +1,5 @@
 //for _index and _find func
-import 'package:collection/equality.dart';
+import 'package:collection/collection.dart';
 import 'package:foodb/exception.dart';
 
 abstract class Operator {
