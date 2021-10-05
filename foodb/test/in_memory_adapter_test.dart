@@ -26,13 +26,26 @@ void main() {
     await db.put(DocKey(key: 'a'), {});
     await db.put(DocKey(key: 'b'), {});
 
-    ReadResult result = await db.read(DocKey(key: ''));
+    ReadResult result = await db.read(DocKey(key: ''),
+        desc: false, inclusiveStart: true, inclusiveEnd: true);
     expect(result.records.length, equals(2));
-    result = await db.read(DocKey(key: ''), startkey: DocKey(key: 'b'));
+    result = await db.read(DocKey(key: ''),
+        startkey: DocKey(key: 'b'),
+        desc: false,
+        inclusiveStart: true,
+        inclusiveEnd: true);
     expect(result.records.length, equals(1));
-    result = await db.read(DocKey(key: ''), endkey: DocKey(key: 'a'));
+    result = await db.read(DocKey(key: ''),
+        endkey: DocKey(key: 'a'),
+        desc: false,
+        inclusiveStart: true,
+        inclusiveEnd: true);
     expect(result.records.length, equals(0));
-    result = await db.read(DocKey(key: ''), endkey: DocKey(key: 'a\ufff0'));
+    result = await db.read(DocKey(key: ''),
+        endkey: DocKey(key: 'a\ufff0'),
+        desc: false,
+        inclusiveStart: true,
+        inclusiveEnd: true);
     expect(result.records.length, equals(1));
   });
 }

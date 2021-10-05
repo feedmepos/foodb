@@ -7,14 +7,28 @@ import 'package:foodb_objectbox_adapter/foodb_objectbox_adapter.dart';
 import 'package:foodb_objectbox_adapter/objectbox.g.dart';
 import 'package:path/path.dart';
 
+Future<ObjectBoxAdapter> getAdapter(String dbName,
+    {bool persist = false}) async {
+  var directory = join(Directory.current.path, 'temp/test-$dbName');
+  final dir = Directory(directory);
+  late Store store;
+  if (!persist) {
+    if (dir.existsSync()) dir.deleteSync(recursive: true);
+    addTearDown(() {
+      store.close();
+      if (dir.existsSync()) dir.deleteSync(recursive: true);
+    });
+  }
+  store = await openStore(directory: directory);
+  final adapter = ObjectBoxAdapter(store);
+  await adapter.initDb();
+  return adapter;
+}
+
 class ObjectBoxTestContext extends FoodbTestContext {
   @override
   Future<Foodb> db(String dbName) async {
-    var directory = join(Directory.current.path, 'temp/$dbName');
-    final dir = Directory(directory);
-    if (dir.existsSync()) dir.deleteSync(recursive: true);
-    var db = ObjectBoxAdapter(await openStore(directory: directory));
-    await db.destroy();
+    var db = await getAdapter(dbName);
     return Foodb.keyvalue(dbName: dbName, keyValueDb: db);
   }
 }
@@ -22,36 +36,39 @@ class ObjectBoxTestContext extends FoodbTestContext {
 void main() {
   final objectBox = ObjectBoxTestContext();
   final couchdb = CouchdbTestContext();
-  // replicateBenchmarkTest(1000, 3, objectBox);
-  group('couchdb > objectBox', () {
-    replicateTest().forEach((t) {
-      t(couchdb, objectBox);
-    });
-  });
-  group('objectBox > couchbdb', () {
-    replicateTest().forEach((t) {
-      t(objectBox, couchdb);
-    });
-  });
-  allDocTest().forEach((fn) {
-    fn(objectBox);
-  });
-  getTest().forEach((fn) {
-    fn(objectBox);
-  });
-  bulkDocTest().forEach((fn) {
-    fn(objectBox);
-  });
-  changeStreamTest().forEach((fn) {
-    fn(objectBox);
-  });
-  deleteTest().forEach((fn) {
-    fn(objectBox);
-  });
-  putTest().forEach((fn) {
-    fn(objectBox);
-  });
-  utilTest().forEach((fn) {
-    fn(objectBox);
-  });
+  replicateBenchmarkTest(1000, 30, objectBox);
+  // group('couchdb > objectBox', () {
+  //   replicateTest().forEach((t) {
+  //     t(couchdb, objectBox);
+  //   });
+  // });
+  // group('objectBox > couchbdb', () {
+  //   replicateTest().forEach((t) {
+  //     t(objectBox, couchdb);
+  //   });
+  // });
+  // findTest().forEach((fn) {
+  //   fn(objectBox);
+  // });
+  // allDocTest().forEach((fn) {
+  //   fn(objectBox);
+  // });
+  // getTest().forEach((fn) {
+  //   fn(objectBox);
+  // });
+  // bulkDocTest().forEach((fn) {
+  //   fn(objectBox);
+  // });
+  // changeStreamTest().forEach((fn) {
+  //   fn(objectBox);
+  // });
+  // deleteTest().forEach((fn) {
+  //   fn(objectBox);
+  // });
+  // putTest().forEach((fn) {
+  //   fn(objectBox);
+  // });
+  // utilTest().forEach((fn) {
+  //   fn(objectBox);
+  // });
 }

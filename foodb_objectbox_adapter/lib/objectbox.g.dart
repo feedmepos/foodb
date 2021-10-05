@@ -29,7 +29,7 @@ final _entities = <ModelEntity>[
             id: const IdUid(2, 6009736315792442070),
             name: 'key',
             type: 9,
-            flags: 8,
+            flags: 2048,
             indexId: const IdUid(1, 2825065807747879183)),
         ModelProperty(
             id: const IdUid(3, 5835498232873122842),
@@ -54,7 +54,7 @@ final _entities = <ModelEntity>[
             id: const IdUid(2, 8733103804834214230),
             name: 'key',
             type: 9,
-            flags: 8,
+            flags: 2048,
             indexId: const IdUid(2, 1811533003850621028)),
         ModelProperty(
             id: const IdUid(3, 8357916780370056873),
@@ -79,7 +79,7 @@ final _entities = <ModelEntity>[
             id: const IdUid(2, 7769416710097771877),
             name: 'key',
             type: 9,
-            flags: 8,
+            flags: 2048,
             indexId: const IdUid(3, 6316172100194881292)),
         ModelProperty(
             id: const IdUid(3, 6339596475273150250),
@@ -104,7 +104,7 @@ final _entities = <ModelEntity>[
             id: const IdUid(2, 355961173367513538),
             name: 'key',
             type: 9,
-            flags: 8,
+            flags: 2048,
             indexId: const IdUid(4, 8069809380969902740)),
         ModelProperty(
             id: const IdUid(3, 8875595387812754771),
@@ -154,7 +154,7 @@ final _entities = <ModelEntity>[
             id: const IdUid(2, 9221473796516660758),
             name: 'key',
             type: 9,
-            flags: 8,
+            flags: 2048,
             indexId: const IdUid(6, 7585772069821342328)),
         ModelProperty(
             id: const IdUid(3, 3518627672935492769),
@@ -179,7 +179,7 @@ final _entities = <ModelEntity>[
             id: const IdUid(2, 1142135877991697735),
             name: 'key',
             type: 9,
-            flags: 8,
+            flags: 2048,
             indexId: const IdUid(7, 4735860562603714514)),
         ModelProperty(
             id: const IdUid(3, 8587698246806716331),
@@ -204,7 +204,7 @@ final _entities = <ModelEntity>[
             id: const IdUid(2, 7100843868053499823),
             name: 'key',
             type: 9,
-            flags: 8,
+            flags: 2048,
             indexId: const IdUid(8, 6063552904137448282)),
         ModelProperty(
             id: const IdUid(3, 6354903701505548316),

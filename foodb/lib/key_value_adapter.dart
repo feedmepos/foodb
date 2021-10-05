@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:foodb/collate.dart';
+
 class ReadResult<T extends AbstractKey> {
   int totalRows;
   int offset;
@@ -18,9 +22,9 @@ abstract class AbstractKey<T extends Comparable> implements Comparable {
   });
   AbstractKey copyWithKey({required T newKey});
   int compareTo(other) {
-    if (other == null) return 0;
-    if (key != null && other is AbstractKey) {
-      if (other.key == null) return 0;
+    if (other == null) return 1;
+    if (other is AbstractKey) {
+      if (key == null && other.key == null) return 0;
       return key!.compareTo(other.key);
     }
     return -1;
@@ -35,10 +39,10 @@ abstract class AbstractViewKey<T extends Comparable> extends AbstractKey<T> {
 
   @override
   int compareTo(other) {
-    if (other is ViewDocMetaKey) {
+    if (other is AbstractViewKey) {
       final viewCompare = viewName.compareTo(other.viewName);
       if (viewCompare != 0) return viewCompare;
-      super.compareTo(other);
+      return super.compareTo(other);
     }
     return -1;
   }
@@ -80,9 +84,8 @@ class ViewMetaKey extends AbstractKey<String> {
 }
 
 class ViewDocMetaKey extends AbstractViewKey<String> {
-
-  ViewDocMetaKey({required String key,required String viewName})
-      : super(key: key, viewName: viewName,tableName: "view_doc_meta");
+  ViewDocMetaKey({String? key, required String viewName})
+      : super(viewName: viewName, key: key, tableName: "view_doc_meta");
 
   @override
   copyWithKey({required String newKey}) {
@@ -90,56 +93,60 @@ class ViewDocMetaKey extends AbstractViewKey<String> {
   }
 }
 
-class ViewKeyMeta implements Comparable {
-  final String key;
-  final String docId;
-  final int index;
-  ViewKeyMeta({required this.key, required this.docId, required this.index});
+class ViewKeyMeta<T> implements Comparable {
+  final T key;
+  final String? docId;
+  final int? index;
+  ViewKeyMeta({required this.key, this.docId, this.index});
   int compareTo(other) {
     if (other is ViewKeyMeta) {
-      final keyCompare = key.compareTo(other.key);
-      if (keyCompare != 0) return keyCompare;
-      final docIdCompare = docId.compareTo(other.docId);
-      if (docIdCompare != 0) return docIdCompare;
-      final indexCompare = index.compareTo(other.index);
-      if (indexCompare != 0) return indexCompare;
-      return 0;
+      return this.encode().compareTo(other.encode());
     }
     return -1;
   }
 
   factory ViewKeyMeta.decode(String str) {
-    final splitted = str.split('_');
-    return ViewKeyMeta(
-        key: splitted[0], docId: splitted[1], index: int.parse(splitted[2]));
+    final decoded = decodeFromIndex(str);
+    return ViewKeyMeta(key: decoded[0], docId: decoded[1], index: decoded[2]);
   }
 
   String encode() {
-    return [key, docId, index.toString()].join('_');
+    return encodeToIndex([key, docId, index]);
   }
+}
 
-  factory ViewKeyMeta.fromJson(Map<String, dynamic> json) {
-    return ViewKeyMeta(
-        key: json['key'], docId: json['docId'], index: json['index']);
-  }
-  Map<String, dynamic> toJson() {
-    return {
-      'key': key,
-      'docId': docId,
-      'index': index,
-    };
-  }
+ListOfViewKeyMetaFromJsonString(String str) {
+  List<dynamic> list = jsonDecode(str);
+  return list.map((e) => ViewKeyMeta.decode(e)).toList();
+}
+
+ListOfViewKeyMetaToJsonString(List<ViewKeyMeta> instances) {
+  return jsonEncode(instances.map((e) => e.encode()).toList());
 }
 
 class ViewKeyMetaKey extends AbstractViewKey<ViewKeyMeta> {
   ViewKeyMetaKey({ViewKeyMeta? key, required String viewName})
-      : super(key: key, viewName: viewName,tableName: "view_key");
-
+      : super(viewName: viewName, key: key, tableName: "view_key");
   @override
   copyWithKey({required ViewKeyMeta newKey}) {
     return ViewKeyMetaKey(key: newKey, viewName: viewName);
   }
+}
 
+class ViewValue {
+  final dynamic value;
+  ViewValue(this.value);
+  Map<String, dynamic> toJson() {
+    return {
+      'v': value,
+    };
+  }
+
+  factory ViewValue.fromJson(Map<String, dynamic> map) {
+    return ViewValue(
+      map['v'],
+    );
+  }
 }
 
 abstract class KeyValueAdapterSession {
@@ -166,7 +173,12 @@ abstract class KeyValueAdapter<T extends KeyValueAdapterSession> {
       {T? session});
 
   Future<ReadResult<T2>> read<T2 extends AbstractKey>(T2 keyType,
-      {T2? startkey, T2? endkey, bool? desc, T? session});
+      {T2? startkey,
+      T2? endkey,
+      T? session,
+      required bool desc,
+      required bool inclusiveStart,
+      required bool inclusiveEnd});
 
   Future<bool> put(AbstractKey key, Map<String, dynamic> value, {T? session});
   Future<bool> putMany(Map<AbstractKey, Map<String, dynamic>> entries,

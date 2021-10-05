@@ -43,7 +43,10 @@ mixin _KeyValueChange on _AbstractKeyValue {
     if (request.since != 'now') {
       int since = int.parse(request.since.split('-')[0]);
       ReadResult result = await keyValueDb.read(SequenceKey(key: 0),
-          startkey: SequenceKey(key: since));
+          startkey: SequenceKey(key: since),
+          desc: false,
+          inclusiveStart: false,
+          inclusiveEnd: true);
       pending = result.records.length;
       for (final entry in result.records.entries) {
         final key = entry.key as SequenceKey;
