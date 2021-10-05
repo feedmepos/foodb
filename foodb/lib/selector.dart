@@ -50,11 +50,11 @@ class GreaterThanOperator extends ConditionOperator {
   bool evaluate() {
     if (value is String && expected is String) {
       return value.compareTo(expected) > 0;
-    } else if (value is int && expected is int) {
+    } else if (value is num && expected is num) {
       return value.compareTo(expected) > 0;
-    } else if (value is String && expected is int) {
+    } else if (value is String && expected is num) {
       return true;
-    } else if (value is int && expected is String) {
+    } else if (value is num && expected is String) {
       return false;
     }
     return false;
@@ -69,11 +69,11 @@ class GreaterThanOrEqualOperator extends ConditionOperator {
   bool evaluate() {
     if (value is String && expected is String) {
       return value.compareTo(expected) >= 0;
-    } else if (value is int && expected is int) {
+    } else if (value is num && expected is num) {
       return value.compareTo(expected) >= 0;
-    } else if (value is String && expected is int) {
+    } else if (value is String && expected is num) {
       return true;
-    } else if (value is int && expected is String) {
+    } else if (value is num && expected is String) {
       return false;
     }
     return false;
@@ -88,11 +88,11 @@ class LessThanOperator extends ConditionOperator {
   bool evaluate() {
     if (value is String && expected is String) {
       return value.compareTo(expected) < 0;
-    } else if (value is int && expected is int) {
+    } else if (value is num && expected is num) {
       return value.compareTo(expected) < 0;
-    } else if (value is String && expected is int) {
+    } else if (value is String && expected is num) {
       return false;
-    } else if (value is int && expected is String) {
+    } else if (value is num && expected is String) {
       return true;
     }
     return false;
@@ -107,11 +107,11 @@ class LessThanOrEqualOperator extends ConditionOperator {
   bool evaluate() {
     if (value is String && expected is String) {
       return value.compareTo(expected) <= 0;
-    } else if (value is int && expected is int) {
+    } else if (value is num && expected is num) {
       return value.compareTo(expected) <= 0;
-    } else if (value is String && expected is int) {
+    } else if (value is String && expected is num) {
       return false;
-    } else if (value is int && expected is String) {
+    } else if (value is num && expected is String) {
       return true;
     }
     return false;
@@ -158,6 +158,14 @@ class InOperator extends ConditionOperator {
   @override
   bool evaluate() {
     if (expected is List) {
+      if (value is Map || value is List) {
+        for (var object in expected) {
+          if (DeepCollectionEquality().equals(object, value)) {
+            return true;
+          }
+        }
+        return false;
+      }
       return expected.contains(value);
     }
     return false;
@@ -171,6 +179,14 @@ class NotInOperator extends ConditionOperator {
   @override
   bool evaluate() {
     if (expected is List) {
+      if (value is Map || value is List) {
+        for (var object in expected) {
+          if (DeepCollectionEquality().equals(object, value)) {
+            return false;
+          }
+        }
+        return true;
+      }
       return !expected.contains(value);
     }
     return false;
@@ -184,7 +200,7 @@ class SizeOperator extends ConditionOperator {
   @override
   bool evaluate() {
     if (value is List) {
-      return value.length==expected;
+      return value.length == expected;
     }
     return false;
   }
@@ -196,8 +212,8 @@ class ModOperator extends ConditionOperator {
 
   @override
   bool evaluate() {
-    if (value is int && expected is List && expected.length==2) {
-      return value%expected[0]==expected[1];
+    if (value is int && expected is List && expected.length == 2) {
+      return value % expected[0] == expected[1];
     }
     return false;
   }
@@ -210,12 +226,11 @@ class RegexOperator extends ConditionOperator {
   @override
   bool evaluate() {
     if (value is String && expected is String) {
-      return RegExp("${expected}\$").hasMatch(value);
+      return RegExp(expected).hasMatch(value);
     }
     return false;
   }
 }
-
 
 abstract class CombinationOperator extends Operator {
   List<Operator> operators = [];
