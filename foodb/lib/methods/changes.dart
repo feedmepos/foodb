@@ -45,49 +45,11 @@ class ChangeResult {
 }
 
 class ChangesStream {
-  Stream<String> _stream;
-  String _feed;
   Function? _onCancel;
-  List<ChangeResult> _results = [];
-  StreamSubscription? _subscription;
-  ChangesStream({required stream, required feed, onCancel})
-      : _stream = stream,
-        _onCancel = onCancel,
-        _feed = feed;
+  ChangesStream({onCancel}) : _onCancel = onCancel;
 
   cancel() async {
-    _subscription?.cancel();
     _onCancel?.call();
-  }
-
-  void listen(
-      {Function(ChangeResponse)? onComplete,
-      Function(ChangeResult)? onResult,
-      Function? onHearbeat}) {
-    String cache = "";
-    _subscription = _stream.listen((event) {
-      if (_feed == ChangeFeed.continuous) {
-        var items = RegExp("^{\".*},?\n?\$", multiLine: true).allMatches(event);
-        items.forEach((i) {
-          var json = jsonDecode(event.substring(i.start, i.end).trim());
-          if (json['id'] != null) onResult?.call(ChangeResult.fromJson(json));
-        });
-      } else {
-        cache += event;
-        if (event.contains('last_seq')) {
-          Map<String, dynamic> map = jsonDecode(cache);
-          ChangeResponse changeResponse = new ChangeResponse(results: _results);
-          map['results'].forEach((r) {
-            final result = ChangeResult.fromJson(r);
-            changeResponse.results.add(result);
-            onResult?.call(result);
-          });
-          changeResponse.lastSeq = map['last_seq'];
-          changeResponse.pending = map['pending'];
-          onComplete?.call(changeResponse);
-        }
-      }
-    });
   }
 }
 
@@ -144,7 +106,7 @@ class ChangeRequest {
     this.descending = false,
     this.feed = 'normal',
     this.filter,
-    this.heartbeat = 60000,
+    this.heartbeat = 30000,
     this.includeDocs = false,
     this.attachments = false,
     this.attEncodingInfo = false,
@@ -152,7 +114,7 @@ class ChangeRequest {
     this.limit,
     this.since = '0',
     this.style = 'main_only',
-    this.timeout = 60000,
+    this.timeout = 30000,
     this.view,
     this.seqInterval,
   });

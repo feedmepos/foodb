@@ -390,39 +390,35 @@ Future<ReplicationStream> replicate(
         }
       }
 
-      source
-          .changesStream(ChangeRequest(
+      changeStream = await source.changesStream(
+          ChangeRequest(
               feed: continuous ? ChangeFeed.continuous : ChangeFeed.normal,
               style: 'all_docs',
               heartbeat: heartbeat,
               timeout: timeout,
               seqInterval: continuous ? null : maxBatchSize - 1,
-              since: startSeq))
-          .then((value) {
-        changeStream = value;
-        changeStream!.listen(onResult: (result) {
-          if (continuous) {
-            replicator.pendingList.add(result);
+              since: startSeq), onResult: (result) {
+        if (continuous) {
+          replicator.pendingList.add(result);
+          timer.cancel();
+          timer = Timer(debounce, replicator.run);
+          if (replicator.pendingList.length == maxBatchSize) {
             timer.cancel();
-            timer = Timer(debounce, replicator.run);
-            if (replicator.pendingList.length == maxBatchSize) {
-              timer.cancel();
-              replicator.run();
-            }
+            replicator.run();
           }
-        }, onComplete: (result) async {
-          if (!continuous) {
-            if (result.results.isEmpty) {
-              _stream.sink.add(ReplicationCompleteEvent());
-            } else {
-              result.results.last.seq =
-                  result.lastSeq ?? (await source.info()).updateSeq;
-              ;
-              replicator.pendingList.addAll(result.results);
-              replicator.run();
-            }
+        }
+      }, onComplete: (result) async {
+        if (!continuous) {
+          if (result.results.isEmpty) {
+            _stream.sink.add(ReplicationCompleteEvent());
+          } else {
+            result.results.last.seq =
+                result.lastSeq ?? (await source.info()).updateSeq;
+            ;
+            replicator.pendingList.addAll(result.results);
+            replicator.run();
           }
-        });
+        }
       });
     } catch (err) {
       _stream.sink.add(ReplicationErrorEvent(err));

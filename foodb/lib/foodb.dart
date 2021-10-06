@@ -119,7 +119,11 @@ abstract class Foodb {
 
   Future<EnsureFullCommitResponse> ensureFullCommit();
 
-  Future<ChangesStream> changesStream(ChangeRequest request);
+  Future<ChangesStream> changesStream(ChangeRequest request,
+      {Function(ChangeResponse)? onComplete,
+      Function(ChangeResult)? onResult,
+      Function(Object?)? onError,
+      Function? onHearbeat});
 
   Future<GetViewResponse<T>> allDocs<T>(GetViewRequest allDocsRequest,
       T Function(Map<String, dynamic> json) fromJsonT);

@@ -23,11 +23,8 @@ List<Function(FoodbTestContext)> changeStreamTest() {
         await db.put(doc: Doc(id: 'a', model: {}));
         await db.put(doc: Doc(id: 'b', model: {}));
 
-        db
-            .changesStream(ChangeRequest(feed: ChangeFeed.normal))
-            .then((stream) async {
-          stream.listen(onResult: resultFn, onComplete: completefn);
-        });
+        db.changesStream(ChangeRequest(feed: ChangeFeed.normal),
+            onResult: resultFn, onComplete: completefn);
         await Future.delayed(Duration(milliseconds: 500),
             () async => db.bulkDocs(body: [Doc(id: 'c', model: {})]));
       });
@@ -43,11 +40,8 @@ List<Function(FoodbTestContext)> changeStreamTest() {
         await db.put(doc: Doc(id: 'a', model: {}));
         await db.put(doc: Doc(id: 'b', model: {}));
 
-        db
-            .changesStream(ChangeRequest(feed: ChangeFeed.normal, limit: 1))
-            .then((stream) async {
-          stream.listen(onResult: resultFn, onComplete: completefn);
-        });
+        db.changesStream(ChangeRequest(feed: ChangeFeed.normal, limit: 1),
+            onResult: resultFn, onComplete: completefn);
         await Future.delayed(Duration(milliseconds: 500),
             () async => db.bulkDocs(body: [Doc(id: 'c', model: {})]));
       });
@@ -63,11 +57,8 @@ List<Function(FoodbTestContext)> changeStreamTest() {
         await db.put(doc: Doc(id: 'a', model: {}));
         await db.put(doc: Doc(id: 'b', model: {}));
 
-        db
-            .changesStream(ChangeRequest(feed: ChangeFeed.longpoll))
-            .then((stream) async {
-          stream.listen(onResult: resultFn, onComplete: completefn);
-        });
+        db.changesStream(ChangeRequest(feed: ChangeFeed.longpoll),
+            onResult: resultFn, onComplete: completefn);
         await Future.delayed(Duration(milliseconds: 500),
             () async => db.bulkDocs(body: [Doc(id: 'c', model: {})]));
       });
@@ -83,11 +74,8 @@ List<Function(FoodbTestContext)> changeStreamTest() {
         await db.put(doc: Doc(id: 'a', model: {}));
         await db.put(doc: Doc(id: 'b', model: {}));
 
-        db
-            .changesStream(ChangeRequest(feed: ChangeFeed.longpoll, limit: 1))
-            .then((stream) async {
-          stream.listen(onResult: resultFn, onComplete: completefn);
-        });
+        db.changesStream(ChangeRequest(feed: ChangeFeed.longpoll, limit: 1),
+            onResult: resultFn, onComplete: completefn);
         await Future.delayed(Duration(milliseconds: 500),
             () async => db.bulkDocs(body: [Doc(id: 'c', model: {})]));
       });
@@ -101,12 +89,8 @@ List<Function(FoodbTestContext)> changeStreamTest() {
         var resultFn = expectAsync1((p0) => {}, count: 1);
         await db.put(doc: Doc(id: 'a', model: {}));
         await db.put(doc: Doc(id: 'b', model: {}));
-        db
-            .changesStream(
-                ChangeRequest(feed: ChangeFeed.longpoll, since: 'now'))
-            .then((stream) async {
-          stream.listen(onResult: resultFn, onComplete: completefn);
-        });
+        db.changesStream(ChangeRequest(feed: ChangeFeed.longpoll, since: 'now'),
+            onResult: resultFn, onComplete: completefn);
         await Future.delayed(Duration(milliseconds: 500),
             () async => db.bulkDocs(body: [Doc(id: 'c', model: {})]));
       });
@@ -118,11 +102,8 @@ List<Function(FoodbTestContext)> changeStreamTest() {
         await db.put(doc: Doc(id: 'a', model: {}));
         await db.put(doc: Doc(id: 'b', model: {}));
 
-        db
-            .changesStream(ChangeRequest(feed: ChangeFeed.continuous))
-            .then((stream) async {
-          stream.listen(onResult: resultFn);
-        });
+        db.changesStream(ChangeRequest(feed: ChangeFeed.continuous),
+            onResult: resultFn);
         await Future.delayed(
             Duration(milliseconds: 500),
             () async => db.bulkDocs(body: [
@@ -130,6 +111,6 @@ List<Function(FoodbTestContext)> changeStreamTest() {
                   Doc(id: 'd', model: {}),
                 ]));
       });
-    }
+    },
   ];
 }

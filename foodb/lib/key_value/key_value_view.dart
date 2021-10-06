@@ -42,49 +42,47 @@ mixin _KeyValueView on _AbstractKeyValue {
       } else {
         meta = ViewMeta.fromJson(json);
       }
-      var stream = await changesStream(ChangeRequest(
-          since: encodeSeq(meta.lastSeq), feed: ChangeFeed.normal));
       Completer<String> c = new Completer();
-      stream.listen(
-          onResult: (result) => {},
-          onComplete: (resp) async {
-            List<String> docIdToProcess =
-                resp.results.map((e) => e.id).toList();
-            final docsToProcess = (await keyValueDb.getMany<DocKey>(
-                docIdToProcess.map<DocKey>((k) => DocKey(key: k)).toList()));
+      changesStream(
+          ChangeRequest(
+              since: encodeSeq(meta.lastSeq),
+              feed: ChangeFeed.normal), onComplete: (resp) async {
+        List<String> docIdToProcess = resp.results.map((e) => e.id).toList();
+        final docsToProcess = (await keyValueDb.getMany<DocKey>(
+            docIdToProcess.map<DocKey>((k) => DocKey(key: k)).toList()));
 
-            for (var entry in docsToProcess.entries) {
-              if (entry.value == null) continue;
-              var history = DocHistory.fromJson(entry.value!);
-              var existViewDocMeta = await keyValueDb.get<ViewDocMetaKey>(
-                  ViewDocMetaKey(viewName: viewName, key: history.id));
-              if (existViewDocMeta != null) {
-                var viewDocMeta = ViewDocMeta.fromJson(existViewDocMeta.value);
-                List<ViewKeyMeta> keysForDelete = viewDocMeta.keys;
-                await keyValueDb.deleteMany(keysForDelete
-                    .map((k) => ViewKeyMetaKey(key: k, viewName: viewName))
-                    .toList());
-                await keyValueDb.delete(
-                    ViewDocMetaKey(viewName: viewName, key: history.id));
-              }
+        for (var entry in docsToProcess.entries) {
+          if (entry.value == null) continue;
+          var history = DocHistory.fromJson(entry.value!);
+          var existViewDocMeta = await keyValueDb.get<ViewDocMetaKey>(
+              ViewDocMetaKey(viewName: viewName, key: history.id));
+          if (existViewDocMeta != null) {
+            var viewDocMeta = ViewDocMeta.fromJson(existViewDocMeta.value);
+            List<ViewKeyMeta> keysForDelete = viewDocMeta.keys;
+            await keyValueDb.deleteMany(keysForDelete
+                .map((k) => ViewKeyMetaKey(key: k, viewName: viewName))
+                .toList());
+            await keyValueDb
+                .delete(ViewDocMetaKey(viewName: viewName, key: history.id));
+          }
 
-              if (history.winner != null) {
-                var entries = _runMapper(view, history.id, history.winner);
-                //change to put in batch
-                if (entries.isNotEmpty) {
-                  await keyValueDb.putMany(entries.map((key, value) => MapEntry(
-                      ViewKeyMetaKey(viewName: viewName, key: key),
-                      ViewValue(value).toJson())));
-                }
-
-                await keyValueDb.put(
-                    ViewDocMetaKey(viewName: viewName, key: history.id),
-                    ViewDocMeta(keys: entries.keys.toList()).toJson());
-              }
+          if (history.winner != null) {
+            var entries = _runMapper(view, history.id, history.winner);
+            //change to put in batch
+            if (entries.isNotEmpty) {
+              await keyValueDb.putMany(entries.map((key, value) => MapEntry(
+                  ViewKeyMetaKey(viewName: viewName, key: key),
+                  ViewValue(value).toJson())));
             }
 
-            c.complete(resp.lastSeq);
-          });
+            await keyValueDb.put(
+                ViewDocMetaKey(viewName: viewName, key: history.id),
+                ViewDocMeta(keys: entries.keys.toList()).toJson());
+          }
+        }
+
+        c.complete(resp.lastSeq);
+      });
 
       var lastSeq = await c.future;
       await keyValueDb.put(ViewMetaKey(key: viewName),
