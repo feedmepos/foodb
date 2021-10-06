@@ -1,6 +1,6 @@
 //for _index and _find func
 import 'package:collection/collection.dart';
-import 'package:foodb/exception.dart';
+import 'package:foodb/src/exception.dart';
 
 abstract class Operator {
   late String operator;
@@ -286,7 +286,9 @@ abstract class CombinationOperator extends Operator {
 
   @override
   Map<String, dynamic> toJson() {
-    return {operator: operators.map<Map<String,dynamic>>((e) => e.toJson()).toList()};
+    return {
+      operator: operators.map<Map<String, dynamic>>((e) => e.toJson()).toList()
+    };
   }
 }
 
@@ -383,7 +385,8 @@ class SelectorBuilder {
       } else if (operator == null) {
         List<Operator> subList = [];
         entry.value.forEach((operatorStr, arg) {
-          final operator = getOperator(operatorStr,key: entry.key, expected: arg);
+          final operator =
+              getOperator(operatorStr, key: entry.key, expected: arg);
           if (operator is ConditionOperator) {
             subList.add(operator);
           } else {

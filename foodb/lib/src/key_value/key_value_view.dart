@@ -1,4 +1,4 @@
-part of '../foodb.dart';
+part of '../../foodb.dart';
 
 mixin _KeyValueView on _AbstractKeyValue {
   Map<ViewKeyMeta, dynamic> _runMapper(

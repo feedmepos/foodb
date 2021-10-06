@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:foodb/collate.dart';
+import 'package:foodb/key_value_adapter.dart';
 
 /// https://docs.couchdb.org/en/main/ddocs/views/collation.html#all-docs
 /// https://pouchdb.com/faq.html#couchdb_differences

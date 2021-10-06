@@ -1,3 +1,6 @@
+## 0.1.1
+* (change) update package class privacy
+
 ## 0.1.0
 * (add) key value database basic operation and allDoc view
 * (add) objectbox as key value database implementation

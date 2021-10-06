@@ -1,4 +1,4 @@
-part of '../foodb.dart';
+part of '../../foodb.dart';
 
 mixin _KeyValueChange on _AbstractKeyValue {
   Future<ChangeResult> _encodeUpdateSequence(

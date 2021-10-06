@@ -1,7 +1,6 @@
+import 'package:foodb/src/key_value/common.dart';
 import 'package:test/test.dart';
-import 'package:foodb/common.dart';
 import 'package:foodb/foodb.dart';
-import 'package:foodb/key_value/common.dart';
 
 void main() {
   test('revsDiff', () async {

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dotenv/dotenv.dart';
+import 'package:foodb/key_value_adapter.dart';
 import 'package:test/test.dart';
 import 'package:foodb/foodb.dart';
 
@@ -39,7 +40,7 @@ class InMemoryTestContext extends FoodbTestContext {
   @override
   Future<Foodb> db(String dbName) async {
     return Foodb.keyvalue(
-        dbName: 'test-$dbName', keyValueDb: InMemoryAdapter());
+        dbName: 'test-$dbName', keyValueDb: KeyValueAdapter.inMemory());
   }
 }
 

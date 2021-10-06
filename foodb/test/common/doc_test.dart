@@ -1,5 +1,5 @@
+import 'package:foodb/foodb.dart';
 import 'package:test/test.dart';
-import 'package:foodb/common.dart';
 
 void main() {
   test('copywith', () {

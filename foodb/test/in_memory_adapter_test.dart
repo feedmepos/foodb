@@ -22,7 +22,7 @@ void main() {
   });
 
   test('read', () async {
-    final db = InMemoryAdapter();
+    final db = KeyValueAdapter.inMemory();
     await db.put(DocKey(key: 'a'), {});
     await db.put(DocKey(key: 'b'), {});
 

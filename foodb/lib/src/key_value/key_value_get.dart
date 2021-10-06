@@ -1,4 +1,4 @@
-part of '../foodb.dart';
+part of '../../foodb.dart';
 
 mixin _KeyValueGet on _AbstractKeyValue {
   @override

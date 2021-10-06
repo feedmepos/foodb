@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:test/test.dart';
-import 'package:foodb/exception.dart';
-import 'package:foodb/selector.dart';
+import 'package:foodb/src/exception.dart';
+import 'package:foodb/src/selector.dart';
 
 void main() {
   test('and, equal', () {
