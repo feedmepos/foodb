@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodb/foodb.dart';
-import 'package:foodb/foodb_test.dart';
+import 'package:foodb_test/foodb_test.dart';
 import 'package:foodb_objectbox_adapter/foodb_objectbox_adapter.dart';
 import 'package:foodb_objectbox_adapter/objectbox.g.dart';
 import 'package:path/path.dart';
@@ -35,7 +35,7 @@ class ObjectBoxTestContext extends FoodbTestContext {
 
 void main() {
   final objectBox = ObjectBoxTestContext();
-  final couchdb = CouchdbTestContext();
+  // final couchdb = CouchdbTestContext();
   replicateBenchmarkTest(1000, 30, objectBox);
   // group('couchdb > objectBox', () {
   //   replicateTest().forEach((t) {

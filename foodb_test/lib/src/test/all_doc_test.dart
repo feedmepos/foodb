@@ -1,6 +1,6 @@
-import 'package:flutter_test/flutter_test.dart';
+import 'package:foodb_test/foodb_test.dart';
+import 'package:test/test.dart';
 import 'package:foodb/foodb.dart';
-import '../foodb_test.dart';
 
 void main() {
   // final ctx = CouchdbTestContext();
@@ -13,7 +13,7 @@ void main() {
 List<Function(FoodbTestContext)> allDocTest() {
   return [
     (FoodbTestContext ctx) {
-      test("allDocs with corrent rebuild", () async {
+      test('allDocs with corrent rebuild', () async {
         final db = await ctx.db('all-docs-with-correct-rebuild');
         await db.put(doc: Doc(id: '1', model: {}));
         await db.put(
@@ -45,7 +45,7 @@ List<Function(FoodbTestContext)> allDocTest() {
       });
     },
     (FoodbTestContext ctx) {
-      test("all docs with startkey and endkey", () async {
+      test('all docs with startkey and endkey', () async {
         final db = await ctx.db('all-docs-with-startkey-and-endkey');
         await db.put(doc: Doc(id: 'a', model: {}));
         await db.put(doc: Doc(id: 'b', model: {}));
@@ -59,7 +59,7 @@ List<Function(FoodbTestContext)> allDocTest() {
       });
     },
     (FoodbTestContext ctx) {
-      test("all docs with descending", () async {
+      test('all docs with descending', () async {
         final db = await ctx.db('all-docs-with-descending');
         await db.put(doc: Doc(id: 'a', model: {}));
         await db.put(doc: Doc(id: 'b', model: {}));
@@ -80,7 +80,7 @@ List<Function(FoodbTestContext)> allDocTest() {
       });
     },
     (FoodbTestContext ctx) {
-      test("all docs with descending and no inclusive end", () async {
+      test('all docs with descending and no inclusive end', () async {
         final db = await ctx.db('all-docs-with-descending');
         await db.put(doc: Doc(id: 'a', model: {}));
         await db.put(doc: Doc(id: 'b', model: {}));
@@ -102,7 +102,7 @@ List<Function(FoodbTestContext)> allDocTest() {
       });
     },
     (FoodbTestContext ctx) {
-      test("all docs with startkey only", () async {
+      test('all docs with startkey only', () async {
         final db = await ctx.db('all-docs-with-startkey-only');
         await db.put(doc: Doc(id: 'a', model: {}));
         await db.put(doc: Doc(id: 'b', model: {}));
@@ -119,7 +119,7 @@ List<Function(FoodbTestContext)> allDocTest() {
       });
     },
     (FoodbTestContext ctx) {
-      test("all docs with endkey only", () async {
+      test('all docs with endkey only', () async {
         final db = await ctx.db('all-docs-with-endkey-only');
         await db.put(doc: Doc(id: 'a', model: {}));
         await db.put(doc: Doc(id: 'b', model: {}));

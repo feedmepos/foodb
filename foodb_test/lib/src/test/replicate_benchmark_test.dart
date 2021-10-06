@@ -1,6 +1,6 @@
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 import 'package:foodb/foodb.dart';
-import 'package:foodb/foodb_test.dart';
+import 'package:foodb_test/foodb_test.dart';
 import 'package:foodb/replicate.dart';
 
 void main() async {
@@ -10,16 +10,16 @@ void main() async {
   replicateBenchmarkTest(3000, 10, CouchdbTestContext());
 }
 
-replicateBenchmarkTest(
+void replicateBenchmarkTest(
     int batchSize, int thousand, FoodbTestContext targetCtx) {
-  String toType = targetCtx.runtimeType.toString();
+  var toType = targetCtx.runtimeType.toString();
 
   test('Couchdb to $toType: ${thousand}k-benchmark', () async {
-    final from = await getCouchDb("a-${thousand}k", persist: true);
+    final from = await getCouchDb('a-${thousand}k', persist: true);
     final to = await targetCtx.db('test-benchmark-${thousand}k');
 
-    Stopwatch totalStopWatch = new Stopwatch()..start();
-    Stopwatch cycleStopWatch = new Stopwatch()..start();
+    var totalStopWatch = Stopwatch()..start();
+    var cycleStopWatch = Stopwatch()..start();
     var fn = expectAsync1((res) async {
       totalStopWatch.stop();
       print('done: ${totalStopWatch.elapsed.inSeconds}');

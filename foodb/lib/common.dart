@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'dart:convert';
 import 'package:crypto/crypto.dart' as crypto;
@@ -74,7 +73,6 @@ class Rev {
 }
 
 //@JsonSerializable(explicitToJson: true, genericArgumentFactories: true)
-@immutable
 class Doc<T> {
   final String id;
   final Rev? rev;
@@ -175,7 +173,6 @@ class Doc<T> {
 }
 
 @JsonSerializable()
-@immutable
 class Revisions {
   final int start;
   final List<String> ids;
@@ -189,7 +186,6 @@ class Revisions {
 }
 
 @JsonSerializable()
-@immutable
 class RevsInfo {
   @JsonKey(fromJson: RevFromJsonString, toJson: RevToJsonString)
   final Rev rev;

@@ -1,14 +1,12 @@
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 import 'package:foodb/collate.dart';
 
-/**
- * https://docs.couchdb.org/en/main/ddocs/views/collation.html#all-docs
- * https://pouchdb.com/faq.html#couchdb_differences
- * 
- * due to different of collation behaviour between view and alldoc in couchdb.
- * and requirement to run foodb in different database adapter
- * we've decided to follow pouchdb design, where string sorting is by ascii
- */
+/// https://docs.couchdb.org/en/main/ddocs/views/collation.html#all-docs
+/// https://pouchdb.com/faq.html#couchdb_differences
+///
+/// due to different of collation behaviour between view and alldoc in couchdb.
+/// and requirement to run foodb in different database adapter
+/// we've decided to follow pouchdb design, where string sorting is by ascii
 List<dynamic> couchdbCollations = [
   null,
   false,
@@ -25,18 +23,18 @@ List<dynamic> couchdbCollations = [
   'b',
   'ba',
   'bb',
-  ["a"],
-  ["b"],
-  ["b", "c"],
-  ["b", "c", "a"],
-  ["b", "d"],
-  ["b", "d", "e"],
-  {"a": 1},
-  {"a": 2},
-  {"b": 1},
-  {"b": 2},
-  {"b": 2, "a": 1},
-  {"b": 2, "c": 2},
+  ['a'],
+  ['b'],
+  ['b', 'c'],
+  ['b', 'c', 'a'],
+  ['b', 'd'],
+  ['b', 'd', 'e'],
+  {'a': 1},
+  {'a': 2},
+  {'b': 1},
+  {'b': 2},
+  {'b': 2, 'a': 1},
+  {'b': 2, 'c': 2},
 ];
 
 void main() {

@@ -1,6 +1,6 @@
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 import 'package:foodb/foodb.dart';
-import '../foodb_test.dart';
+import 'package:foodb_test/foodb_test.dart';
 
 void main() {
   final ctx = CouchdbTestContext();
@@ -23,8 +23,7 @@ List<Function(FoodbTestContext)> utilTest() {
     (FoodbTestContext ctx) {
       test('EnsureFullCommit In CouchDB adish', () async {
         final db = await ctx.db('ensure-commit');
-        EnsureFullCommitResponse ensureFullCommitResponse =
-            await db.ensureFullCommit();
+        var ensureFullCommitResponse = await db.ensureFullCommit();
         expect(ensureFullCommitResponse.ok, isTrue);
       });
     },
@@ -35,7 +34,7 @@ List<Function(FoodbTestContext)> utilTest() {
         try {
           await db.info();
         } catch (err) {
-          expectAsync0(() => expect(err, isInstanceOf<AdapterException>()))();
+          expectAsync0(() => expect(err, isA<AdapterException>()))();
         }
       });
     },
@@ -60,8 +59,8 @@ List<Function(FoodbTestContext)> utilTest() {
                 model: {}),
             newEdits: false);
 
-        Map<String, RevsDiff> revsDiff = await db.revsDiff(body: {
-          "a": [
+        var revsDiff = await db.revsDiff(body: {
+          'a': [
             Rev.fromString('1-a'),
             Rev.fromString('2-a'),
             Rev.fromString('3-a'),
@@ -69,7 +68,7 @@ List<Function(FoodbTestContext)> utilTest() {
             Rev.fromString('5-a')
           ]
         });
-        expect(revsDiff["a"]!.missing.length, 2);
+        expect(revsDiff['a']!.missing.length, 2);
       });
     }
   ];

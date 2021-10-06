@@ -1,4 +1,4 @@
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 import 'package:foodb/key_value_adapter.dart';
 
 import 'foodb_objectbox_adapter_test.dart';
@@ -39,7 +39,7 @@ void main() {
         desc: false,
         inclusiveEnd: true,
         inclusiveStart: true);
-    var all = await adapter.read(DocKey(),
+    await adapter.read(DocKey(),
         desc: false, inclusiveEnd: true, inclusiveStart: true);
     expect(result.records, isNotEmpty);
   });

@@ -1,4 +1,4 @@
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 import 'package:foodb/common.dart';
 import 'package:foodb/foodb.dart';
 import 'package:foodb/key_value/common.dart';
@@ -8,24 +8,16 @@ void main() {
     DocHistory history = DocHistory(
         id: 'a',
         docs: {
-          "1-a": InternalDoc(
-              rev: Rev.fromString("1-a"),
-              deleted: false,
+          "1-a": InternalDoc(rev: Rev.fromString("1-a"), deleted: false,
               //localSeq: "1",
               data: {}),
-          "2-b": InternalDoc(
-              rev: Rev.fromString("2-b"),
-              deleted: false,
+          "2-b": InternalDoc(rev: Rev.fromString("2-b"), deleted: false,
               //localSeq: "2",
               data: {}),
-          "3-c": InternalDoc(
-              rev: Rev.fromString("3-c"),
-              deleted: false,
+          "3-c": InternalDoc(rev: Rev.fromString("3-c"), deleted: false,
               //localSeq: "3",
               data: {}),
-          "4-d": InternalDoc(
-              rev: Rev.fromString("4-d"),
-              deleted: false,
+          "4-d": InternalDoc(rev: Rev.fromString("4-d"), deleted: false,
               //localSeq: "4",
               data: {})
         },
@@ -39,8 +31,13 @@ void main() {
               rev: Rev.fromString('4-d'), prevRev: Rev.fromString('3-c'))
         ]));
 
-    RevsDiff revsDiff =
-        await history.revsDiff([Rev.fromString("1-a"), Rev.fromString("4-c"), Rev.fromString("1-c"), Rev.fromString("4-d"), Rev.fromString("5-e")]);
+    RevsDiff revsDiff = await history.revsDiff([
+      Rev.fromString("1-a"),
+      Rev.fromString("4-c"),
+      Rev.fromString("1-c"),
+      Rev.fromString("4-d"),
+      Rev.fromString("5-e")
+    ]);
 
     expect(history.docs.length, equals(4));
 
@@ -52,22 +49,14 @@ void main() {
     DocHistory history = DocHistory(
         id: 'a',
         docs: {
-          "1-a": InternalDoc(
-              rev: Rev.fromString("1-a"),
-              deleted: false,
-              data: {}),
-          "2-b": InternalDoc(
-              rev: Rev.fromString("2-b"),
-              deleted: false,
-              data: {}),
-          "3-c": InternalDoc(
-              rev: Rev.fromString("3-c"),
-              deleted: false,
-              data: {}),
-          "4-d": InternalDoc(
-              rev: Rev.fromString("4-d"),
-              deleted: false,
-              data: {})
+          "1-a":
+              InternalDoc(rev: Rev.fromString("1-a"), deleted: false, data: {}),
+          "2-b":
+              InternalDoc(rev: Rev.fromString("2-b"), deleted: false, data: {}),
+          "3-c":
+              InternalDoc(rev: Rev.fromString("3-c"), deleted: false, data: {}),
+          "4-d":
+              InternalDoc(rev: Rev.fromString("4-d"), deleted: false, data: {})
         },
         revisions: RevisionTree(nodes: [
           RevisionNode(rev: Rev.fromString("1-a")),
@@ -93,21 +82,13 @@ void main() {
           id: 'a',
           docs: {
             "1-a": InternalDoc(
-                rev: Rev.fromString("1-a"),
-                deleted: false,
-                data: {}),
+                rev: Rev.fromString("1-a"), deleted: false, data: {}),
             "2-b": InternalDoc(
-                rev: Rev.fromString("2-b"),
-                deleted: false,
-                data: {}),
+                rev: Rev.fromString("2-b"), deleted: false, data: {}),
             "3-c": InternalDoc(
-                rev: Rev.fromString("3-c"),
-                deleted: false,
-                data: {}),
+                rev: Rev.fromString("3-c"), deleted: false, data: {}),
             "4-d": InternalDoc(
-                rev: Rev.fromString("4-d"),
-                deleted: false,
-                data: {})
+                rev: Rev.fromString("4-d"), deleted: false, data: {})
           },
           revisions: RevisionTree(nodes: [
             RevisionNode(rev: Rev.fromString("1-a")),
@@ -131,21 +112,13 @@ void main() {
           id: 'a',
           docs: {
             "1-a": InternalDoc(
-                rev: Rev.fromString("1-a"),
-                deleted: false,
-                data: {}),
+                rev: Rev.fromString("1-a"), deleted: false, data: {}),
             "2-b": InternalDoc(
-                rev: Rev.fromString("2-b"),
-                deleted: false,
-                data: {}),
+                rev: Rev.fromString("2-b"), deleted: false, data: {}),
             "3-c": InternalDoc(
-                rev: Rev.fromString("3-c"),
-                deleted: false,
-                data: {}),
+                rev: Rev.fromString("3-c"), deleted: false, data: {}),
             "4-d": InternalDoc(
-                rev: Rev.fromString("2-d"),
-                deleted: false,
-                data: {})
+                rev: Rev.fromString("2-d"), deleted: false, data: {})
           },
           revisions: RevisionTree(nodes: [
             RevisionNode(rev: Rev.fromString("1-a")),
@@ -168,21 +141,13 @@ void main() {
           id: 'a',
           docs: {
             "1-a": InternalDoc(
-                rev: Rev.fromString("1-a"),
-                deleted: false,
-                data: {}),
+                rev: Rev.fromString("1-a"), deleted: false, data: {}),
             "2-b": InternalDoc(
-                rev: Rev.fromString("2-b"),
-                deleted: false,
-                data: {}),
+                rev: Rev.fromString("2-b"), deleted: false, data: {}),
             "3-c": InternalDoc(
-                rev: Rev.fromString("2-d"),
-                deleted: false,
-                data: {}),
+                rev: Rev.fromString("2-d"), deleted: false, data: {}),
             "4-d": InternalDoc(
-                rev: Rev.fromString("2-c"),
-                deleted: false,
-                data: {})
+                rev: Rev.fromString("2-c"), deleted: false, data: {})
           },
           revisions: RevisionTree(nodes: [
             RevisionNode(rev: Rev.fromString("1-a")),
@@ -206,21 +171,13 @@ void main() {
           id: 'a',
           docs: {
             "1-a": InternalDoc(
-                rev: Rev.fromString("1-a"),
-                deleted: false,
-                data: {}),
+                rev: Rev.fromString("1-a"), deleted: false, data: {}),
             "2-b": InternalDoc(
-                rev: Rev.fromString("2-b"),
-                deleted: false,
-                data: {}),
+                rev: Rev.fromString("2-b"), deleted: false, data: {}),
             "3-c": InternalDoc(
-                rev: Rev.fromString("2-d"),
-                deleted: true,
-                data: {}),
+                rev: Rev.fromString("2-d"), deleted: true, data: {}),
             "4-d": InternalDoc(
-                rev: Rev.fromString("2-c"),
-                deleted: false,
-                data: {})
+                rev: Rev.fromString("2-c"), deleted: false, data: {})
           },
           revisions: RevisionTree(nodes: [
             RevisionNode(rev: Rev.fromString("1-a")),

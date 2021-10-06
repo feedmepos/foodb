@@ -1,6 +1,6 @@
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 import 'package:foodb/foodb.dart';
-import '../foodb_test.dart';
+import 'package:foodb_test/foodb_test.dart';
 
 void main() {
   final ctx = CouchdbTestContext();
@@ -23,7 +23,7 @@ List<Function(FoodbTestContext)> changeStreamTest() {
         await db.put(doc: Doc(id: 'a', model: {}));
         await db.put(doc: Doc(id: 'b', model: {}));
 
-        db.changesStream(ChangeRequest(feed: ChangeFeed.normal),
+        await db.changesStream(ChangeRequest(feed: ChangeFeed.normal),
             onResult: resultFn, onComplete: completefn);
         await Future.delayed(Duration(milliseconds: 500),
             () async => db.bulkDocs(body: [Doc(id: 'c', model: {})]));
@@ -40,7 +40,7 @@ List<Function(FoodbTestContext)> changeStreamTest() {
         await db.put(doc: Doc(id: 'a', model: {}));
         await db.put(doc: Doc(id: 'b', model: {}));
 
-        db.changesStream(ChangeRequest(feed: ChangeFeed.normal, limit: 1),
+        await db.changesStream(ChangeRequest(feed: ChangeFeed.normal, limit: 1),
             onResult: resultFn, onComplete: completefn);
         await Future.delayed(Duration(milliseconds: 500),
             () async => db.bulkDocs(body: [Doc(id: 'c', model: {})]));
@@ -57,7 +57,7 @@ List<Function(FoodbTestContext)> changeStreamTest() {
         await db.put(doc: Doc(id: 'a', model: {}));
         await db.put(doc: Doc(id: 'b', model: {}));
 
-        db.changesStream(ChangeRequest(feed: ChangeFeed.longpoll),
+        await db.changesStream(ChangeRequest(feed: ChangeFeed.longpoll),
             onResult: resultFn, onComplete: completefn);
         await Future.delayed(Duration(milliseconds: 500),
             () async => db.bulkDocs(body: [Doc(id: 'c', model: {})]));
@@ -74,8 +74,10 @@ List<Function(FoodbTestContext)> changeStreamTest() {
         await db.put(doc: Doc(id: 'a', model: {}));
         await db.put(doc: Doc(id: 'b', model: {}));
 
-        db.changesStream(ChangeRequest(feed: ChangeFeed.longpoll, limit: 1),
-            onResult: resultFn, onComplete: completefn);
+        await db.changesStream(
+            ChangeRequest(feed: ChangeFeed.longpoll, limit: 1),
+            onResult: resultFn,
+            onComplete: completefn);
         await Future.delayed(Duration(milliseconds: 500),
             () async => db.bulkDocs(body: [Doc(id: 'c', model: {})]));
       });
@@ -89,8 +91,10 @@ List<Function(FoodbTestContext)> changeStreamTest() {
         var resultFn = expectAsync1((p0) => {}, count: 1);
         await db.put(doc: Doc(id: 'a', model: {}));
         await db.put(doc: Doc(id: 'b', model: {}));
-        db.changesStream(ChangeRequest(feed: ChangeFeed.longpoll, since: 'now'),
-            onResult: resultFn, onComplete: completefn);
+        await db.changesStream(
+            ChangeRequest(feed: ChangeFeed.longpoll, since: 'now'),
+            onResult: resultFn,
+            onComplete: completefn);
         await Future.delayed(Duration(milliseconds: 500),
             () async => db.bulkDocs(body: [Doc(id: 'c', model: {})]));
       });
@@ -102,7 +106,7 @@ List<Function(FoodbTestContext)> changeStreamTest() {
         await db.put(doc: Doc(id: 'a', model: {}));
         await db.put(doc: Doc(id: 'b', model: {}));
 
-        db.changesStream(ChangeRequest(feed: ChangeFeed.continuous),
+        await db.changesStream(ChangeRequest(feed: ChangeFeed.continuous),
             onResult: resultFn);
         await Future.delayed(
             Duration(milliseconds: 500),

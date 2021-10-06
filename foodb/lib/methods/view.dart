@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:foodb/foodb.dart';
 import 'package:json_annotation/json_annotation.dart';
 

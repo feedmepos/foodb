@@ -1,6 +1,6 @@
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 import 'package:foodb/foodb.dart';
-import '../foodb_test.dart';
+import 'package:foodb_test/foodb_test.dart';
 
 void main() {
   // final ctx = CouchdbTestContext();
@@ -17,10 +17,9 @@ List<Function(FoodbTestContext)> findTest() {
         final db = await ctx.db('fetch-design-doc');
         await db.createIndex(
             index: QueryViewOptionsDef(fields: ['name']),
-            ddoc: "type_user_name",
+            ddoc: 'type_user_name',
             name: 'index_by_name');
-        Doc<DesignDoc>? designDoc =
-            await db.fetchDesignDoc(id: "_design/type_user_name");
+        var designDoc = await db.fetchDesignDoc(id: '_design/type_user_name');
         expect(designDoc, isNotNull);
         expect(designDoc!.model.language, 'query');
         var view = designDoc.model.views['index_by_name'];
@@ -38,47 +37,46 @@ List<Function(FoodbTestContext)> findTest() {
       test('fetchDesignDocs()', () async {
         final db = await ctx.db('fetch-all-design-docs');
         await db.createIndex(
-            index: QueryViewOptionsDef(fields: ['_id']), ddoc: "type_user_id");
+            index: QueryViewOptionsDef(fields: ['_id']), ddoc: 'type_user_id');
         await db.createIndex(
             index: QueryViewOptionsDef(fields: ['name']),
-            ddoc: "type_user_name");
+            ddoc: 'type_user_name');
         List<Doc<DesignDoc>?> designDoc = await db.fetchAllDesignDocs();
         expect(designDoc.length, equals(2));
       });
     },
     (FoodbTestContext ctx) {
-      test("view", () async {
+      test('view', () async {
         final db = await ctx.db('view');
-        await db.put(doc: Doc(id: "a", model: {"name": "a", "no": 99}));
-        await db.put(doc: Doc(id: "b", model: {"name": "b", "no": 88}));
+        await db.put(doc: Doc(id: 'a', model: {'name': 'a', 'no': 99}));
+        await db.put(doc: Doc(id: 'b', model: {'name': 'b', 'no': 88}));
 
         //"-" is not allowed as index name
-        IndexResponse indexResponse = await db.createIndex(
+        var indexResponse = await db.createIndex(
             index: QueryViewOptionsDef(fields: ['name', 'no']),
-            ddoc: "name_view",
-            name: "name_index");
+            ddoc: 'name_view',
+            name: 'name_index');
         expect(indexResponse, isNotNull);
         var query = GetViewRequest(
             startkey: ['a', 100], endkey: ['b\ufff0', 77], includeDocs: true);
-        GetViewResponse<Map<String, dynamic>> result =
-            await db.view("name_view", "name_index", query, (json) => json);
+        var result =
+            await db.view('name_view', 'name_index', query, (json) => json);
         expect(result.rows.length, equals(1));
-        await db.put(doc: Doc(id: "c", model: {"name": "b", "no": 77}));
+        await db.put(doc: Doc(id: 'c', model: {'name': 'b', 'no': 77}));
 
-        GetViewResponse<Map<String, dynamic>> result2 =
-            await db.view("name_view", "name_index", query, (json) => json);
+        var result2 =
+            await db.view('name_view', 'name_index', query, (json) => json);
         expect(result2.rows.length, equals(2));
       });
     },
     (FoodbTestContext ctx) {
       test('create with indexFields only', () async {
         final db = await ctx.db('index');
-        IndexResponse indexResponse =
+        var indexResponse =
             await db.createIndex(index: QueryViewOptionsDef(fields: ['_id']));
         expect(indexResponse, isNotNull);
 
-        Doc<Map<String, dynamic>>? doc =
-            await db.get(id: indexResponse.id, fromJsonT: (json) => json);
+        var doc = await db.get(id: indexResponse.id, fromJsonT: (json) => json);
         expect(doc, isNotNull);
       });
     },
@@ -86,27 +84,25 @@ List<Function(FoodbTestContext)> findTest() {
       test('find()', () async {
         final db = await ctx.db('find');
         await db.createIndex(index: QueryViewOptionsDef(fields: ['_id']));
-        await db.put(doc: Doc(id: "user_123", model: {}));
-        FindResponse<Map<String, dynamic>> findResponse =
-            await db.find<Map<String, dynamic>>(
-                FindRequest(selector: {
-                  '_id': {'\$regex': '^user'}
-                }, sort: [
-                  {"_id": "asc"}
-                ]),
-                (json) => json);
-        expect(findResponse.docs.length > 0, isTrue);
+        await db.put(doc: Doc(id: 'user_123', model: {}));
+        var findResponse = await db.find<Map<String, dynamic>>(
+            FindRequest(selector: {
+              '_id': {'\$regex': '^user'}
+            }, sort: [
+              {'_id': 'asc'}
+            ]),
+            (json) => json);
+        expect(findResponse.docs.isNotEmpty, isTrue);
       });
     },
     (FoodbTestContext ctx) {
       test('explain()', () async {
         final db = await ctx.db('explain');
         await db.createIndex(index: QueryViewOptionsDef(fields: ['_id']));
-        ExplainResponse explainResponse =
-            await db.explain(FindRequest(selector: {
+        var explainResponse = await db.explain(FindRequest(selector: {
           '_id': {'\$regex': '^user'}
         }, sort: [
-          {"_id": "asc"}
+          {'_id': 'asc'}
         ]));
         expect(explainResponse, isNotNull);
       });

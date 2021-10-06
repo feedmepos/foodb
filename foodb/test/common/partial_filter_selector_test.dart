@@ -1,6 +1,5 @@
 import 'dart:convert';
-import 'dart:math';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 import 'package:foodb/exception.dart';
 import 'package:foodb/selector.dart';
 
@@ -41,7 +40,8 @@ class SelectorBuilder {
       } else if (operator == null) {
         List<Operator> subList = [];
         entry.value.forEach((operatorStr, arg) {
-          final operator = getOperator(operatorStr,key: entry.key, expected: arg);
+          final operator =
+              getOperator(operatorStr, key: entry.key, expected: arg);
           if (operator is ConditionOperator) {
             subList.add(operator);
           } else {
@@ -71,15 +71,33 @@ void main() {
       "name": {"\$gt": 100, "\$lt": 300}
     });
     expect(operator.toJson(), {
-            '\$and': [
-              {'\$and': [{'no': {'\$gt': 100}}, {'no': {'\$lt': 300}}]},
-              {'\$and': [{'name': {'\$gt': 100}}, {'name': {'\$lt': 300}}]}
-            ]
-          });
-   expect(
+      '\$and': [
+        {
+          '\$and': [
+            {
+              'no': {'\$gt': 100}
+            },
+            {
+              'no': {'\$lt': 300}
+            }
+          ]
+        },
+        {
+          '\$and': [
+            {
+              'name': {'\$gt': 100}
+            },
+            {
+              'name': {'\$lt': 300}
+            }
+          ]
+        }
+      ]
+    });
+    expect(
         partialFilterSelector.value.evaluate({"no": 200, "name": 200}), true);
-   expect(
-        partialFilterSelector.value.evaluate({"no": 300, "name": 300}), false);  
+    expect(
+        partialFilterSelector.value.evaluate({"no": 300, "name": 300}), false);
   });
   test("test DFS with multiple and", () {
     SelectorBuilder partialFilterSelector = new SelectorBuilder();

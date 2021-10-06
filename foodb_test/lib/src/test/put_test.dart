@@ -1,6 +1,6 @@
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 import 'package:foodb/foodb.dart';
-import '../foodb_test.dart';
+import 'package:foodb_test/foodb_test.dart';
 
 void main() {
   final ctx = CouchdbTestContext();
@@ -16,58 +16,58 @@ List<Function(FoodbTestContext)> putTest() {
       test('with Rev should be success put', () async {
         final db = await ctx.db('put-new-edits-true');
         await db.put(
-            doc: Doc(id: "a", rev: Rev.fromString("1-a"), model: {}),
+            doc: Doc(id: 'a', rev: Rev.fromString('1-a'), model: {}),
             newEdits: false);
-        await db.put(doc: Doc(id: "a", rev: Rev.fromString("1-a"), model: {}));
+        await db.put(doc: Doc(id: 'a', rev: Rev.fromString('1-a'), model: {}));
 
         var doc = await db.get(id: 'a', fromJsonT: (json) => json);
         expect(doc!.rev, isNot(Rev.fromString('1-a')));
       });
     },
     (FoodbTestContext ctx) {
-      const id = "put-new-edits-false";
+      const id = 'put-new-edits-false';
       test('with Rev should be success put', () async {
         final db = await ctx.db('put-new-edits-false');
-        PutResponse putResponse = await db.put(
+        var putResponse = await db.put(
             doc: Doc(
                 id: id,
-                rev: Rev.fromString("1-bb"),
-                model: {"name": "wgg", "no": 300}),
+                rev: Rev.fromString('1-bb'),
+                model: {'name': 'wgg', 'no': 300}),
             newEdits: false);
 
         expect(putResponse.ok, isTrue);
       });
     },
     (FoodbTestContext ctx) {
-      const id = "put-new-edits-false";
+      const id = 'put-new-edits-false';
       test('without Rev should catch error', () async {
         final db = await ctx.db('put-new-edit-false-no-rev');
         try {
           await db.put(
-              doc: Doc(id: id, model: {"name": "wgg", "no": 300}),
+              doc: Doc(id: id, model: {'name': 'wgg', 'no': 300}),
               newEdits: false);
         } catch (err) {
-          expectAsync0(() => {expect(err, isInstanceOf<AdapterException>())})();
+          expectAsync0(() => {expect(err, isA<AdapterException>())})();
         }
       });
     },
     (FoodbTestContext ctx) {
-      const id = "put-new-edits-false";
+      const id = 'put-new-edits-false';
       test('empty revisions, create new history', () async {
         final db = await ctx.db('put-new-edit-false-empty-revisions');
         await db.put(
             doc: Doc(
                 id: id,
                 rev: Rev.fromString('1-a'),
-                model: {"name": "wgg", "no": 300}),
+                model: {'name': 'wgg', 'no': 300}),
             newEdits: false);
         await db.put(
             doc: Doc(
                 id: id,
                 rev: Rev.fromString('2-a'),
-                model: {"name": "wgg", "no": 300}),
+                model: {'name': 'wgg', 'no': 300}),
             newEdits: false);
-        Doc<Map<String, dynamic>>? doc = await db.get(
+        var doc = await db.get(
             id: id, fromJsonT: (val) => val, meta: true, revs: true);
         expect(doc, isNotNull);
         expect(doc!.conflicts!.length, 1);
@@ -76,23 +76,23 @@ List<Function(FoodbTestContext)> putTest() {
       });
     },
     (FoodbTestContext ctx) {
-      const id = "put-new-edits-false";
+      const id = 'put-new-edits-false';
       test('with revision, link to existing', () async {
         final db = await ctx.db('put-new-edits-false-with-reivisions');
         await db.put(
             doc: Doc(
                 id: id,
                 rev: Rev.fromString('1-a'),
-                model: {"name": "wgg", "no": 300}),
+                model: {'name': 'wgg', 'no': 300}),
             newEdits: false);
         await db.put(
             doc: Doc(
                 id: id,
                 rev: Rev.fromString('2-a'),
-                model: {"name": "wgg", "no": 300},
+                model: {'name': 'wgg', 'no': 300},
                 revisions: Revisions(start: 2, ids: ['a', 'a'])),
             newEdits: false);
-        Doc<Map<String, dynamic>>? doc = await db.get(
+        var doc = await db.get(
             id: id, fromJsonT: (val) => val, meta: true, revs: true);
         expect(doc, isNotNull);
         expect(doc!.conflicts, isNull);
@@ -102,18 +102,18 @@ List<Function(FoodbTestContext)> putTest() {
     },
     (FoodbTestContext ctx) {
       test(
-          "put 1-a. 2-a, 3-a, then put 3-a > 2-a > 1-a reivision, then put 3-a > 2-b > 1-b, should remain 3-a > 2-a > 1-a",
+          'put 1-a. 2-a, 3-a, then put 3-a > 2-a > 1-a reivision, then put 3-a > 2-b > 1-b, should remain 3-a > 2-a > 1-a',
           () async {
         final db = await ctx.db('put-with-update-revision');
 
         await db.put(
-            doc: Doc(id: "a", rev: Rev.fromString("1-a"), model: {}),
+            doc: Doc(id: 'a', rev: Rev.fromString('1-a'), model: {}),
             newEdits: false);
         await db.put(
-            doc: Doc(id: "a", rev: Rev.fromString("2-a"), model: {}),
+            doc: Doc(id: 'a', rev: Rev.fromString('2-a'), model: {}),
             newEdits: false);
         await db.put(
-            doc: Doc(id: "a", rev: Rev.fromString("3-a"), model: {}),
+            doc: Doc(id: 'a', rev: Rev.fromString('3-a'), model: {}),
             newEdits: false);
 
         var doc = await db.get(
@@ -125,8 +125,8 @@ List<Function(FoodbTestContext)> putTest() {
 
         await db.put(
             doc: Doc(
-                id: "a",
-                rev: Rev.fromString("3-a"),
+                id: 'a',
+                rev: Rev.fromString('3-a'),
                 model: {},
                 revisions: Revisions(ids: ['a', 'a', 'a'], start: 3)),
             newEdits: false);

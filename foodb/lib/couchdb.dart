@@ -167,8 +167,7 @@ class _Couchdb extends Foodb {
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_all_docs')));
     var req = jsonEncode(getViewRequest.toJson());
     var body = (await this.client.post(uriBuilder.build(),
-            body: jsonEncode(getViewRequest.toJson()),
-            headers: {'Content-Type': 'application/json'}))
+            body: req, headers: {'Content-Type': 'application/json'}))
         .body;
 
     return GetViewResponse<T>.fromJson(
