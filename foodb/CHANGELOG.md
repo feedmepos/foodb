@@ -1,3 +1,7 @@
+## 0.1.6
+* (fix) continuous change stream large document
+* (fix) replication lock
+
 ## 0.1.5
 * (add) expose change result event for replicate
 

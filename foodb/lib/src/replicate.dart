@@ -132,10 +132,12 @@ class _Replicator {
   }
 
   Future<void> run() async {
-    await _lock.synchronized(() {
-      if (isRunning || cancelled || pendingList.isEmpty) return;
+    final canRun = await _lock.synchronized(() {
+      if (isRunning) return false;
       isRunning = true;
+      return true;
     });
+    if (!canRun || cancelled || pendingList.isEmpty) return;
     try {
       DateTime startTime = DateTime.now();
       String sessionId = Uuid().v4();
