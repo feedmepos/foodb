@@ -1,3 +1,9 @@
+## 0.1.3
+* (fix) missing design_doc.g.dart
+
+## 0.1.2
+* (fix) _all_docs and _view request for couchdb 2.3.1
+
 ## 0.1.1
 * (change) update package class privacy
 
