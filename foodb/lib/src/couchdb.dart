@@ -123,12 +123,17 @@ class _Couchdb extends Foodb {
       List<ChangeResult> _results = [];
       subscription = streamedRes.listen((event) {
         if (request.feed == ChangeFeed.continuous) {
+          if (event.trim() != '') cache += event.trim();
           var items =
-              RegExp("^{\".*},?\n?\$", multiLine: true).allMatches(event);
-          items.forEach((i) {
-            var json = jsonDecode(event.substring(i.start, i.end).trim());
-            if (json['id'] != null) onResult?.call(ChangeResult.fromJson(json));
-          });
+              RegExp("^{\".*},?\n?\$", multiLine: true).allMatches(cache);
+          if (items.isNotEmpty) {
+            items.forEach((i) {
+              var json = jsonDecode(cache.substring(i.start, i.end).trim());
+              if (json['id'] != null)
+                onResult?.call(ChangeResult.fromJson(json));
+            });
+            cache = '';
+          }
         } else {
           cache += event;
           if (event.contains('last_seq')) {
