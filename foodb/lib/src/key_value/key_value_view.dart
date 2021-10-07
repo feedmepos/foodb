@@ -9,20 +9,26 @@ mixin _KeyValueView on _AbstractKeyValue {
         throw UnimplementedError();
       } else if (view is QueryDesignDocView) {
         final keysToIndex = view.map.fields.keys;
-        final objectKeys =
-            doc.data.keys.where((element) => keysToIndex.contains(element));
+        final objectKeys = doc.data.keys
+            .where((element) => keysToIndex.contains(element))
+            .toList();
+
         // object missing key, do not index;
-        if (objectKeys.length < keysToIndex.length) {
+        if (objectKeys.length < keysToIndex.toSet().length) {
           return resultMap;
         }
+
         resultMap.putIfAbsent(
             ViewKeyMeta(
-                key: keysToIndex.map((e) => doc.data[e]).toList(), docId: id),
+                docId: id,
+                key: keysToIndex
+                    .map((e) => e == "_id" ? id : doc.data[e])
+                    .toList()),
             () => null);
         return resultMap;
       } else if (view is AllDocDesignDocView) {
         resultMap.putIfAbsent(
-            ViewKeyMeta(key: id), () => {"rev": doc.rev.toString()});
+            ViewKeyMeta(docId: id, key: id), () => {"rev": doc.rev.toString()});
       } else {
         throw new UnimplementedError('Unknown Design Doc View');
       }

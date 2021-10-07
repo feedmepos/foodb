@@ -89,16 +89,29 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
 
   @override
   Future<ExplainResponse> explain(FindRequest findRequest) async {
-    throw UnimplementedError();
+    MapEntry<String, Doc<DesignDoc>> selectedView =
+        await _pickDesignDoc(findRequest.selector.keys().toSet());
+    QueryDesignDocView view =
+        selectedView.value.model.views[selectedView.key] as QueryDesignDocView;
+    return ExplainResponse(
+        index: Index(
+            ddoc: selectedView.value.id,
+            name: selectedView.key,
+            type: "json",
+            def: view.map.fields),
+        selector: findRequest.toJson(),
+        opts: Opts(conflicts: findRequest.conflicts, r:[findRequest.r],useIndex: [],bookmark: findRequest.bookmark??"nil",limit: findRequest.limit??25,skip: findRequest.skip??0,sort:findRequest.sort,fields:findRequest.fields??"all_fields"),
+        limit: findRequest.limit??25,
+        skip: findRequest.skip??0,
+        fields: findRequest.fields??"all_fields");
   }
 
   @override
   Future<FindResponse<T>> find<T>(FindRequest findRequest,
       T Function(Map<String, dynamic> p1) toJsonT) async {
-    List<String> inputKeys = findRequest.selector.keys();
     MapEntry<String, Doc<DesignDoc>> selectedView =
-        await _pickDesignDoc(inputKeys);
-    _generateView(selectedView.value);
+        await _pickDesignDoc(findRequest.selector.keys().toSet());
+    await _generateView(selectedView.value);
 
     var viewName = getViewName(
         designDocId: selectedView.value.id, viewId: selectedView.key);
@@ -121,14 +134,15 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
 
     Map<ViewKeyMetaKey, Map<String, dynamic>> filteredIndex = {};
     result.records.forEach((key, value) {
-      Map<String, dynamic> values = Map.fromIterables(docFields, key.key!.key is List ?key.key!.key: [key.key!.key]);
+      Map<String, dynamic> values = Map.fromIterables(
+          docFields, key.key!.key is List ? key.key!.key : [key.key!.key]);
       if (indexOperator.evaluate(values)) {
         filteredIndex[key] = value;
       }
     });
 
     var map = (await keyValueDb.getMany(
-        result.records.keys.map((e) => DocKey(key: e.key!.docId)).toList()));
+        filteredIndex.keys.map((e) => DocKey(key: e.key!.docId)).toList()));
     map.removeWhere((key, value) => value == null);
     var docHistories = map.values.map((value) => DocHistory.fromJson(value!));
 
@@ -162,7 +176,7 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
   }
 
   Future<MapEntry<String, Doc<DesignDoc>>> _pickDesignDoc(
-      List<String> inputKeys) async {
+      Set<String> inputKeys) async {
     List<Doc<DesignDoc>> docs = await fetchAllDesignDocs();
     Doc<DesignDoc>? winnerDoc;
     String? winnerViewId;
@@ -172,24 +186,25 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
     for (Doc<DesignDoc> doc in docs) {
       for (MapEntry entry in doc.model.views.entries) {
         if (entry.value is QueryDesignDocView) {
-          List<String> fields = entry.value.options.def.fields;
-          if (fields.length <= inputKeys.length + 1) {
+          Set<String> fields = entry.value.options.def.fields.toSet();
+          Set<String> matchingFields = inputKeys.contains("_id")
+              ? fields
+              : fields.where((element) => element != "_id").toSet();
+
+          //design docs fields less or equal to selector keys
+          if (matchingFields.length <= inputKeys.length) {
             bool allMatched = true;
-            for (String field in fields) {
-              if (!inputKeys.contains(field) && field != "_id") {
+            for (String field in matchingFields) {
+              if (!inputKeys.contains(field)) {
                 allMatched = false;
                 break;
               }
             }
             if (allMatched) {
-              int withIds = fields.length;
-              fields.removeWhere((element) => element == "_id");
-              int withoutIds = fields.length;
-
-              if (withoutIds > maxLength) {
+              if (matchingFields.length > maxLength) {
                 winnerViewId = entry.key;
                 winnerDoc = doc;
-                if (withIds == inputKeys.length) {
+                if (matchingFields.length == inputKeys.length) {
                   broke = true;
                   break;
                 }

@@ -3,8 +3,8 @@ import 'package:foodb/foodb.dart';
 import 'package:foodb_test/foodb_test.dart';
 
 void main() {
-  final ctx = CouchdbTestContext();
-  // final ctx = InMemoryTestContext();
+  // final ctx = CouchdbTestContext();
+  final ctx = InMemoryTestContext();
   findTest().forEach((t) {
     t(ctx);
   });
@@ -108,26 +108,47 @@ List<Function(FoodbTestContext)> findTest() {
     (FoodbTestContext ctx) {
       test('find()', () async {
         final db = await ctx.db('find');
-        await db.createIndex(index: QueryViewOptionsDef(fields: ['_id']));
-        await db.put(doc: Doc(id: 'user_123', model: {}));
-        FindResponse<Map<String, dynamic>> findResponse =
-            await db.find<Map<String, dynamic>>(
-                FindRequest(selector: RegexOperator(key:'_id',expected: '^user'), sort: [
+        await db.createIndex(
+            index: QueryViewOptionsDef(fields: ['name', 'no']));
+        await db.createIndex(
+            index: QueryViewOptionsDef(fields: ['_id', 'name', 'no']));
+        await db.put(doc: Doc(id: 'user_123', model: {'name': 'foo', 'no': 1}));
+        await db.put(
+            doc: Doc(id: 'admin_123', model: {'name': 'foo', 'no': 1}));
+        await db.put(doc: Doc(id: 'user_1234', model: {'name': 'foo'}));
+
+        var findResponse = await db.find<Map<String, dynamic>>(
+            FindRequest(
+                selector: AndOperator(operators: [
+                  GreaterThanOperator(key: 'no', expected: 0),
+                  AndOperator(operators: [EqualOperator(key: 'name', expected: 'foo')])
+                ]),
+                sort: [
                   {'_id': 'asc'}
                 ]),
-                (json) => json);
-        expect(findResponse.docs.length > 0, isTrue);
+            (json) => json);
+        
+        print(findResponse.docs[0].toJson((value) => value));
+        print(findResponse.docs[1].toJson((value) => value));
+        expect(findResponse.docs.length, equals(2));
       });
     },
     (FoodbTestContext ctx) {
       test('explain()', () async {
         final db = await ctx.db('explain');
-        await db.createIndex(index: QueryViewOptionsDef(fields: ['_id']));
-        ExplainResponse explainResponse =
-            await db.explain(FindRequest(selector: RegexOperator(key:'_id',expected: '^user',), sort: [
-          {'_id': 'asc'}
-        ]));
-        expect(explainResponse, isNotNull);
+        await db.createIndex(name: 'id-name-index', index: QueryViewOptionsDef(fields: ['_id','name']));
+        await db.createIndex(name: 'name-id-index',index: QueryViewOptionsDef(fields: ['name','_id']));
+        var explainResponse = await db.explain(FindRequest(
+            selector: AndOperator(operators: [
+              EqualOperator(key: 'name', expected: 'nasi'),
+              RegexOperator(
+              key: '_id',
+              expected: '^user',
+            )]),
+            sort: [
+              {'_id': 'asc'}
+            ]));
+        expect(explainResponse.index.name, 'id-name-index');
       });
     }
   ];

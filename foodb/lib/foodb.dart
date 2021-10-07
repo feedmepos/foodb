@@ -41,6 +41,7 @@ export 'package:foodb/src/methods/index.dart';
 export 'package:foodb/src/methods/info.dart';
 export 'package:foodb/src/methods/put.dart';
 export 'package:foodb/src/methods/revs_diff.dart';
+export 'package:foodb/src/selector.dart';
 export 'package:foodb/src/methods/server.dart';
 export 'package:foodb/src/methods/view.dart';
 

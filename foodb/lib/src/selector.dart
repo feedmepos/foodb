@@ -287,6 +287,7 @@ abstract class CombinationOperator extends Operator {
     operators.forEach((o) {
       list.addAll(o.keys());
     });
+    print(list);
     return list;
   }
 
@@ -376,9 +377,9 @@ class SelectorBuilder {
     json.entries.forEach((element) {
       subList.add(DFS(Map.fromEntries([element])));
     });
-    if (subList.length > 1)
+    if (subList.length > 1) {
       this.value = AndOperator(operators: subList);
-    else {
+    } else {
       this.value = subList.first;
     }
 
@@ -394,12 +395,8 @@ class SelectorBuilder {
           subList.add(DFS(e));
         });
         operator.operators = subList;
-        if (this.value != null) {
-          this.value = AndOperator(operators: [this.value, operator]);
-          return this.value;
-        }
         this.value = operator;
-        return this.value;
+        return value;
       } else if (operator == null) {
         List<Operator> subList = [];
         entry.value.forEach((operatorStr, arg) {
@@ -412,9 +409,7 @@ class SelectorBuilder {
           }
         });
         if (subList.length > 1) {
-          final andOperator = AndOperator();
-          andOperator.operators = subList;
-          return andOperator;
+          return AndOperator(operators: subList);
         } else {
           return subList[0];
         }
@@ -422,6 +417,7 @@ class SelectorBuilder {
         throw AdapterException(error: "Invalid Format of Selector");
       }
     }
+
     return this.value;
   }
 }
