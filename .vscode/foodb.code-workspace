@@ -17,7 +17,7 @@
     "dart.allowTestsOutsideTestFolder": true,
     "files.exclude": {
       "foodb/": false,
-      "foodb_objectbox_adapter/": false,
+      "foodb_objectbox_adapter/": false
     }
   }
 }
