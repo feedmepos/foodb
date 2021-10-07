@@ -1,3 +1,6 @@
+## 0.1.5
+* (add) expose change result event for replicate
+
 ## 0.1.4
 * (change) improve replicate and change stream error handling using runZoned
 * (change) improve replicate api

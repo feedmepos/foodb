@@ -283,6 +283,10 @@ ReplicationStream replicate(
    */
   void Function(Object?, StackTrace? stackTrace) onError = defaultOnError,
   /**
+   * call when got a new change stream result
+   */
+  void Function(ChangeResult)? onResult,
+  /**
    * call when a non-continuous replication completed
    */
   void Function()? onComplete,
@@ -366,6 +370,7 @@ ReplicationStream replicate(
             timeout: timeout,
             seqInterval: continuous ? null : maxBatchSize - 1,
             since: startSeq), onResult: (result) async {
+      onResult?.call(result);
       if (continuous) {
         replicator.pendingList.add(result);
         timer.cancel();
