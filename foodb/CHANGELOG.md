@@ -1,3 +1,13 @@
+## 0.1.1
+* (change) update package class privacy
+
+## 0.1.0
+* (add) key value database basic operation and allDoc view
+* (add) objectbox as key value database implementation
+* (add) test suite project
+* (change) replication API
+* (change) Change API
+
 ## 0.0.5
 * revert fix on change stream timeout
 

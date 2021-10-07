@@ -1,6 +1,6 @@
 //for _index and _find func
 import 'package:collection/collection.dart';
-import 'package:foodb/foodb.dart';
+import 'package:foodb/src/exception.dart';
 
 abstract class Operator {
   late String operator;

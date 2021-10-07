@@ -1,6 +1,10 @@
 import 'dart:convert';
 
-import 'package:foodb/collate.dart';
+import 'package:foodb/src/key_value/collate.dart';
+import 'package:foodb/src/in_memory_adapter.dart';
+
+export 'package:foodb/src/key_value/collate.dart';
+export 'package:foodb/src/key_value/common.dart';
 
 class ReadResult<T extends AbstractKey> {
   int totalRows;
@@ -155,6 +159,10 @@ abstract class KeyValueAdapterSession {
 
 abstract class KeyValueAdapter<T extends KeyValueAdapterSession> {
   late String type;
+
+  static inMemory() {
+    return InMemoryAdapter();
+  }
 
   Future<bool> initDb();
 

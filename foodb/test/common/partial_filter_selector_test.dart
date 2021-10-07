@@ -1,6 +1,6 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:foodb/exception.dart';
-import 'package:foodb/selector.dart';
+import 'package:test/test.dart';
+import 'package:foodb/src/exception.dart';
+import 'package:foodb/src/selector.dart';
 
 class SelectorBuilder {
   var value;

@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:foodb/exception.dart';
-import 'package:foodb/selector.dart';
+import 'package:test/test.dart';
+import 'package:foodb/src/exception.dart';
+import 'package:foodb/src/selector.dart';
 
 void main() {
   test('and, equal', () {
@@ -173,7 +173,7 @@ void main() {
         final exists = ExistsOperator(key: "1", expected: "10");
         exists.evaluate({"1": 10});
       } catch (e) {
-        expect(e, isInstanceOf<AdapterException>());
+        expect(e, isA<AdapterException>());
       }
     });
     test("In Operator", () {
@@ -181,7 +181,7 @@ void main() {
         final inOperator = InOperator(key: "test", expected: "10");
         inOperator.evaluate({"test": 10});
       } catch (e) {
-        expect(e, isInstanceOf<AdapterException>());
+        expect(e, isA<AdapterException>());
       }
     });
     test("Not In Operator", () {
@@ -189,7 +189,7 @@ void main() {
         final inOperator = InOperator(key: "test", expected: {10: 10});
         inOperator.evaluate({"test": 10});
       } catch (e) {
-        expect(e, isInstanceOf<AdapterException>());
+        expect(e, isA<AdapterException>());
       }
     });
     test("Size operator", () {
@@ -199,7 +199,7 @@ void main() {
           "test": ["a"]
         });
       } catch (e) {
-        expect(e, isInstanceOf<AdapterException>());
+        expect(e, isA<AdapterException>());
       }
     });
 
@@ -208,7 +208,7 @@ void main() {
         final mod = ModOperator(key: "test", expected: [12.5, 12]);
         mod.evaluate({"test": 100});
       } catch (e) {
-        expect(e, isInstanceOf<AdapterException>());
+        expect(e, isA<AdapterException>());
       }
     });
 
@@ -217,7 +217,7 @@ void main() {
         final mod = ModOperator(key: "test", expected: 12);
         mod.evaluate({"test": "12"});
       } catch (e) {
-        expect(e, isInstanceOf<AdapterException>());
+        expect(e, isA<AdapterException>());
       }
     });
   });
@@ -232,6 +232,22 @@ void main() {
         .addAll([innerAnd, EqualOperator(key: "name", expected: "nasi lemak")]);
     expect(
         and.toJson(),
-        equals({"\$and": [{"\$and": [{"no": {"\$gt": 10}}, {"no": {"\$lt": 15}}]}, {"name": {"\$eq": "nasi lemak"}}]}));
+        equals({
+          "\$and": [
+            {
+              "\$and": [
+                {
+                  "no": {"\$gt": 10}
+                },
+                {
+                  "no": {"\$lt": 15}
+                }
+              ]
+            },
+            {
+              "name": {"\$eq": "nasi lemak"}
+            }
+          ]
+        }));
   });
 }

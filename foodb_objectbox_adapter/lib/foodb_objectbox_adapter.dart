@@ -2,7 +2,6 @@ library foodb_objectbox_adapter;
 
 import 'dart:convert';
 
-import 'package:foodb/collate.dart';
 import 'package:foodb/foodb.dart';
 import 'package:foodb/key_value_adapter.dart';
 import 'package:foodb_objectbox_adapter/object_box_entity.dart';
