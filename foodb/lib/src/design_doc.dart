@@ -1,7 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
 
-part 'design_doc.g.dart';
-
 class DesignDoc {
   String? language;
   Map<String, AbstracDesignDocView> views;
