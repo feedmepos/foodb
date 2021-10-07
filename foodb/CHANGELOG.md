@@ -1,3 +1,7 @@
+## 0.1.4
+* (change) improve replicate and change stream error handling using runZoned
+* (change) improve replicate api
+
 ## 0.1.3
 * (fix) missing design_doc.g.dart
 
