@@ -101,57 +101,61 @@ class _Couchdb extends Foodb {
   }
 
   @override
-  Future<ChangesStream> changesStream(ChangeRequest request,
-      {Function(ChangeResponse)? onComplete,
-      Function(ChangeResult)? onResult,
-      Function(Object?)? onError,
-      Function? onHearbeat}) async {
+  ChangesStream changesStream(
+    ChangeRequest request, {
+    Function(ChangeResponse)? onComplete,
+    Function(ChangeResult)? onResult,
+    Function(Object?, StackTrace? stackTrace) onError = defaultOnError,
+  }) {
     var changeClient = getClient();
     StreamSubscription? subscription;
-    try {
-      UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_changes')));
-      uriBuilder.queryParameters = convertToParams(request.toJson());
-      changeClient
-          .send(http.Request('get', uriBuilder.build()))
-          .onError((error, stackTrace) => onError?.call(error))
-          .then((res) {
-        var streamedRes = res.stream.transform(utf8.decoder);
-        String cache = "";
-        List<ChangeResult> _results = [];
-        subscription = streamedRes.listen((event) {
-          if (request.feed == ChangeFeed.continuous) {
-            var items =
-                RegExp("^{\".*},?\n?\$", multiLine: true).allMatches(event);
-            items.forEach((i) {
-              var json = jsonDecode(event.substring(i.start, i.end).trim());
-              if (json['id'] != null)
-                onResult?.call(ChangeResult.fromJson(json));
-            });
-          } else {
-            cache += event;
-            if (event.contains('last_seq')) {
-              Map<String, dynamic> map = jsonDecode(cache);
-              ChangeResponse changeResponse =
-                  new ChangeResponse(results: _results);
-              map['results'].forEach((r) {
-                final result = ChangeResult.fromJson(r);
-                changeResponse.results.add(result);
-                onResult?.call(result);
-              });
-              changeResponse.lastSeq = map['last_seq'];
-              changeResponse.pending = map['pending'];
-              onComplete?.call(changeResponse);
-            }
-          }
-        }, onError: onError);
-      });
-    } catch (err) {
-      onError?.call(err);
-    }
     var streamedResponse = ChangesStream(onCancel: () {
       changeClient.close();
       subscription?.cancel();
     });
+    runZonedGuarded(() async {
+      UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_changes')));
+      uriBuilder.queryParameters = convertToParams(request.toJson());
+      var res =
+          await changeClient.send(http.Request('get', uriBuilder.build()));
+      var streamedRes = res.stream.transform(utf8.decoder);
+      String cache = "";
+      List<ChangeResult> _results = [];
+      subscription = streamedRes.listen((event) {
+        if (request.feed == ChangeFeed.continuous) {
+          if (event.trim() != '') cache += event.trim();
+          var items =
+              RegExp("^{\".*},?\n?\$", multiLine: true).allMatches(cache);
+          if (items.isNotEmpty) {
+            items.forEach((i) {
+              var json = jsonDecode(cache.substring(i.start, i.end).trim());
+              if (json['id'] != null)
+                onResult?.call(ChangeResult.fromJson(json));
+            });
+            cache = '';
+          }
+        } else {
+          cache += event;
+          if (event.contains('last_seq')) {
+            Map<String, dynamic> map = jsonDecode(cache);
+            ChangeResponse changeResponse =
+                new ChangeResponse(results: _results);
+            map['results'].forEach((r) {
+              final result = ChangeResult.fromJson(r);
+              changeResponse.results.add(result);
+              onResult?.call(result);
+            });
+            changeResponse.lastSeq = map['last_seq'];
+            changeResponse.pending = map['pending'];
+            onComplete?.call(changeResponse);
+          }
+        }
+      }, onError: onError);
+    }, (e, s) {
+      streamedResponse.cancel();
+      onError(e, s);
+    });
+
     return streamedResponse;
   }
 

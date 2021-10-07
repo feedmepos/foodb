@@ -22,6 +22,7 @@ import 'package:foodb/src/methods/put.dart';
 import 'package:foodb/src/methods/revs_diff.dart';
 import 'package:foodb/src/methods/server.dart';
 import 'package:foodb/src/methods/view.dart';
+import 'package:foodb/src/replicate.dart';
 import 'package:http/http.dart' as http;
 import 'package:uri/uri.dart';
 
@@ -121,11 +122,12 @@ abstract class Foodb {
 
   Future<EnsureFullCommitResponse> ensureFullCommit();
 
-  Future<ChangesStream> changesStream(ChangeRequest request,
-      {Function(ChangeResponse)? onComplete,
-      Function(ChangeResult)? onResult,
-      Function(Object?)? onError,
-      Function? onHearbeat});
+  ChangesStream changesStream(
+    ChangeRequest request, {
+    Function(ChangeResponse)? onComplete,
+    Function(ChangeResult)? onResult,
+    Function(Object?, StackTrace? stackTrace) onError,
+  });
 
   Future<GetViewResponse<T>> allDocs<T>(GetViewRequest allDocsRequest,
       T Function(Map<String, dynamic> json) fromJsonT);
@@ -215,4 +217,8 @@ timed(String step, Function fn) async {
   await fn();
   stopwatch.stop();
   print('$step: ${stopwatch.elapsed.inMilliseconds}ms');
+}
+
+defaultOnError(Object? e, StackTrace? s) {
+  print('[EXCEPTION] $e, trace \n$s');
 }

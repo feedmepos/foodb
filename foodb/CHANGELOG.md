@@ -1,3 +1,20 @@
+## 0.1.6
+* (fix) continuous change stream large document
+* (fix) replication lock
+
+## 0.1.5
+* (add) expose change result event for replicate
+
+## 0.1.4
+* (change) improve replicate and change stream error handling using runZoned
+* (change) improve replicate api
+
+## 0.1.3
+* (fix) missing design_doc.g.dart
+
+## 0.1.2
+* (fix) _all_docs and _view request for couchdb 2.3.1
+
 ## 0.1.1
 * (change) update package class privacy
 

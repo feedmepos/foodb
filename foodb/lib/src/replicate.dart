@@ -1,79 +1,42 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+
 import "package:crypto/crypto.dart";
-import 'package:foodb/foodb.dart';
 import 'package:synchronized/synchronized.dart';
 import 'package:uuid/uuid.dart';
 
+import 'package:foodb/foodb.dart';
+
 final replicatorVersion = 1;
-emptyCallback() {}
 
-class ReplicationException implements Exception {
-  final String msg;
-  ReplicationException(this.msg);
-
-  @override
-  String toString() => 'ReplicationException(msg: $msg)';
-}
-
-abstract class ReplicationEvent {}
-
-class ReplicationCheckpointEvent extends ReplicationEvent {
+class ReplicationCheckpoint {
   Doc<ReplicationLog> log;
   List<ChangeResult> processed;
-  ReplicationCheckpointEvent(this.log, this.processed);
+  ReplicationCheckpoint({
+    required this.log,
+    required this.processed,
+  });
 }
 
-class ReplicationErrorEvent extends ReplicationEvent {
-  Object err;
-  ReplicationErrorEvent(Object this.err);
-}
+class ReplicationException implements Exception {
+  final Object? err;
+  ReplicationException(this.err);
 
-class ReplicationCompleteEvent extends ReplicationEvent {}
+  @override
+  String toString() => 'ReplicationException(msg: $err)';
+}
 
 class ReplicationStream {
-  Stream<ReplicationEvent> _stream;
   final void Function() onCancel;
-  final void Function() onRetry;
-  ReplicationStream(this._stream,
-      {required this.onCancel, required this.onRetry});
-
-  listen({
-    /**
-   * when counter error, can use the stream to decide retry or abort
-   */
-    void Function(ReplicationErrorEvent)? onError,
-    /**
-   * call when a non-continuous replication completed
-   */
-    void Function(ReplicationCompleteEvent)? onComplete,
-    /**
-   * call when completed a single checkpoint
-   */
-    void Function(ReplicationCheckpointEvent)? onCheckpoint,
-  }) {
-    _stream.listen((event) {
-      if (event is ReplicationCheckpointEvent) {
-        onCheckpoint?.call(event);
-      } else if (event is ReplicationCompleteEvent) {
-        onComplete?.call(event);
-      } else if (event is ReplicationErrorEvent) {
-        onError?.call(event);
-      }
-    });
-  }
+  ReplicationStream({required this.onCancel});
 
   abort() {
     this.onCancel();
   }
-
-  retry() {
-    this.onRetry();
-  }
 }
 
-_generateReplicationId(
+String _generateReplicationId(
     {String? sourceUuid,
     String? sourceUri,
     String? targetUuid,
@@ -156,13 +119,11 @@ class _Replicator {
   Foodb _target;
   late Doc<ReplicationLog> sourceLog;
   late Doc<ReplicationLog> targetLog;
-  void Function(Object)? onError;
-  void Function(Doc<ReplicationLog>, List<ChangeResult>)? onFinishCheckpoint;
+  void Function(ReplicationCheckpoint)? onFinishCheckpoint;
   _Replicator(
     this._source,
     this._target, {
     required this.maxBatchSize,
-    this.onError,
     this.onFinishCheckpoint,
   });
 
@@ -170,11 +131,13 @@ class _Replicator {
     cancelled = true;
   }
 
-  run() async {
-    await _lock.synchronized(() {
-      if (isRunning || cancelled || pendingList.isEmpty) return;
+  Future<void> run() async {
+    final canRun = await _lock.synchronized(() {
+      if (isRunning) return false;
       isRunning = true;
+      return true;
     });
+    if (!canRun || cancelled || pendingList.isEmpty) return;
     try {
       DateTime startTime = DateTime.now();
       String sessionId = Uuid().v4();
@@ -274,23 +237,29 @@ class _Replicator {
       // });
       pendingList = pendingList.sublist(toProcess.length);
       isRunning = false;
-      onFinishCheckpoint?.call(targetLog, toProcess);
-    } catch (err) {
+      onFinishCheckpoint
+          ?.call(ReplicationCheckpoint(log: targetLog, processed: toProcess));
+    } catch (e) {
       isRunning = false;
-      onError?.call(err);
+      rethrow;
     }
   }
 }
 
-Future<ReplicationStream> replicate(
+ReplicationStream replicate(
   Foodb source,
   Foodb target, {
+  /**
+   * override the auto generated replicateId
+   */
+  String? replicationId,
   /**
    * create target database if not exist
    */
   bool createTarget = false,
   /**
    * run in continuous mode, the replication will be a long running process
+   * however user are required to handle network error through onError callback
    */
   bool continuous = false,
   /**
@@ -311,116 +280,121 @@ Future<ReplicationStream> replicate(
    * timeout for ChangeRequest
    */
   int timeout = 30000,
-}) async {
-  StreamController<ReplicationEvent> _stream = new StreamController();
+  /**
+   * when counter error, can use the stream to decide retry or abort
+   */
+  void Function(Object?, StackTrace? stackTrace) onError = defaultOnError,
+  /**
+   * call when got a new change stream result
+   */
+  void Function(ChangeResult)? onResult,
+  /**
+   * call when a non-continuous replication completed
+   */
+  void Function()? onComplete,
+  /**
+   * call when completed a single checkpoint
+   */
+  void Function(ReplicationCheckpoint)? onCheckpoint,
+}) {
   late ReplicationStream resultStream;
-  late final _Replicator replicator;
-  ChangesStream? changeStream;
-  var timer = Timer(debounce, () {});
+  var _onError = (e, s) {
+    resultStream.abort();
+    onError(e, s);
+  };
 
-  replicator = _Replicator(source, target, maxBatchSize: maxBatchSize,
-      onFinishCheckpoint: (log, changes) {
-    if (!_stream.isClosed) {
-      _stream.sink.add(ReplicationCheckpointEvent(log, changes));
+  runZonedGuarded(() async {
+    late final _Replicator replicator;
+    ChangesStream? changeStream;
+    var timer = Timer(debounce, () {});
+    replicator = _Replicator(source, target, maxBatchSize: maxBatchSize,
+        onFinishCheckpoint: (checkpoint) async {
+      onCheckpoint?.call(checkpoint);
+
       if (replicator.pendingList.isNotEmpty) {
         replicator.run();
       } else {
         if (!continuous) {
-          _stream.sink.add(ReplicationCompleteEvent());
+          onComplete?.call();
         }
       }
-    }
-  }, onError: (err) {
-    if (!_stream.isClosed) _stream.sink.add(ReplicationErrorEvent(err));
-  });
-  resultStream = new ReplicationStream(_stream.stream, onCancel: () {
-    replicator.cancel();
-    changeStream?.cancel();
-    _stream.close();
-  }, onRetry: () {
-    if (changeStream == null) {
-      throw ReplicationException(
-          'unable to start change stream, please call replicate again');
-    }
-    replicator.run();
-  });
-  () async {
+    });
+    resultStream = new ReplicationStream(onCancel: () {
+      replicator.cancel();
+      changeStream?.cancel();
+    });
+    // prepare target
+    var sourceInstanceInfo = await source.serverInfo();
+    GetServerInfoResponse targetInstanceInfo = await target.serverInfo();
     try {
-      // prepare target
-      var sourceInstanceInfo = await source.serverInfo();
-      GetServerInfoResponse targetInstanceInfo = await target.serverInfo();
-      try {
-        await target.info();
-      } catch (err) {
-        if (createTarget) {
-          await target.initDb();
-        } else {
-          _stream.sink.add(ReplicationErrorEvent(err));
-        }
-      }
-
-      final replicationId = await _generateReplicationId(
-          sourceUuid: sourceInstanceInfo.uuid,
-          sourceUri: source.dbUri,
-          targetUuid: targetInstanceInfo.uuid,
-          targetUri: target.dbUri,
-          createTarget: createTarget,
-          continuous: continuous);
-
-      // get first start seq
-      var startSeq = '0';
-      final initialSourceLog =
-          await _retriveReplicationLog(source, replicationId);
-      replicator.sourceLog = initialSourceLog;
-      final initialTargetLog =
-          await _retriveReplicationLog(target, replicationId);
-      replicator.targetLog = initialTargetLog;
-      if (initialSourceLog.model.sessionId ==
-              initialTargetLog.model.sessionId &&
-          initialSourceLog.model.sessionId != "") {
-        startSeq = initialTargetLog.model.sourceLastSeq;
-      }
-      for (final historyA in initialTargetLog.model.history) {
-        if (initialSourceLog.model.history
-            .any((historyB) => historyB.sessionId == historyA.sessionId)) {
-          startSeq = historyA.recordedSeq;
-          break;
-        }
-      }
-
-      changeStream = await source.changesStream(
-          ChangeRequest(
-              feed: continuous ? ChangeFeed.continuous : ChangeFeed.normal,
-              style: 'all_docs',
-              heartbeat: heartbeat,
-              timeout: timeout,
-              seqInterval: continuous ? null : maxBatchSize - 1,
-              since: startSeq), onResult: (result) {
-        if (continuous) {
-          replicator.pendingList.add(result);
-          timer.cancel();
-          timer = Timer(debounce, replicator.run);
-          if (replicator.pendingList.length == maxBatchSize) {
-            timer.cancel();
-            replicator.run();
-          }
-        }
-      }, onComplete: (result) async {
-        if (!continuous) {
-          if (result.results.isEmpty) {
-            _stream.sink.add(ReplicationCompleteEvent());
-          } else {
-            result.results.last.seq =
-                result.lastSeq ?? (await source.info()).updateSeq;
-            ;
-            replicator.pendingList.addAll(result.results);
-            replicator.run();
-          }
-        }
-      });
+      await target.info();
     } catch (err) {
-      _stream.sink.add(ReplicationErrorEvent(err));
+      if (createTarget) {
+        await target.initDb();
+      } else {
+        throw ReplicationException(err);
+      }
     }
-  }();
+
+    replicationId ??= await _generateReplicationId(
+        sourceUuid: sourceInstanceInfo.uuid,
+        sourceUri: source.dbUri,
+        targetUuid: targetInstanceInfo.uuid,
+        targetUri: target.dbUri,
+        createTarget: createTarget,
+        continuous: continuous);
+
+    // get first start seq
+    var startSeq = '0';
+    final initialSourceLog =
+        await _retriveReplicationLog(source, replicationId);
+    replicator.sourceLog = initialSourceLog;
+    final initialTargetLog =
+        await _retriveReplicationLog(target, replicationId);
+    replicator.targetLog = initialTargetLog;
+    if (initialSourceLog.model.sessionId == initialTargetLog.model.sessionId &&
+        initialSourceLog.model.sessionId != "") {
+      startSeq = initialTargetLog.model.sourceLastSeq;
+    }
+    for (final historyA in initialTargetLog.model.history) {
+      if (initialSourceLog.model.history
+          .any((historyB) => historyB.sessionId == historyA.sessionId)) {
+        startSeq = historyA.recordedSeq;
+        break;
+      }
+    }
+
+    changeStream = await source.changesStream(
+        ChangeRequest(
+            feed: continuous ? ChangeFeed.continuous : ChangeFeed.normal,
+            style: 'all_docs',
+            heartbeat: heartbeat,
+            timeout: timeout,
+            seqInterval: continuous ? null : maxBatchSize - 1,
+            since: startSeq), onResult: (result) async {
+      onResult?.call(result);
+      if (continuous) {
+        replicator.pendingList.add(result);
+        timer.cancel();
+        timer = Timer(debounce, replicator.run);
+        if (replicator.pendingList.length == maxBatchSize) {
+          timer.cancel();
+          replicator.run();
+        }
+      }
+    }, onComplete: (result) async {
+      if (!continuous) {
+        if (result.results.isEmpty) {
+          onComplete?.call();
+        } else {
+          result.results.last.seq =
+              result.lastSeq ?? (await source.info()).updateSeq;
+          ;
+          replicator.pendingList.addAll(result.results);
+          replicator.run();
+        }
+      }
+    }, onError: _onError);
+  }, _onError);
   return resultStream;
 }
