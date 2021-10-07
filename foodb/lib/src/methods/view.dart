@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:foodb/foodb.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -64,8 +66,8 @@ class GetViewRequest {
   @JsonKey(name: 'inclusive_end')
   bool? inclusiveEnd;
 
-  Object? key;
-  List<Object>? keys;
+  dynamic key;
+  List<dynamic>? keys;
   int? limit;
   bool? reduce;
   int? skip;
@@ -100,6 +102,7 @@ class GetViewRequest {
     this.update,
     this.updateSeq,
   });
+
   factory GetViewRequest.fromJson(Map<String, dynamic> json) =>
       _$GetViewRequestFromJson(json);
   Map<String, dynamic> toJson() {

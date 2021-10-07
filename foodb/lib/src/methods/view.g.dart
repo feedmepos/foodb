@@ -76,7 +76,7 @@ GetViewRequest _$GetViewRequestFromJson(Map<String, dynamic> json) {
     attEncodingInfo: json['att_encoding_info'] as bool?,
     inclusiveEnd: json['inclusive_end'] as bool?,
     key: json['key'],
-    keys: (json['keys'] as List<dynamic>?)?.map((e) => e as Object).toList(),
+    keys: json['keys'] as List<dynamic>?,
     limit: json['limit'] as int?,
     reduce: json['reduce'] as bool?,
     skip: json['skip'] as int?,

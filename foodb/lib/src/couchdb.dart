@@ -111,38 +111,40 @@ class _Couchdb extends Foodb {
     try {
       UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_changes')));
       uriBuilder.queryParameters = convertToParams(request.toJson());
-      var res = await changeClient
+      changeClient
           .send(http.Request('get', uriBuilder.build()))
-          .onError((error, stackTrace) => onError?.call(error));
-
-      var streamedRes = res.stream.transform(utf8.decoder);
-      String cache = "";
-      List<ChangeResult> _results = [];
-      subscription = streamedRes.listen((event) {
-        if (request.feed == ChangeFeed.continuous) {
-          var items =
-              RegExp("^{\".*},?\n?\$", multiLine: true).allMatches(event);
-          items.forEach((i) {
-            var json = jsonDecode(event.substring(i.start, i.end).trim());
-            if (json['id'] != null) onResult?.call(ChangeResult.fromJson(json));
-          });
-        } else {
-          cache += event;
-          if (event.contains('last_seq')) {
-            Map<String, dynamic> map = jsonDecode(cache);
-            ChangeResponse changeResponse =
-                new ChangeResponse(results: _results);
-            map['results'].forEach((r) {
-              final result = ChangeResult.fromJson(r);
-              changeResponse.results.add(result);
-              onResult?.call(result);
+          .onError((error, stackTrace) => onError?.call(error))
+          .then((res) {
+        var streamedRes = res.stream.transform(utf8.decoder);
+        String cache = "";
+        List<ChangeResult> _results = [];
+        subscription = streamedRes.listen((event) {
+          if (request.feed == ChangeFeed.continuous) {
+            var items =
+                RegExp("^{\".*},?\n?\$", multiLine: true).allMatches(event);
+            items.forEach((i) {
+              var json = jsonDecode(event.substring(i.start, i.end).trim());
+              if (json['id'] != null)
+                onResult?.call(ChangeResult.fromJson(json));
             });
-            changeResponse.lastSeq = map['last_seq'];
-            changeResponse.pending = map['pending'];
-            onComplete?.call(changeResponse);
+          } else {
+            cache += event;
+            if (event.contains('last_seq')) {
+              Map<String, dynamic> map = jsonDecode(cache);
+              ChangeResponse changeResponse =
+                  new ChangeResponse(results: _results);
+              map['results'].forEach((r) {
+                final result = ChangeResult.fromJson(r);
+                changeResponse.results.add(result);
+                onResult?.call(result);
+              });
+              changeResponse.lastSeq = map['last_seq'];
+              changeResponse.pending = map['pending'];
+              onComplete?.call(changeResponse);
+            }
           }
-        }
-      }, onError: onError);
+        }, onError: onError);
+      });
     } catch (err) {
       onError?.call(err);
     }
@@ -159,19 +161,6 @@ class _Couchdb extends Foodb {
             this.getUri('_ensure_full_commit'),
             headers: {'Content-Type': 'application/json'}))
         .body));
-  }
-
-  @override
-  Future<GetViewResponse<T>> allDocs<T>(GetViewRequest getViewRequest,
-      T Function(Map<String, dynamic> json) fromJsonT) async {
-    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_all_docs')));
-    var req = jsonEncode(getViewRequest.toJson());
-    var body = (await this.client.post(uriBuilder.build(),
-            body: req, headers: {'Content-Type': 'application/json'}))
-        .body;
-
-    return GetViewResponse<T>.fromJson(
-        jsonDecode(body), (a) => fromJsonT(a as Map<String, dynamic>));
   }
 
   @override
@@ -361,6 +350,43 @@ class _Couchdb extends Foodb {
     return true;
   }
 
+  Future<GetViewResponse<T>> _view<T>(
+      UriBuilder uriBuilder,
+      GetViewRequest getViewRequest,
+      T Function(Map<String, dynamic> json) fromJsonT) async {
+    var json = getViewRequest.toJson();
+    json.remove('keys');
+    if (json.containsKey('startkey'))
+      json['startkey'] = jsonEncode(json['startkey']);
+    if (json.containsKey('endkey')) json['endkey'] = jsonEncode(json['endkey']);
+    uriBuilder.queryParameters = convertToParams(json);
+    var result;
+    if (getViewRequest.keys == null) {
+      result = (await this.client.get(
+                uriBuilder.build(),
+              ))
+          .body;
+    } else {
+      Map<String, dynamic> map = Map();
+      map['keys'] = getViewRequest.keys;
+      result = (await this.client.post(
+        uriBuilder.build(),
+        body: jsonEncode(map),
+        headers: {'Content-Type': 'application/json'},
+      ))
+          .body;
+    }
+    return GetViewResponse.fromJson(
+        jsonDecode(result), (json) => fromJsonT(json as Map<String, dynamic>));
+  }
+
+  @override
+  Future<GetViewResponse<T>> allDocs<T>(GetViewRequest getViewRequest,
+      T Function(Map<String, dynamic> json) fromJsonT) async {
+    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_all_docs')));
+    return _view(uriBuilder, getViewRequest, fromJsonT);
+  }
+
   @override
   Future<GetViewResponse<T>> view<T>(
       String ddocId,
@@ -369,13 +395,6 @@ class _Couchdb extends Foodb {
       T Function(Map<String, dynamic> json) fromJsonT) async {
     UriBuilder uriBuilder =
         UriBuilder.fromUri((this.getUri('_design/$ddocId/_view/$viewId')));
-    return GetViewResponse<T>.fromJson(
-        jsonDecode((await this.client.post(
-          uriBuilder.build(),
-          body: jsonEncode(getViewRequest.toJson()),
-          headers: {'Content-Type': 'application/json'},
-        ))
-            .body),
-        (a) => fromJsonT(a as Map<String, dynamic>));
+    return _view(uriBuilder, getViewRequest, fromJsonT);
   }
 }

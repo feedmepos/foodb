@@ -3,8 +3,8 @@ import 'package:foodb/foodb.dart';
 import 'package:foodb_test/foodb_test.dart';
 
 void main() {
-  // final ctx = CouchdbTestContext();
-  final ctx = InMemoryTestContext();
+  final ctx = CouchdbTestContext();
+  // final ctx = InMemoryTestContext();
   findTest().forEach((t) {
     t(ctx);
   });
@@ -46,8 +46,8 @@ List<Function(FoodbTestContext)> findTest() {
       });
     },
     (FoodbTestContext ctx) {
-      test('view', () async {
-        final db = await ctx.db('view');
+      test('view-by-startkey-and-endkey', () async {
+        final db = await ctx.db('view-by-startkey-and-endkey');
         await db.put(doc: Doc(id: 'a', model: {'name': 'a', 'no': 99}));
         await db.put(doc: Doc(id: 'b', model: {'name': 'b', 'no': 88}));
 
@@ -63,6 +63,31 @@ List<Function(FoodbTestContext)> findTest() {
             await db.view('name_view', 'name_index', query, (json) => json);
         expect(result.rows.length, equals(1));
         await db.put(doc: Doc(id: 'c', model: {'name': 'b', 'no': 77}));
+
+        var result2 =
+            await db.view('name_view', 'name_index', query, (json) => json);
+        expect(result2.rows.length, equals(2));
+      });
+    },
+    (FoodbTestContext ctx) {
+      test('view-by-keys', () async {
+        final db = await ctx.db('view-by-keys');
+        await db.put(doc: Doc(id: 'a', model: {'name': 'a', 'no': 99}));
+        await db.put(doc: Doc(id: 'b', model: {'name': 'b', 'no': 88}));
+
+        //"-" is not allowed as index name
+        var indexResponse = await db.createIndex(
+            index: QueryViewOptionsDef(fields: ['name', 'no']),
+            ddoc: 'name_view',
+            name: 'name_index');
+        expect(indexResponse, isNotNull);
+        var query = GetViewRequest(keys: [
+          ['b', 88],
+        ], includeDocs: true);
+        var result =
+            await db.view('name_view', 'name_index', query, (json) => json);
+        expect(result.rows.length, equals(1));
+        await db.put(doc: Doc(id: 'c', model: {'name': 'b', 'no': 88}));
 
         var result2 =
             await db.view('name_view', 'name_index', query, (json) => json);
