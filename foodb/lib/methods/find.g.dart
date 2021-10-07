@@ -6,44 +6,6 @@ part of 'find.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-FindRequest _$FindRequestFromJson(Map<String, dynamic> json) {
-  return FindRequest(
-    selector: json['selector'] as Map<String, dynamic>,
-    limit: json['limit'] as int?,
-    skip: json['skip'] as int?,
-    sort: (json['sort'] as List<dynamic>?)
-        ?.map((e) => Map<String, String>.from(e as Map))
-        .toList(),
-    fields:
-        (json['fields'] as List<dynamic>?)?.map((e) => e as String).toList(),
-    useIndex: json['use_index'],
-    conflicts: json['conflicts'] as bool,
-    r: json['r'] as int,
-    bookmark: json['bookmark'] as String?,
-    update: json['update'] as bool,
-    stable: json['stable'] as bool?,
-    stale: json['stale'] as String,
-    executionStats: json['execution_stats'] as bool,
-  );
-}
-
-Map<String, dynamic> _$FindRequestToJson(FindRequest instance) =>
-    <String, dynamic>{
-      'selector': instance.selector,
-      'limit': instance.limit,
-      'skip': instance.skip,
-      'sort': instance.sort,
-      'fields': instance.fields,
-      'use_index': instance.useIndex,
-      'conflicts': instance.conflicts,
-      'r': instance.r,
-      'bookmark': instance.bookmark,
-      'update': instance.update,
-      'stable': instance.stable,
-      'stale': instance.stale,
-      'execution_stats': instance.executionStats,
-    };
-
 FindResponse<T> _$FindResponseFromJson<T>(
   Map<String, dynamic> json,
   T Function(Object? json) fromJsonT,

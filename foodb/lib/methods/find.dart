@@ -1,12 +1,10 @@
+import 'package:foodb/selector.dart';
 import 'package:json_annotation/json_annotation.dart';
-
 import 'package:foodb/foodb.dart';
-
 part 'find.g.dart';
 
-@JsonSerializable()
 class FindRequest {
-  Map<String, dynamic> selector;
+  Operator selector;
   int? limit;
   int? skip;
   List<Map<String, String>>? sort;
@@ -44,6 +42,46 @@ class FindRequest {
       _$FindRequestFromJson(json);
   Map<String, dynamic> toJson() => _$FindRequestToJson(this);
 }
+
+FindRequest _$FindRequestFromJson(Map<String, dynamic> json) {
+  return FindRequest(
+    selector: SelectorBuilder().fromJson(json['selector']),
+    limit: json['limit'] as int?,
+    skip: json['skip'] as int?,
+    sort: (json['sort'] as List<dynamic>?)
+        ?.map((e) => Map<String, String>.from(e as Map))
+        .toList(),
+    fields:
+        (json['fields'] as List<dynamic>?)?.map((e) => e as String).toList(),
+    useIndex: json['use_index'],
+    conflicts: json['conflicts'] as bool,
+    r: json['r'] as int,
+    bookmark: json['bookmark'] as String?,
+    update: json['update'] as bool,
+    stable: json['stable'] as bool?,
+    stale: json['stale'] as String,
+    executionStats: json['execution_stats'] as bool,
+  );
+}
+
+Map<String, dynamic> _$FindRequestToJson(FindRequest instance) =>
+    <String, dynamic>{
+      'selector': instance.selector.toJson(),
+      'limit': instance.limit,
+      'skip': instance.skip,
+      'sort': instance.sort,
+      'fields': instance.fields,
+      'use_index': instance.useIndex,
+      'conflicts': instance.conflicts,
+      'r': instance.r,
+      'bookmark': instance.bookmark,
+      'update': instance.update,
+      'stable': instance.stable,
+      'stale': instance.stale,
+      'execution_stats': instance.executionStats,
+    };
+
+
 
 @JsonSerializable(genericArgumentFactories: true)
 class FindResponse<T> {

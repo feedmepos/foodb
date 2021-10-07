@@ -283,13 +283,14 @@ class _Couchdb extends Foodb {
       T Function(Map<String, dynamic>) fromJsonT) async {
     Map<String, dynamic> body = findRequest.toJson();
     body.removeWhere((key, value) => value == null);
-    var response = jsonDecode((await this.client.post(this.getUri('_find'),
+
+    var response = (await this.client.post(this.getUri('_find'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode(body)))
-        .body);
+        .body;
 
     return FindResponse.fromJson(
-        response, (e) => fromJsonT(e as Map<String, dynamic>));
+        jsonDecode(response), (e) => fromJsonT(e as Map<String, dynamic>));
   }
 
   @override

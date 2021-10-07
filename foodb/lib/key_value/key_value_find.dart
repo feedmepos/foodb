@@ -1,6 +1,6 @@
 part of '../foodb.dart';
 
-mixin _KeyValueFind on _AbstractKeyValue {
+mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
   //Position Order Considered
   // Future<ViewKey?> _findSelectorIndexByFields(
   //     List<Map<String, String>> sort) async {
@@ -89,24 +89,122 @@ mixin _KeyValueFind on _AbstractKeyValue {
 
   @override
   Future<ExplainResponse> explain(FindRequest findRequest) async {
-    // PartialFilterSelector generator = new PartialFilterSelector();
-    // Map<String, dynamic> newSelector =
-    //     generator.generateSelector(findRequest.selector);
-    // if (findRequest.sort != null) {
-    //   ViewKey? viewKey = await _findSelectorIndexByFields(findRequest.sort!);
-    //   if (viewKey != null) {
-    //   } else {}
-    // }
-
     throw UnimplementedError();
   }
 
   @override
-  Future<FindResponse<T>> find<T>(
-      FindRequest findRequest, T Function(Map<String, dynamic> p1) toJsonT) {
-    // TODO: implement find
-    // regenerateView
-    // get result from view
-    throw UnimplementedError();
+  Future<FindResponse<T>> find<T>(FindRequest findRequest,
+      T Function(Map<String, dynamic> p1) toJsonT) async {
+    List<String> inputKeys = findRequest.selector.keys();
+    MapEntry<String, Doc<DesignDoc>> selectedView =
+        await _pickDesignDoc(inputKeys);
+    _generateView(selectedView.value);
+
+    var viewName = getViewName(
+        designDocId: selectedView.value.id, viewId: selectedView.key);
+
+    final result = await keyValueDb.read<ViewKeyMetaKey>(
+        ViewKeyMetaKey(viewName: viewName),
+        desc: false,
+        inclusiveEnd: true,
+        inclusiveStart: true);
+    AbstracDesignDocView docView =
+        selectedView.value.model.views[selectedView.key]!;
+
+    List<String> docFields;
+    if (docView is QueryDesignDocView) {
+      docFields = docView.options.def.fields;
+    } else {
+      docFields = ["_id"];
+    }
+    Operator indexOperator = _getOperator(findRequest.selector, docFields);
+
+    Map<ViewKeyMetaKey, Map<String, dynamic>> filteredIndex = {};
+    result.records.forEach((key, value) {
+      Map<String, dynamic> values = Map.fromIterables(docFields, key.key!.key is List ?key.key!.key: [key.key!.key]);
+      if (indexOperator.evaluate(values)) {
+        filteredIndex[key] = value;
+      }
+    });
+
+    var map = (await keyValueDb.getMany(
+        result.records.keys.map((e) => DocKey(key: e.key!.docId)).toList()));
+    map.removeWhere((key, value) => value == null);
+    var docHistories = map.values.map((value) => DocHistory.fromJson(value!));
+
+    List<Doc<T>> finalDocs = [];
+    docHistories.forEach((history) {
+      if (!findRequest.selector.evaluate(history.winner!.toJson())) {
+        finalDocs.add(history.toDoc(history.winner!.rev, toJsonT)!);
+      }
+    });
+
+    return FindResponse(docs: finalDocs);
+  }
+
+  Operator _getOperator(Operator selector, List<String> fields) {
+    final indexOperator = AndOperator();
+    if (selector is AndOperator) {
+      selector.operators.forEach((op) {
+        if (op is ConditionOperator) {
+          if (fields.contains(op.key)) {
+            indexOperator.operators.add(op);
+          }
+        }
+      });
+    } else if (selector is ConditionOperator) {
+      if (fields.contains(selector.key)) {
+        indexOperator.operators.add(selector);
+      }
+    }
+
+    return indexOperator;
+  }
+
+  Future<MapEntry<String, Doc<DesignDoc>>> _pickDesignDoc(
+      List<String> inputKeys) async {
+    List<Doc<DesignDoc>> docs = await fetchAllDesignDocs();
+    Doc<DesignDoc>? winnerDoc;
+    String? winnerViewId;
+    bool broke = false;
+    int maxLength = 0;
+
+    for (Doc<DesignDoc> doc in docs) {
+      for (MapEntry entry in doc.model.views.entries) {
+        if (entry.value is QueryDesignDocView) {
+          List<String> fields = entry.value.options.def.fields;
+          if (fields.length <= inputKeys.length + 1) {
+            bool allMatched = true;
+            for (String field in fields) {
+              if (!inputKeys.contains(field) && field != "_id") {
+                allMatched = false;
+                break;
+              }
+            }
+            if (allMatched) {
+              int withIds = fields.length;
+              fields.removeWhere((element) => element == "_id");
+              int withoutIds = fields.length;
+
+              if (withoutIds > maxLength) {
+                winnerViewId = entry.key;
+                winnerDoc = doc;
+                if (withIds == inputKeys.length) {
+                  broke = true;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+      if (broke == true) {
+        break;
+      }
+    }
+    if (winnerViewId == null || winnerDoc == null) {
+      return MapEntry("all_docs", allDocDesignDoc);
+    }
+    return MapEntry(winnerViewId, winnerDoc);
   }
 }

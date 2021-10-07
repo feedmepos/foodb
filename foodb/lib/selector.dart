@@ -6,6 +6,7 @@ abstract class Operator {
   late String operator;
   bool evaluate(dynamic value);
   Map<String, dynamic> toJson();
+  List<String> keys();
 }
 
 abstract class ConditionOperator extends Operator {
@@ -16,10 +17,16 @@ abstract class ConditionOperator extends Operator {
   ConditionOperator(
       {required this.key, required this.expected, required this.operator});
 
+  @override
   Map<String, dynamic> toJson() {
     return {
       key: {operator: expected}
     };
+  }
+
+  @override
+  List<String> keys() {
+    return [key];
   }
 }
 
@@ -260,6 +267,7 @@ class RegexOperator extends ConditionOperator {
       if (value is String) {
         return RegExp(expected).hasMatch(value);
       }
+      return false;
     }
     throw AdapterException(
         error: "invalid_operator", reason: "Invalid operator: \$regex");
@@ -272,6 +280,17 @@ abstract class CombinationOperator extends Operator {
   CombinationOperator({required this.operator, required this.operators});
 
   bool combine(bool a, bool b);
+
+  @override
+  List<String> keys() {
+    List<String> list = [];
+    operators.forEach((o) {
+      list.addAll(o.keys());
+    });
+    return list;
+  }
+
+  @override
   bool evaluate(dynamic value) {
     var result = true;
     for (final o in operators) {
@@ -286,7 +305,9 @@ abstract class CombinationOperator extends Operator {
 
   @override
   Map<String, dynamic> toJson() {
-    return {operator: operators.map<Map<String,dynamic>>((e) => e.toJson()).toList()};
+    return {
+      operator: operators.map<Map<String, dynamic>>((e) => e.toJson()).toList()
+    };
   }
 }
 
@@ -348,7 +369,6 @@ Operator? getOperator(keyword, {key, expected}) {
 
 class SelectorBuilder {
   var value;
-
   SelectorBuilder();
 
   Operator fromJson(Map<String, dynamic> json) {
@@ -383,7 +403,8 @@ class SelectorBuilder {
       } else if (operator == null) {
         List<Operator> subList = [];
         entry.value.forEach((operatorStr, arg) {
-          final operator = getOperator(operatorStr,key: entry.key, expected: arg);
+          final operator =
+              getOperator(operatorStr, key: entry.key, expected: arg);
           if (operator is ConditionOperator) {
             subList.add(operator);
           } else {

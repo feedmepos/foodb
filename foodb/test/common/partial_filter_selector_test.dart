@@ -1,12 +1,9 @@
-import 'dart:convert';
-import 'dart:math';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodb/exception.dart';
 import 'package:foodb/selector.dart';
 
 class SelectorBuilder {
   var value;
-
   SelectorBuilder();
 
   Operator fromJson(Map<String, dynamic> json) {
@@ -14,9 +11,9 @@ class SelectorBuilder {
     json.entries.forEach((element) {
       subList.add(DFS(Map.fromEntries([element])));
     });
-    if (subList.length > 1)
+    if (subList.length > 1) {
       this.value = AndOperator(operators: subList);
-    else {
+    } else {
       this.value = subList.first;
     }
 
@@ -32,16 +29,13 @@ class SelectorBuilder {
           subList.add(DFS(e));
         });
         operator.operators = subList;
-        if (this.value != null) {
-          this.value = AndOperator(operators: [this.value, operator]);
-          return this.value;
-        }
         this.value = operator;
-        return this.value;
+        return value;
       } else if (operator == null) {
         List<Operator> subList = [];
         entry.value.forEach((operatorStr, arg) {
-          final operator = getOperator(operatorStr,key: entry.key, expected: arg);
+          final operator =
+              getOperator(operatorStr, key: entry.key, expected: arg);
           if (operator is ConditionOperator) {
             subList.add(operator);
           } else {
@@ -49,9 +43,7 @@ class SelectorBuilder {
           }
         });
         if (subList.length > 1) {
-          final andOperator = AndOperator();
-          andOperator.operators = subList;
-          return andOperator;
+          return AndOperator(operators: subList);
         } else {
           return subList[0];
         }
@@ -59,31 +51,48 @@ class SelectorBuilder {
         throw AdapterException(error: "Invalid Format of Selector");
       }
     }
+
     return this.value;
   }
 }
 
 void main() {
   test('test DFS with multiple operator within one entry', () {
-    SelectorBuilder partialFilterSelector = new SelectorBuilder();
-    final operator = partialFilterSelector.fromJson({
+    SelectorBuilder builder = new SelectorBuilder();
+    final operator = builder.fromJson({
       "no": {"\$gt": 100, "\$lt": 300},
       "name": {"\$gt": 100, "\$lt": 300}
     });
     expect(operator.toJson(), {
-            '\$and': [
-              {'\$and': [{'no': {'\$gt': 100}}, {'no': {'\$lt': 300}}]},
-              {'\$and': [{'name': {'\$gt': 100}}, {'name': {'\$lt': 300}}]}
-            ]
-          });
-   expect(
-        partialFilterSelector.value.evaluate({"no": 200, "name": 200}), true);
-   expect(
-        partialFilterSelector.value.evaluate({"no": 300, "name": 300}), false);  
+      '\$and': [
+        {
+          '\$and': [
+            {
+              'no': {'\$gt': 100}
+            },
+            {
+              'no': {'\$lt': 300}
+            }
+          ]
+        },
+        {
+          '\$and': [
+            {
+              'name': {'\$gt': 100}
+            },
+            {
+              'name': {'\$lt': 300}
+            }
+          ]
+        }
+      ]
+    });
+    expect(builder.value.evaluate({"no": 200, "name": 200}), true);
+    expect(builder.value.evaluate({"no": 300, "name": 300}), false);
   });
   test("test DFS with multiple and", () {
-    SelectorBuilder partialFilterSelector = new SelectorBuilder();
-    partialFilterSelector.fromJson({
+    SelectorBuilder builder = new SelectorBuilder();
+    builder.fromJson({
       "\$and": [
         {
           "\$and": [
@@ -98,7 +107,7 @@ void main() {
         {
           "\$and": [
             {
-              "name": {"\$gt": 300}
+              "name": {"\$gt": 100}
             },
             {
               "name": {"\$lt": 300}
@@ -108,9 +117,10 @@ void main() {
       ]
     });
 
-    print(jsonEncode(partialFilterSelector.value));
-    expect(partialFilterSelector.value.length, greaterThan(0));
-    expect(partialFilterSelector.value, {
+    expect(builder.value.evaluate({"name": 200, "no": 200}), true);
+    expect(builder.value.evaluate({"name": 300, "no": 300}), false);
+    print(builder.value.toJson());
+    expect(builder.value.toJson(), {
       "\$and": [
         {
           "\$and": [
@@ -125,7 +135,7 @@ void main() {
         {
           "\$and": [
             {
-              "name": {"\$gt": 300}
+              "name": {"\$gt": 100}
             },
             {
               "name": {"\$lt": 300}
@@ -135,10 +145,84 @@ void main() {
       ]
     });
   });
+  test("triple nested and", () {
+    SelectorBuilder builder = new SelectorBuilder();
+    builder.fromJson({
+      "\$and": [
+        {
+          "\$and": [
+            {
+              "\$and": [
+                {
+                  "no": {"\$gt": 100}
+                },
+                {
+                  "no": {"\$lt": 300}
+                }
+              ]
+            },
+            {
+              "name": {"\$gt": 100}
+            },
+            {
+              "name": {"\$lt": 300}
+            }
+          ]
+        },
+        {
+          "\$and": [
+            {
+              "name": {"\$gt": 100}
+            },
+            {
+              "name": {"\$lt": 300}
+            }
+          ]
+        }
+      ]
+    });
 
+    expect(builder.value.evaluate({"name": 200, "no": 200}), true);
+    expect(builder.value.evaluate({"name": 300, "no": 300}), false);
+    print(builder.value.toJson());
+    expect(builder.value.toJson(), {
+      "\$and": [
+        {
+          "\$and": [
+            {
+              "\$and": [
+                {
+                  "no": {"\$gt": 100}
+                },
+                {
+                  "no": {"\$lt": 300}
+                }
+              ]
+            },
+            {
+              "name": {"\$gt": 100}
+            },
+            {
+              "name": {"\$lt": 300}
+            }
+          ]
+        },
+        {
+          "\$and": [
+            {
+              "name": {"\$gt": 100}
+            },
+            {
+              "name": {"\$lt": 300}
+            }
+          ]
+        }
+      ]
+    });
+  });
   test('test DFS with complex structure', () {
-    SelectorBuilder partialFilterSelector = new SelectorBuilder();
-    Operator value = partialFilterSelector.fromJson({
+    SelectorBuilder builder = new SelectorBuilder();
+    Operator value = builder.fromJson({
       "\$and": [
         {
           "no": {"\$gt": 100, "\$lt": 300}
@@ -150,9 +234,9 @@ void main() {
       "name": {"\$eq": 100}
     });
 
-    print(jsonEncode(value));
+    print(builder.value.toJson());
     expect(
-        value,
+        value.toJson(),
         equals({
           "\$and": [
             {

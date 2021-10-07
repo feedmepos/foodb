@@ -1,9 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodb/foodb.dart';
+import 'package:foodb/selector.dart';
 import '../foodb_test.dart';
 
 void main() {
-  // final ctx = CouchdbTestContext();
+  //final ctx = CouchdbTestContext();
   final ctx = InMemoryTestContext();
   findTest().forEach((t) {
     t(ctx);
@@ -89,9 +90,7 @@ List<Function(FoodbTestContext)> findTest() {
         await db.put(doc: Doc(id: "user_123", model: {}));
         FindResponse<Map<String, dynamic>> findResponse =
             await db.find<Map<String, dynamic>>(
-                FindRequest(selector: {
-                  '_id': {'\$regex': '^user'}
-                }, sort: [
+                FindRequest(selector: RegexOperator(key:"_id",expected: "^user"), sort: [
                   {"_id": "asc"}
                 ]),
                 (json) => json);
@@ -103,9 +102,7 @@ List<Function(FoodbTestContext)> findTest() {
         final db = await ctx.db('explain');
         await db.createIndex(index: QueryViewOptionsDef(fields: ['_id']));
         ExplainResponse explainResponse =
-            await db.explain(FindRequest(selector: {
-          '_id': {'\$regex': '^user'}
-        }, sort: [
+            await db.explain(FindRequest(selector: RegexOperator(key:"_id",expected: "^user",), sort: [
           {"_id": "asc"}
         ]));
         expect(explainResponse, isNotNull);

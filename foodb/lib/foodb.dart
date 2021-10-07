@@ -2,7 +2,6 @@ library foodb;
 
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:foodb/common.dart';
 import 'package:foodb/design_doc.dart';
@@ -22,6 +21,7 @@ import 'package:foodb/methods/put.dart';
 import 'package:foodb/methods/revs_diff.dart';
 import 'package:foodb/methods/server.dart';
 import 'package:foodb/methods/view.dart';
+import 'package:foodb/selector.dart';
 import 'package:http/http.dart' as http;
 import 'package:uri/uri.dart';
 
@@ -153,8 +153,8 @@ abstract class JSRuntime {
 
 String getViewName({required String designDocId, required String viewId}) {
   // for debugging
-  // return 'd-${designDocId}-v-${viewId}';
-  return 'v-${crypto.md5.convert(utf8.encode(designDocId + viewId))}';
+  return 'd-${designDocId}-v-${viewId}';
+  // return 'v-${crypto.md5.convert(utf8.encode(designDocId + viewId))}';
 }
 
 final allDocDesignDoc = new Doc(
