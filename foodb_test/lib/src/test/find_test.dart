@@ -106,49 +106,196 @@ List<Function(FoodbTestContext)> findTest() {
       });
     },
     (FoodbTestContext ctx) {
-      test('find()', () async {
-        final db = await ctx.db('find');
-        await db.createIndex(
-            index: QueryViewOptionsDef(fields: ['name', 'no']));
-        await db.createIndex(
-            index: QueryViewOptionsDef(fields: ['_id', 'name', 'no']));
-        await db.put(doc: Doc(id: 'user_123', model: {'name': 'foo', 'no': 1}));
-        await db.put(
-            doc: Doc(id: 'admin_123', model: {'name': 'foo', 'no': 1}));
-        await db.put(doc: Doc(id: 'user_1234', model: {'name': 'foo'}));
+      group('find()', () {
+        test(
+            'flat selector without _id, docs with missing keys, fields of design_doc< fields of selector',
+            () async {
+          final db = await ctx.db('find');
+          await db.createIndex(
+              index: QueryViewOptionsDef(fields: ['no', 'name']));
+          await db.put(
+              doc: Doc(id: 'user_01', model: {
+            'name': 'foo',
+            'no': 3,
+          }));
+          await db.put(doc: Doc(id: 'admin_01', model: {'name': 'foo'}));
+          await db.put(
+              doc: Doc(id: 'user_02', model: {'name': 'foo', 'no': 2, 'k': 1}));
 
-        var findResponse = await db.find<Map<String, dynamic>>(
-            FindRequest(
+          final findResponse = await db.find<Map<String, dynamic>>(
+              FindRequest(
+                selector: AndOperator(operators: [
+                  GreaterThanOperator(key: 'k', expected: 0),
+                  EqualOperator(key: 'name', expected: 'foo'),
+                  GreaterThanOperator(key: 'no', expected: 0),
+                  RegexOperator(key: '_id', expected: '^user_')
+                ]),
+              ),
+              (value) => value);
+
+          expect(findResponse.docs.length, equals(1));
+          expect(findResponse.docs.first.id, 'user_02');
+        });
+        test(
+            'flat selector with _id, docs with missing keys, fields of designdoc < fields of selector',
+            () async {
+          final db = await ctx.db('find');
+          await db.createIndex(
+              index: QueryViewOptionsDef(fields: ['name', '_id']));
+          await db.put(
+              doc: Doc(id: 'user_01', model: {
+            'name': 'foo',
+            'no': 0,
+          }));
+          await db.put(doc: Doc(id: 'admin_01', model: {'name': 'foo'}));
+          await db.put(
+              doc: Doc(id: 'user_02', model: {'name': 'foo', 'no': 2}));
+          final findResponse = await db.find<Map<String, dynamic>>(
+              FindRequest(
                 selector: AndOperator(operators: [
                   GreaterThanOperator(key: 'no', expected: 0),
-                  AndOperator(operators: [EqualOperator(key: 'name', expected: 'foo')])
+                  EqualOperator(key: 'name', expected: 'foo'),
+                  RegexOperator(key: '_id', expected: '^user')
                 ]),
-                sort: [
-                  {'_id': 'asc'}
+              ),
+              (value) => value);
+          expect(findResponse.docs.length, equals(1));
+          expect(findResponse.docs.first.id, 'user_02');
+        });
+        test(
+            'nested selector with _id, docs with missing keys, call all_docs',
+            () async {
+          final db = await ctx.db('find');
+          await db.createIndex(
+              index: QueryViewOptionsDef(fields: ['name', 'no']));
+          await db.put(
+              doc: Doc(id: 'user_01', model: {
+            'name': 'foo',
+            'no': 1,
+          }));
+          await db.put(doc: Doc(id: 'admin_01', model: {'name': 'foo'}));
+          await db.put(
+              doc: Doc(id: 'user_02', model: {'name': 'foo', 'no': 2}));
+          final findResponse = await db.find<Map<String, dynamic>>(
+              FindRequest(
+                selector: AndOperator(operators: [
+                  AndOperator(operators: [
+                    EqualOperator(key: 'name', expected: 'foo'),
+                    GreaterThanOperator(key: 'no', expected: 0),
+                    AndOperator(operators: [
+                      RegexOperator(key: '_id', expected: '^user')
+                    ])
+                  ])
                 ]),
-            (json) => json);
-        
-        print(findResponse.docs[0].toJson((value) => value));
-        print(findResponse.docs[1].toJson((value) => value));
-        expect(findResponse.docs.length, equals(2));
+              ),
+              (value) => value);
+
+          expect(findResponse.docs.length, equals(2));
+          expect(findResponse.docs.first.id, 'user_01');
+          expect(findResponse.docs[1].id, 'user_02');
+        });
+        test(
+            'nested selector without _id, docs with missing keys, fields of designdoc = first layer of selector',
+            () async {
+          final db = await ctx.db('find');
+          await db.createIndex(
+              index: QueryViewOptionsDef(fields: ['name', 'k']));
+          await db.put(
+              doc: Doc(id: 'user_01', model: {'name': 'foo', 'no': 1, 'k': 1}));
+          await db.put(
+              doc: Doc(id: 'admin_01', model: {'name': 'food', 'k': 2}));
+          await db.put(
+              doc: Doc(id: 'user_02', model: {'name': 'foo', 'no': 2, 'k': 3}));
+          final findResponse = await db.find<Map<String, dynamic>>(
+              FindRequest(
+                selector: AndOperator(operators: [
+                  EqualOperator(key: 'name', expected: 'foo'),
+                  GreaterThanOperator(key: 'k', expected: 0),
+                  AndOperator(operators: [
+                    GreaterThanOperator(key: 'no', expected: 0),
+                    AndOperator(operators: [
+                      RegexOperator(key: '_id', expected: '^user')
+                    ])
+                  ])
+                ]),
+              ),
+              (value) => value);
+
+          expect(findResponse.docs.length, equals(2));
+          expect(findResponse.docs.first.id, 'user_01');
+          expect(findResponse.docs[1].id, 'user_02');
+        });
       });
     },
     (FoodbTestContext ctx) {
-      test('explain()', () async {
-        final db = await ctx.db('explain');
-        await db.createIndex(name: 'id-name-index', index: QueryViewOptionsDef(fields: ['_id','name']));
-        await db.createIndex(name: 'name-id-index',index: QueryViewOptionsDef(fields: ['name','_id']));
-        var explainResponse = await db.explain(FindRequest(
-            selector: AndOperator(operators: [
-              EqualOperator(key: 'name', expected: 'nasi'),
-              RegexOperator(
-              key: '_id',
-              expected: '^user',
-            )]),
-            sort: [
-              {'_id': 'asc'}
-            ]));
-        expect(explainResponse.index.name, 'id-name-index');
+      group('explain()', () {
+        test('order of fields should not affect selection', () async {
+          final db = await ctx.db('explain');
+          await db.createIndex(
+              name: 'id-name-index',
+              index: QueryViewOptionsDef(fields: ['_id', 'name']));
+          await db.createIndex(
+              name: 'name-id-index',
+              index: QueryViewOptionsDef(fields: ['name', '_id']));
+          var explainResponse = await db.explain(FindRequest(
+              selector: AndOperator(operators: [
+                EqualOperator(key: 'name', expected: 'nasi'),
+                RegexOperator(
+                  key: '_id',
+                  expected: '^user',
+                )
+              ]),
+              sort: [
+                {'_id': 'asc'}
+              ]));
+          expect(explainResponse.index.name, 'id-name-index');
+        });
+        test(
+            'selected design-doc fields should less or equal to selector and ignore _id',
+            () async {
+          final db = await ctx.db('explain');
+          await db.createIndex(
+              name: 'id-name-index',
+              index: QueryViewOptionsDef(fields: ['name', '_id']));
+          await db.createIndex(
+              name: 'id-name-k-index',
+              index: QueryViewOptionsDef(fields: ['no', 'name', 'k']));
+
+          var explainResponse = await db.explain(FindRequest(
+              selector: AndOperator(operators: [
+                EqualOperator(key: 'no', expected: 100),
+                RegexOperator(
+                  key: 'name',
+                  expected: '^user',
+                )
+              ]),
+              sort: [
+                {'_id': 'asc'}
+              ]));
+          expect(explainResponse.index.name, 'id-name-index');
+        });
+        test('should return all_docs if no suitable design docs', () async {
+          final db = await ctx.db('explain');
+          await db.createIndex(
+              name: 'id-name-index',
+              index: QueryViewOptionsDef(fields: ['k', '_id']));
+          await db.createIndex(
+              name: 'id-name-k-index',
+              index: QueryViewOptionsDef(fields: ['no', 'name', 'k']));
+
+          var explainResponse = await db.explain(FindRequest(
+              selector: AndOperator(operators: [
+                EqualOperator(key: 'no', expected: 100),
+                RegexOperator(
+                  key: 'name',
+                  expected: '^user',
+                )
+              ]),
+              sort: [
+                {'_id': 'asc'}
+              ]));
+          expect(explainResponse.index.name, 'all_docs');
+        });
       });
     }
   ];

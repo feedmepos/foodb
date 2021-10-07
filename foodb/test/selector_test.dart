@@ -250,4 +250,16 @@ void main() {
           ]
         }));
   });
+
+  group('evaluate()', () {
+    test('with values less than keys', () {
+      final andOperator = AndOperator(operators: [
+        EqualOperator(key: 'name', expected: "foo"),
+        GreaterThanOperator(key: "k", expected: 100),
+        GreaterThanOperator(key: "no", expected: 100)
+      ]);
+
+      expect(andOperator.evaluate({"name": "foo","no":101}),false);
+    });
+  });
 }

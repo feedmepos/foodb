@@ -287,7 +287,6 @@ abstract class CombinationOperator extends Operator {
     operators.forEach((o) {
       list.addAll(o.keys());
     });
-    print(list);
     return list;
   }
 

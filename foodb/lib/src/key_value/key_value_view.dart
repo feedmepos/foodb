@@ -14,7 +14,7 @@ mixin _KeyValueView on _AbstractKeyValue {
             .toList();
 
         // object missing key, do not index;
-        if (objectKeys.length < keysToIndex.toSet().length) {
+        if (objectKeys.length < keysToIndex.length) {
           return resultMap;
         }
 
