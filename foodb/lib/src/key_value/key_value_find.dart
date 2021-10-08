@@ -93,25 +93,25 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
         await _pickDesignDoc(findRequest.selector.keys().toSet());
 
     final view = selectedView.value.model.views[selectedView.key];
-      return ExplainResponse(
-          index: Index(
-              ddoc: selectedView.value.id,
-              name: selectedView.key,
-              type: "json",
-              def: view is QueryDesignDocView? view.map.fields:{"_id":"asc"}),
-          selector: findRequest.toJson(),
-          opts: Opts(
-              conflicts: findRequest.conflicts,
-              r: [findRequest.r],
-              useIndex: [],
-              bookmark: findRequest.bookmark ?? "nil",
-              limit: findRequest.limit ?? 25,
-              skip: findRequest.skip ?? 0,
-              sort: findRequest.sort,
-              fields: findRequest.fields ?? "all_fields"),
-          limit: findRequest.limit ?? 25,
-          skip: findRequest.skip ?? 0,
-          fields: findRequest.fields ?? "all_fields");  
+    return ExplainResponse(
+        index: Index(
+            ddoc: selectedView.value.id,
+            name: selectedView.key,
+            type: "json",
+            def: view is QueryDesignDocView ? view.map.fields : {"_id": "asc"}),
+        selector: findRequest.toJson(),
+        opts: Opts(
+            conflicts: findRequest.conflicts,
+            r: [findRequest.r],
+            useIndex: [],
+            bookmark: findRequest.bookmark ?? "nil",
+            limit: findRequest.limit ?? 25,
+            skip: findRequest.skip ?? 0,
+            sort: findRequest.sort,
+            fields: findRequest.fields ?? "all_fields"),
+        limit: findRequest.limit ?? 25,
+        skip: findRequest.skip ?? 0,
+        fields: findRequest.fields ?? "all_fields");
   }
 
   @override
@@ -161,7 +161,15 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
         finalDocs.add(winner);
       }
     });
-
+    // if (findRequest.sort != null) {
+    //   finalDocs.sort((a, b) {
+    //     for (Map<String, String> entry in findRequest.sort!) {
+    //       entry.forEach((key, value) {
+    //         int compare = a.toJson((value) => null)
+    //       });
+    //     }
+    //   });
+    // }
     return FindResponse(docs: finalDocs);
   }
 
