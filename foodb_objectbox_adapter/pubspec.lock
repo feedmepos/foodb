@@ -227,7 +227,11 @@ packages:
       path: "../foodb"
       relative: true
     source: path
+<<<<<<< HEAD
     version: "0.1.3"
+=======
+    version: "0.1.4"
+>>>>>>> 3e66689cc9c669cfdaf1d9fee0551ae155672070
   foodb_test:
     dependency: "direct dev"
     description:

@@ -29,15 +29,11 @@ void replicateBenchmarkTest(
       expect(fromAll.totalRows, equals(toAll.totalRows));
     });
 
-    final stream = await replicate(
-      from,
-      to,
-      maxBatchSize: batchSize,
-      createTarget: true,
-    );
-    stream.listen(
-        onError: (err) {
-          throw err.err;
+    replicate(from, to,
+        maxBatchSize: batchSize,
+        createTarget: true,
+        onError: (e, s) {
+          throw e ?? Exception();
         },
         onComplete: fn,
         onCheckpoint: (evnt) {
