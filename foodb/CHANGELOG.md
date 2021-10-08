@@ -1,6 +1,10 @@
+## 0.2.1
+* (fix) find filter fromJsonT
+
 ## 0.2.0
 * (add) _find API for key value foodb
 * (fix) inMemoryAdapter tableSize
+
 ## 0.1.6
 * (fix) continuous change stream large document
 * (fix) replication lock

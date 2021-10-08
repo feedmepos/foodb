@@ -161,6 +161,10 @@ class DocHistory {
     return allConflicts.where((element) => element.deleted);
   }
 
+  Rev? get winnerRev {
+    return winner?.rev;
+  }
+
   InternalDoc? get winner {
     List<InternalDoc> sortedLeaves = leafDocs.toList();
     sortedLeaves.removeWhere((element) => element.deleted == true);

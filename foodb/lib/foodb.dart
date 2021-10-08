@@ -140,7 +140,7 @@ abstract class Foodb {
       bool? partitioned});
 
   Future<FindResponse<T>> find<T>(
-      FindRequest findRequest, T Function(Map<String, dynamic>) toJsonT);
+      FindRequest findRequest, T Function(Map<String, dynamic>) fromJsonT);
 
   Future<ExplainResponse> explain(FindRequest findRequest);
 

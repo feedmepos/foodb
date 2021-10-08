@@ -116,7 +116,7 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
 
   @override
   Future<FindResponse<T>> find<T>(FindRequest findRequest,
-      T Function(Map<String, dynamic> p1) toJsonT) async {
+      T Function(Map<String, dynamic> p1) fromJsonT) async {
     final selector = findRequest.selector;
     MapEntry<String, Doc<DesignDoc>> selectedView =
         await _pickDesignDoc(selector.keys().toSet());
@@ -161,9 +161,10 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
 
     List<Doc<T>> finalDocs = [];
     docHistories.forEach((history) {
-      Doc<T> winner = history.toDoc<T>(history.winner!.rev, toJsonT)!;
-      if (selector.evaluate(winner.toJson((value) => value))) {
-        finalDocs.add(winner);
+      var doc = history.winner!.data;
+      doc['_id'] = history.id;
+      if (selector.evaluate(doc)) {
+        finalDocs.add(history.toDoc(history.winnerRev!, fromJsonT)!);
       }
     });
     // if (findRequest.sort != null) {
