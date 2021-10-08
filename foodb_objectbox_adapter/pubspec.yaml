@@ -1,5 +1,5 @@
 name: foodb_objectbox_adapter
-description: A new Flutter package project.
+description: Foodb database persistance using object
 version: 0.0.1
 homepage:
 

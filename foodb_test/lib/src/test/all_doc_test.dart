@@ -3,8 +3,8 @@ import 'package:test/test.dart';
 import 'package:foodb/foodb.dart';
 
 void main() {
-  final ctx = CouchdbTestContext();
-  // final ctx = InMemoryTestContext();
+  // final ctx = CouchdbTestContext();
+  final ctx = InMemoryTestContext();
   allDocTest().forEach((t) {
     t(ctx);
   });
