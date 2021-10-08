@@ -162,6 +162,34 @@ List<Function(FoodbTestContext)> findTest() {
           expect(findResponse.docs.length, equals(1));
           expect(findResponse.docs.first.id, 'user_02');
         });
+
+        test(
+            'flat selector, nested fields, docs with missing keys, fields of designdoc < fields of selector',
+            () async {
+          final db = await ctx.db('find');
+          await db.createIndex(
+              index: QueryViewOptionsDef(fields: ['name', '_id']));
+          await db.put(
+              doc: Doc(id: 'user_01', model: {
+            'name':{'first':{'name':'foo'}},
+            'no': 2,
+          }));
+          await db.put(doc: Doc(id: 'admin_01', model: {'name': 'foo'}));
+          await db.put(
+              doc: Doc(id: 'user_02', model: {'name': 'foo', 'no': 0}));
+          final findResponse = await db.find<Map<String, dynamic>>(
+              FindRequest(
+                selector: AndOperator(operators: [
+                  GreaterThanOperator(key: 'no', expected: 0),
+                  EqualOperator(key: 'name.first.name', expected: 'foo'),
+                  RegexOperator(key: '_id', expected: '^user')
+                ]),
+              ),
+              (value) => value);
+          expect(findResponse.docs.length, equals(1));
+          expect(findResponse.docs.first.id, 'user_01');
+        });
+
         test('nested selector with _id, docs with missing keys, call all_docs',
             () async {
           final db = await ctx.db('find');
@@ -224,6 +252,42 @@ List<Function(FoodbTestContext)> findTest() {
           expect(findResponse.docs.first.id, 'user_01');
           expect(findResponse.docs[1].id, 'user_02');
         });
+
+        test('nested selector, nested field, docs with missing keys, call all_docs',
+            () async {
+          final db = await ctx.db('find');
+          await db.createIndex(
+              index: QueryViewOptionsDef(fields: ['name', 'no']));
+          await db.put(
+              doc: Doc(id: 'user_01', model: {
+            'name': {
+              'first':{
+                'name':'foo'
+              }
+            },
+            'no': 1,
+          }));
+          await db.put(doc: Doc(id: 'admin_01', model: {'name': 'foo'}));
+          await db.put(
+              doc: Doc(id: 'user_02', model: {'name': 'foo', 'no': 2}));
+          final findResponse = await db.find<Map<String, dynamic>>(
+              FindRequest(
+                selector: AndOperator(operators: [
+                  AndOperator(operators: [
+                    EqualOperator(key: 'name.first.name', expected: 'foo'),
+                    GreaterThanOperator(key: 'no', expected: 0),
+                    AndOperator(operators: [
+                      RegexOperator(key: '_id', expected: '^user')
+                    ])
+                  ])
+                ]),
+              ),
+              (value) => value);
+
+          expect(findResponse.docs.length, equals(1));
+          expect(findResponse.docs.first.id, 'user_01');
+        });
+
       });
     },
     (FoodbTestContext ctx) {
