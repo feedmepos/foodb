@@ -161,7 +161,15 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
         finalDocs.add(winner);
       }
     });
-
+    // if (findRequest.sort != null) {
+    //   finalDocs.sort((a, b) {
+    //     for (Map<String, String> entry in findRequest.sort!) {
+    //       entry.forEach((key, value) {
+    //         int compare = a.toJson((value) => null)
+    //       });
+    //     }
+    //   });
+    // }
     return FindResponse(docs: finalDocs);
   }
 
