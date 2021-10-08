@@ -4,7 +4,7 @@ import 'package:foodb/src/exception.dart';
 
 abstract class Operator {
   late String operator;
-  bool evaluate(dynamic value);
+  bool evaluate(Map<String, dynamic> values);
   Map<String, dynamic> toJson();
   List<String> keys();
 }
@@ -16,6 +16,19 @@ abstract class ConditionOperator extends Operator {
 
   ConditionOperator(
       {required this.key, required this.expected, required this.operator});
+
+  dynamic getValue(Map<String, dynamic> values) {
+    List<String> keys = key.split(".");
+    dynamic value = values;
+    try {
+      for (String key in keys) {
+        value = value[key];
+      }
+      return value;
+    } catch (e) {
+      return null;
+    }
+  }
 
   @override
   Map<String, dynamic> toJson() {
@@ -35,7 +48,8 @@ class EqualOperator extends ConditionOperator {
       : super(expected: expected, key: key, operator: "\$eq");
 
   @override
-  bool evaluate(dynamic value) {
+  bool evaluate(Map<String, dynamic> values) {
+    final value = getValue(values);
     try {
       if (value is List || value is Map) {
         return DeepCollectionEquality().equals(value, expected);
@@ -52,7 +66,8 @@ class NotEqualOperator extends ConditionOperator {
       : super(expected: expected, key: key, operator: "\$ne");
 
   @override
-  bool evaluate(dynamic value) {
+  bool evaluate(Map<String, dynamic> values) {
+    final value = getValue(values);
     try {
       if (value is List || value is Map) {
         return !DeepCollectionEquality().equals(value, expected);
@@ -69,7 +84,9 @@ class GreaterThanOperator extends ConditionOperator {
       : super(key: key, operator: "\$gt", expected: expected);
 
   @override
-  bool evaluate(dynamic value) {
+  bool evaluate(Map<String, dynamic> values) {
+    final value = getValue(values);
+
     if (value is String && expected is String) {
       return value.compareTo(expected) > 0;
     } else if (value is num && expected is num) {
@@ -88,7 +105,9 @@ class GreaterThanOrEqualOperator extends ConditionOperator {
       : super(key: key, operator: "\$gte", expected: expected);
 
   @override
-  bool evaluate(dynamic value) {
+  bool evaluate(Map<String, dynamic> values) {
+    final value = getValue(values);
+
     if (value is String && expected is String) {
       return value.compareTo(expected) >= 0;
     } else if (value is num && expected is num) {
@@ -107,7 +126,8 @@ class LessThanOperator extends ConditionOperator {
       : super(expected: expected, key: key, operator: "\$lt");
 
   @override
-  bool evaluate(dynamic value) {
+  bool evaluate(Map<String, dynamic> values) {
+    final value = getValue(values);
     if (value is String && expected is String) {
       return value.compareTo(expected) < 0;
     } else if (value is num && expected is num) {
@@ -126,7 +146,9 @@ class LessThanOrEqualOperator extends ConditionOperator {
       : super(key: key, operator: "\$lte", expected: expected);
 
   @override
-  bool evaluate(dynamic value) {
+  bool evaluate(Map<String, dynamic> values) {
+    final value = getValue(values);
+
     if (value is String && expected is String) {
       return value.compareTo(expected) <= 0;
     } else if (value is num && expected is num) {
@@ -145,7 +167,8 @@ class ExistsOperator extends ConditionOperator {
       : super(expected: expected, key: key, operator: "\$exists");
 
   @override
-  bool evaluate(dynamic value) {
+  bool evaluate(Map<String, dynamic> values) {
+    final value = getValue(values);
     if (expected is bool) {
       return (value != null) == expected;
     }
@@ -160,7 +183,8 @@ class TypeOperator extends ConditionOperator {
       : super(expected: expected, key: key, operator: "\$type");
 
   @override
-  bool evaluate(dynamic value) {
+  bool evaluate(Map<String, dynamic> values) {
+    final value = getValue(values);
     if (value is String) {
       return expected == "string";
     } else if (value is num) {
@@ -183,7 +207,8 @@ class InOperator extends ConditionOperator {
       : super(expected: expected, key: key, operator: "\$in");
 
   @override
-  bool evaluate(value) {
+  bool evaluate(Map<String, dynamic> values) {
+    final value = getValue(values);
     if (expected is List) {
       if (value is Map || value is List) {
         for (var object in expected) {
@@ -205,7 +230,8 @@ class NotInOperator extends ConditionOperator {
       : super(key: key, expected: expected, operator: "\$nin");
 
   @override
-  bool evaluate(dynamic value) {
+  bool evaluate(Map<String, dynamic> values) {
+    final value = getValue(values);
     if (expected is List) {
       if (value is Map || value is List) {
         for (var object in expected) {
@@ -227,7 +253,8 @@ class SizeOperator extends ConditionOperator {
       : super(expected: expected, key: key, operator: "\$size");
 
   @override
-  bool evaluate(dynamic value) {
+  bool evaluate(Map<String, dynamic> values) {
+    final value = getValue(values);
     if (expected is int) {
       if (value is List) {
         return value.length == expected;
@@ -245,7 +272,8 @@ class ModOperator extends ConditionOperator {
       : super(expected: expected, key: key, operator: "\$mod");
 
   @override
-  bool evaluate(dynamic value) {
+  bool evaluate(Map<String, dynamic> values) {
+    final value = getValue(values);
     if (expected is List<int> && expected.length == 2) {
       if (value is int) {
         return value % expected[0] == expected[1];
@@ -262,7 +290,9 @@ class RegexOperator extends ConditionOperator {
       : super(expected: expected, key: key, operator: "\$regex");
 
   @override
-  bool evaluate(dynamic value) {
+  bool evaluate(Map<String, dynamic> values) {
+    final value = getValue(values);
+
     if (expected is String) {
       if (value is String) {
         return RegExp(expected).hasMatch(value);
@@ -291,15 +321,15 @@ abstract class CombinationOperator extends Operator {
   }
 
   @override
-  bool evaluate(dynamic value) {
+  bool evaluate(Map<String, dynamic> value) {
     var result = true;
-    for (final o in operators) {
-      if (o is ConditionOperator) {
-        result = combine(result, o.evaluate(value[o.key]));
-      } else {
-        result = combine(result, o.evaluate(value));
-      }
-    }
+    operators.forEach((o) {
+      // if (o is ConditionOperator) {
+      //   result = combine(result, o.evaluate(value[o.key]));
+      // } else {
+      result = combine(result, o.evaluate(value));
+      // }
+    });
     return result;
   }
 

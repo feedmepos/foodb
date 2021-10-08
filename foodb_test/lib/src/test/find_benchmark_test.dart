@@ -19,38 +19,38 @@ void findBenchmarkTest(int size, FoodbTestContext targetCtx) async {
 
     var allDocStopWatch = Stopwatch()..start();
     var response = await db.find(
-        FindRequest(selector: GreaterThanOperator(key: 'no', expected: 8999)),
+        FindRequest(selector: GreaterThanOperator(key: 'no', expected: 9899)),
         (value) => value);
     allDocStopWatch.stop();
 
     print('all_docs in seconds: ${allDocStopWatch.elapsed.inSeconds}');
     print(
         'all_docs perDoc: ${allDocStopWatch.elapsed.inMilliseconds / (size * 1000)}');
-    expect(response.docs.length, equals(1000));
+    expect(response.docs.length, equals(100));
 
     await db.createIndex(
         name: 'no-index', index: QueryViewOptionsDef(fields: ['no']));
 
     var designDocStopWatch = Stopwatch()..start();
     var responseAfterIndex = await db.find(
-        FindRequest(selector: GreaterThanOperator(key: 'no', expected: 8999)),
+        FindRequest(selector: GreaterThanOperator(key: 'no', expected: 9899)),
         (value) => value);
     designDocStopWatch.stop();
 
     print('design_docs in seconds: ${designDocStopWatch.elapsed.inSeconds}');
     print(
         'design_docs perDoc: ${designDocStopWatch.elapsed.inMilliseconds / (size * 1000)}');
-    expect(responseAfterIndex.docs.length, equals(1000));
+    expect(responseAfterIndex.docs.length, equals(100));
 
     var designDocStopWatch2 = Stopwatch()..start();
     var responseAfterIndex2 = await db.find(
-        FindRequest(selector: GreaterThanOperator(key: 'no', expected: 8999)),
+        FindRequest(selector: GreaterThanOperator(key: 'no', expected: 9899)),
         (value) => value);
   
     designDocStopWatch2.stop();
     print('design_docs 2 in seconds: ${designDocStopWatch2.elapsed.inSeconds}');
     print(
         'design_docs 2 perDoc: ${designDocStopWatch2.elapsed.inMilliseconds / (size * 1000)}');
-    expect(responseAfterIndex2.docs.length, equals(1000));
+    expect(responseAfterIndex2.docs.length, equals(100));
   });
 }

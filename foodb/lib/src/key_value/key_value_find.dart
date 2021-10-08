@@ -162,8 +162,7 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
     List<Doc<T>> finalDocs = [];
     docHistories.forEach((history) {
       Doc<T> winner = history.toDoc<T>(history.winner!.rev, toJsonT)!;
-      Map<String,dynamic> map = winner.toJson((value) => value);
-      if (selector.evaluate(selector is ConditionOperator? map[selector.key]: map)) {
+      if (selector.evaluate(winner.toJson((value) => value))) {
         finalDocs.add(winner);
       }
     });
