@@ -162,8 +162,7 @@ List<Function(FoodbTestContext)> findTest() {
           expect(findResponse.docs.length, equals(1));
           expect(findResponse.docs.first.id, 'user_02');
         });
-        test(
-            'nested selector with _id, docs with missing keys, call all_docs',
+        test('nested selector with _id, docs with missing keys, call all_docs',
             () async {
           final db = await ctx.db('find');
           await db.createIndex(

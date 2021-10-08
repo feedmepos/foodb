@@ -99,9 +99,8 @@ class ViewDocMetaKey extends AbstractViewKey<String> {
 
 class ViewKeyMeta<T> implements Comparable {
   final T key;
-  final String? docId;
-  final int? index;
-  ViewKeyMeta({required this.key, this.docId, this.index});
+
+  ViewKeyMeta({required this.key});
   int compareTo(other) {
     if (other is ViewKeyMeta) {
       return this.encode().compareTo(other.encode());
@@ -110,12 +109,11 @@ class ViewKeyMeta<T> implements Comparable {
   }
 
   factory ViewKeyMeta.decode(String str) {
-    final decoded = decodeFromIndex(str);
-    return ViewKeyMeta(key: decoded[0], docId: decoded[1], index: decoded[2]);
+    return ViewKeyMeta(key: decodeFromIndex(str));
   }
 
   String encode() {
-    return encodeToIndex([key, docId, index]);
+    return encodeToIndex(key);
   }
 }
 
@@ -138,18 +136,35 @@ class ViewKeyMetaKey extends AbstractViewKey<ViewKeyMeta> {
 }
 
 class ViewValue {
-  final dynamic value;
-  ViewValue(this.value);
+  List<ViewValueDoc> docs;
+  ViewValue({required this.docs});
   Map<String, dynamic> toJson() {
     return {
-      'v': value,
+      'l': docs.map((e) => e.toJson()).toList(),
     };
   }
 
   factory ViewValue.fromJson(Map<String, dynamic> map) {
     return ViewValue(
-      map['v'],
-    );
+        docs: (map['l'] as List<Map<String, dynamic>>)
+            .map((e) => ViewValueDoc.fromJson(e))
+            .toList());
+  }
+}
+
+class ViewValueDoc {
+  final String docId;
+  final dynamic value;
+  ViewValueDoc({required this.docId, this.value});
+  Map<String, dynamic> toJson() {
+    return {
+      'd': docId,
+      'v': value,
+    };
+  }
+
+  factory ViewValueDoc.fromJson(Map<String, dynamic> map) {
+    return ViewValueDoc(docId: map['d'], value: map['v']);
   }
 }
 

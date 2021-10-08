@@ -77,7 +77,9 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
   @override
   Future<MapEntry<T, Map<String, dynamic>>?> get<T extends AbstractKey>(T key,
       {InMemoryAdapterSession? session}) async {
-    var val = _getTable(key)[key];
+    var table = _getTable(key);
+    var keys = table.keys.toList();
+    var val = table[key];
     if (val != null) {
       return MapEntry(key, val);
     }

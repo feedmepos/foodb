@@ -1,9 +1,9 @@
 part of '../../foodb.dart';
 
 mixin _KeyValueView on _AbstractKeyValue {
-  Map<ViewKeyMeta, dynamic> _runMapper(
+  Map<ViewKeyMeta, ViewValueDoc> _runMapper(
       AbstracDesignDocView view, String id, InternalDoc? doc) {
-    Map<ViewKeyMeta, dynamic> resultMap = Map();
+    Map<ViewKeyMeta, ViewValueDoc> resultMap = Map();
     if (doc != null) {
       if (view is JSDesignDocView) {
         throw UnimplementedError();
@@ -20,15 +20,14 @@ mixin _KeyValueView on _AbstractKeyValue {
 
         resultMap.putIfAbsent(
             ViewKeyMeta(
-                docId: id,
                 key: keysToIndex
                     .map((e) => e == "_id" ? id : doc.data[e])
                     .toList()),
-            () => null);
+            () => ViewValueDoc(docId: id));
         return resultMap;
       } else if (view is AllDocDesignDocView) {
-        resultMap.putIfAbsent(
-            ViewKeyMeta(docId: id, key: id), () => {"rev": doc.rev.toString()});
+        resultMap.putIfAbsent(ViewKeyMeta(key: id),
+            () => ViewValueDoc(docId: id, value: {"rev": doc.rev.toString()}));
       } else {
         throw new UnimplementedError('Unknown Design Doc View');
       }
@@ -57,14 +56,30 @@ mixin _KeyValueView on _AbstractKeyValue {
         final docsToProcess = (await keyValueDb.getMany<DocKey>(
             docIdToProcess.map<DocKey>((k) => DocKey(key: k)).toList()));
 
-        for (var entry in docsToProcess.entries) {
-          if (entry.value == null) continue;
-          var history = DocHistory.fromJson(entry.value!);
+        for (var docEntry in docsToProcess.entries) {
+          if (docEntry.value == null) continue;
+          var history = DocHistory.fromJson(docEntry.value!);
           var existViewDocMeta = await keyValueDb.get<ViewDocMetaKey>(
               ViewDocMetaKey(viewName: viewName, key: history.id));
           if (existViewDocMeta != null) {
             var viewDocMeta = ViewDocMeta.fromJson(existViewDocMeta.value);
             List<ViewKeyMeta> keysForDelete = viewDocMeta.keys;
+            for (final k in keysForDelete) {
+              var viewKey = ViewKeyMetaKey(key: k, viewName: viewName);
+              var exist = await keyValueDb.get(viewKey);
+              if (exist != null) {
+                var viewValue = ViewValue.fromJson(exist.value);
+                var newDocs = viewValue.docs
+                    .where((element) => element.docId != history.id);
+                if (newDocs.length == 0) {
+                  await keyValueDb.delete(viewKey);
+                } else {
+                  await keyValueDb.put(
+                      viewKey, ViewValue(docs: newDocs.toList()).toJson());
+                }
+              }
+            }
+
             await keyValueDb.deleteMany(keysForDelete
                 .map((k) => ViewKeyMetaKey(key: k, viewName: viewName))
                 .toList());
@@ -75,11 +90,17 @@ mixin _KeyValueView on _AbstractKeyValue {
           if (history.winner != null) {
             var entries = _runMapper(view, history.id, history.winner);
             //change to put in batch
-            if (entries.isNotEmpty) {
-              await keyValueDb.putMany(entries.map((key, value) => MapEntry(
-                  ViewKeyMetaKey(viewName: viewName, key: key),
-                  ViewValue(value).toJson())));
+            for (final e in entries.entries) {
+              var key = ViewKeyMetaKey(viewName: viewName, key: e.key);
+              var exist = await keyValueDb.get(key);
+              var value = ViewValue(docs: []);
+              if (exist != null) {
+                value = ViewValue.fromJson(exist.value);
+              }
+              value.docs.add(e.value);
+              await keyValueDb.put(key, value.toJson());
             }
+            if (entries.isNotEmpty) {}
 
             await keyValueDb.put(
                 ViewDocMetaKey(viewName: viewName, key: history.id),
@@ -113,7 +134,34 @@ mixin _KeyValueView on _AbstractKeyValue {
     if (designDoc != null) {
       await _generateView(designDoc);
       var viewName = getViewName(designDocId: designDoc.id, viewId: viewId);
-      final result = await keyValueDb.read<ViewKeyMetaKey>(
+      late ReadResult<ViewKeyMetaKey> result;
+      if (getViewRequest.keys != null) {
+        result = ReadResult(
+          totalRows:
+              await keyValueDb.tableSize(ViewKeyMetaKey(viewName: viewName)),
+          offset: 0,
+          records: Map.fromIterable(
+            (await Future.wait(
+              getViewRequest.keys!.map(
+                (e) => keyValueDb.get<ViewKeyMetaKey>(
+                  ViewKeyMetaKey(
+                    viewName: viewName,
+                    key: ViewKeyMeta(
+                      key: e,
+                    ),
+                  ),
+                ),
+              ),
+            ))
+                .where((element) => element != null),
+            key: (e) =>
+                (e as MapEntry<ViewKeyMetaKey, Map<String, dynamic>>).key,
+            value: (e) =>
+                (e as MapEntry<ViewKeyMetaKey, Map<String, dynamic>>).value,
+          ),
+        );
+      } else {
+        result = await keyValueDb.read<ViewKeyMetaKey>(
           ViewKeyMetaKey(viewName: viewName),
           startkey: getViewRequest.startkey == null
               ? null
@@ -129,26 +177,36 @@ mixin _KeyValueView on _AbstractKeyValue {
                   key: ViewKeyMeta(key: getViewRequest.endkey)),
           desc: getViewRequest.descending == true,
           inclusiveEnd: getViewRequest.inclusiveEnd != false,
-          inclusiveStart: true);
+          inclusiveStart: true,
+        );
+      }
+
+      var data = result.records.entries.expand((e) =>
+          ViewValue.fromJson(e.value).docs.map((d) => MapEntry(e.key, d)));
+
       List<ViewRow<T>> rows = [];
       Map<String, DocHistory> map = {};
       if (getViewRequest.includeDocs == true) {
-        var docs = (await keyValueDb.getMany(result.records.keys
-            .map((e) =>
-                DocKey(key: isAllDoc ? e.key!.key as String : e.key!.docId))
+        var docs = (await keyValueDb.getMany(data
+            .map(
+              (e) => DocKey(
+                  key: isAllDoc ? e.key.key?.key as String : e.value.docId),
+            )
             .toList()));
         docs.removeWhere((key, value) => value == null);
         map = docs.map<String, DocHistory>(
-            (key, value) => MapEntry(key.key!, DocHistory.fromJson(value!)));
+          (key, value) => MapEntry(key.key!, DocHistory.fromJson(value!)),
+        );
       }
 
-      for (var r in result.records.entries) {
-        ViewKeyMeta key = r.key.key!;
-        final docId = isAllDoc ? key.key as String : key.docId as String;
+      for (var r in data) {
+        final key = r.key.key!;
+        final value = r.value;
+        final docId = isAllDoc ? key.key as String : value.docId;
         ViewRow<T> row = ViewRow<T>(
             id: docId,
             key: key.key,
-            value: ViewValue.fromJson(r.value).value,
+            value: value.value,
             doc: getViewRequest.includeDocs == true
                 ? map[docId]!.toDoc<T>(map[docId]!.winner!.rev, fromJsonT)
                 : null);
