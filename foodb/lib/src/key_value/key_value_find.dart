@@ -140,17 +140,20 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
     }
     Operator indexOperator = _getOperator(findRequest.selector, docFields);
 
-    Map<ViewKeyMetaKey, Map<String, dynamic>> filteredIndex = {};
+    List<String> filteredIndex = [];
     result.records.forEach((key, value) {
       Map<String, dynamic> values = Map.fromIterables(
           docFields, key.key!.key is List ? key.key!.key : [key.key!.key]);
       if (indexOperator.evaluate(values)) {
-        filteredIndex[key] = value;
+        final viewValue = ViewValue.fromJson(value);
+        viewValue.docs.forEach((doc) {
+          filteredIndex.add(doc.docId);
+        });
       }
     });
 
     var map = (await keyValueDb
-        .getMany(filteredIndex.keys.map((e) => DocKey(key: '')).toList()));
+        .getMany(filteredIndex.map((e) => DocKey(key: e)).toList()));
     map.removeWhere((key, value) => value == null);
     var docHistories = map.values.map((value) => DocHistory.fromJson(value!));
 
