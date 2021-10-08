@@ -1,4 +1,6 @@
-## 0.2.1
+## 0.2.2
+* (fix) replicator run() stacktrace
+* ## 0.2.1
 * (fix) find filter fromJsonT
 
 ## 0.2.0
