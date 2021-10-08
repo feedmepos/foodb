@@ -5,11 +5,11 @@ import 'package:foodb_test/foodb_test.dart';
 void main() {
   final couchdb = CouchdbTestContext();
   final inMemory = InMemoryTestContext();
-  group('couchdb > couchbdb', () {
-    replicateTest().forEach((t) {
-      t(couchdb, couchdb);
-    });
-  });
+  // group('couchdb > couchbdb', () {
+  //   replicateTest().forEach((t) {
+  //     t(couchdb, couchdb);
+  //   });
+  // });
   // group('couchdb > inMemory', () {
   //   replicateTest().forEach((t) {
   //     t(couchdb, inMemory);
@@ -26,15 +26,35 @@ void main() {
   //   });
   // });
 
-  // replicateTest().forEach((t) {
-  //   t(inMemory, inMemory);
-  // });
+  replicateTest().forEach((t) {
+    t(inMemory, couchdb);
+  });
 }
 
 List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
     replicateTest() {
   return [
     (FoodbTestContext sourceCtx, FoodbTestContext targetCtx) {
+      test('repliacte resume on correct checkpoint', () async {
+        final source = await sourceCtx.db('replicate-correct-checkpoint');
+        final target = await targetCtx.db('replicate-correct-checkpoint');
+
+        var complete = expectAsync0(() => {});
+        var onSecondResult = expectAsync1((ChangeResult r) {}, count: 1);
+
+        await source.put(doc: Doc(id: 'a', model: {}));
+        replicate(source, target, onComplete: () async {
+          var docs = await target.allDocs(GetViewRequest(), (json) => json);
+          expect(docs.totalRows, equals(1));
+          await source.put(doc: Doc(id: 'b', model: {}));
+          replicate(source, target, onResult: onSecondResult,
+              onComplete: () async {
+            var docs = await target.allDocs(GetViewRequest(), (json) => json);
+            expect(docs.totalRows, equals(2));
+            complete();
+          });
+        });
+      });
       test('repliacte correct doc with revisions and deleted', () async {
         final source =
             await sourceCtx.db('replicate-source-revisions-and-deleted');

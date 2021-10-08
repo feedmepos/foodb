@@ -16,7 +16,13 @@ mixin _KeyValueGet on _AbstractKeyValue {
       bool revs = false,
       bool revsInfo = false,
       required T Function(Map<String, dynamic> json) fromJsonT}) async {
-    var entry = await keyValueDb.get(DocKey(key: id));
+    AbstractKey baseKey;
+    if (id.startsWith('_local/')) {
+      baseKey = LocalDocKey(key: id);
+    } else {
+      baseKey = DocKey(key: id);
+    }
+    var entry = await keyValueDb.get(baseKey);
     if (entry == null) {
       return null;
     }

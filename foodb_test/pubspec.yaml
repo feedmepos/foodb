@@ -9,7 +9,7 @@ dependencies:
   test: ^1.16.0
   path: ^1.8.0
   dotenv: ^3.0.0
-  foodb: ^0.2.0
+  foodb: ^0.2.3
   # foodb:
   #   path: ../foodb
 

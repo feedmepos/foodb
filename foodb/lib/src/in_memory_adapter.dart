@@ -137,7 +137,7 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
         final b = endkey;
         endCmp = desc ? b.compareTo(a) : a.compareTo(b);
       }
-      if ((inclusiveEnd ? startCmp >= 0 : startCmp > 0) &&
+      if ((inclusiveStart ? startCmp >= 0 : startCmp > 0) &&
           (inclusiveEnd ? endCmp <= 0 : endCmp < 0)) {
         result.putIfAbsent(keys[x] as T, () => table[keys[x]]!);
         offSet ??= x;
