@@ -199,6 +199,6 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
   @override
   Future<int> tableSize(AbstractKey key,
       {InMemoryAdapterSession? session}) async {
-    return _stores[key]?.length ?? 0;
+    return _getTable(key).length;
   }
 }
