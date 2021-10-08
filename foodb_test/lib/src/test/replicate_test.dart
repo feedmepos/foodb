@@ -27,7 +27,7 @@ void main() {
   // });
 
   replicateTest().forEach((t) {
-    t(inMemory, couchdb);
+    t(couchdb, couchdb);
   });
 }
 

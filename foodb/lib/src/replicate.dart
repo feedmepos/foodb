@@ -236,6 +236,7 @@ class _Replicator {
           sessionId: sessionId);
       // });
       pendingList = pendingList.sublist(toProcess.length);
+      isRunning = false;
       onFinishCheckpoint
           ?.call(ReplicationCheckpoint(log: targetLog, processed: toProcess));
     } finally {

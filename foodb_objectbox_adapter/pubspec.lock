@@ -227,7 +227,7 @@ packages:
       name: foodb
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.2.0"
+    version: "0.2.3"
   foodb_test:
     dependency: "direct dev"
     description:
