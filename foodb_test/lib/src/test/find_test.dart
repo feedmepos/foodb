@@ -171,7 +171,9 @@ List<Function(FoodbTestContext)> findTest() {
               index: QueryViewOptionsDef(fields: ['name', '_id']));
           await db.put(
               doc: Doc(id: 'user_01', model: {
-            'name':{'first':{'name':'foo'}},
+            'name': {
+              'first': {'name': 'foo'}
+            },
             'no': 2,
           }));
           await db.put(doc: Doc(id: 'admin_01', model: {'name': 'foo'}));
@@ -253,7 +255,8 @@ List<Function(FoodbTestContext)> findTest() {
           expect(findResponse.docs[1].id, 'user_02');
         });
 
-        test('nested selector, nested field, docs with missing keys, call all_docs',
+        test(
+            'nested selector, nested field, docs with missing keys, call all_docs',
             () async {
           final db = await ctx.db('find');
           await db.createIndex(
@@ -261,9 +264,7 @@ List<Function(FoodbTestContext)> findTest() {
           await db.put(
               doc: Doc(id: 'user_01', model: {
             'name': {
-              'first':{
-                'name':'foo'
-              }
+              'first': {'name': 'foo'}
             },
             'no': 1,
           }));
@@ -287,17 +288,16 @@ List<Function(FoodbTestContext)> findTest() {
           expect(findResponse.docs.length, equals(1));
           expect(findResponse.docs.first.id, 'user_01');
         });
-
       });
     },
     (FoodbTestContext ctx) {
       group('explain()', () {
         test('order of fields should not affect selection', () async {
           final db = await ctx.db('explain');
-          await db.createIndex(
+          var index = await db.createIndex(
               name: 'id-name-index',
               index: QueryViewOptionsDef(fields: ['_id', 'name']));
-          await db.createIndex(
+          var index2 = await db.createIndex(
               name: 'name-id-index',
               index: QueryViewOptionsDef(fields: ['name', '_id']));
           var explainResponse = await db.explain(FindRequest(
@@ -311,7 +311,8 @@ List<Function(FoodbTestContext)> findTest() {
               sort: [
                 {'_id': 'asc'}
               ]));
-          expect(explainResponse.index.name, 'id-name-index');
+          var chosen = index.id.compareTo(index2.id)<0? index.name: index2.name;
+          expect(explainResponse.index.name, chosen);
         });
         test(
             'selected design-doc fields should less or equal to selector and ignore _id',
