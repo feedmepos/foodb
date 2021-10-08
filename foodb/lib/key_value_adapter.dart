@@ -146,7 +146,7 @@ class ViewValue {
 
   factory ViewValue.fromJson(Map<String, dynamic> map) {
     return ViewValue(
-        docs: (map['l'] as List<Map<String, dynamic>>)
+        docs: (map['l'] as List<dynamic>)
             .map((e) => ViewValueDoc.fromJson(e))
             .toList());
   }
