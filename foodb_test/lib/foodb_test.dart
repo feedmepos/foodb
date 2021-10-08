@@ -14,6 +14,7 @@ import './src/test/get_test.dart';
 import './src/test/put_test.dart';
 import './src/test/util_test.dart';
 
+export './src/test/find_benchmark_test.dart' show findBenchmarkTest;
 export './src/test/find_test.dart' show findTest;
 export './src/test/all_doc_Test.dart' show allDocTest;
 export './src/test/bulk_doc_test.dart' show bulkDocTest;

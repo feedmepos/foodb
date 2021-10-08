@@ -47,9 +47,12 @@ void main() {
   //     t(objectBox, couchdb);
   //   });
   // });
-  findTest().forEach((fn) {
-    fn(objectBox);
-  });
+  // findTest().forEach((fn) {
+  //   fn(objectBox);
+  // });
+
+  findBenchmarkTest(10000, objectBox);
+
   // allDocTest().forEach((fn) {
   //   fn(objectBox);
   // });
