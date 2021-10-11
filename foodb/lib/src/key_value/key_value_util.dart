@@ -41,6 +41,30 @@ mixin _KeyValueUtil on _AbstractKeyValue {
   }
 
   @override
+  Future<bool> revsLimit(int limit) async {
+    await keyValueDb.put(UtilsKey(key: '_revs_limit'), {'_revs_limit': limit});
+    return true;
+  }
+
+  @override
+  Future<bool> compact() async {
+    var map = await keyValueDb.get(UtilsKey(key: '_revs_limit'));
+    int limit = map?.value['_revs_limit'] ?? 1000;
+
+    ReadResult<DocKey> result = await keyValueDb.read<DocKey>(DocKey(),
+        desc: false, inclusiveStart: true, inclusiveEnd: true);
+    Map<DocKey, Map<String, dynamic>> histories =
+        result.records.map((key, value) {
+      DocHistory history = DocHistory.fromJson(value);
+      history.compact(limit);
+
+      return MapEntry(key, history.toJson());
+    });
+
+    return await keyValueDb.putMany(histories);
+  }
+
+  @override
   Future<EnsureFullCommitResponse> ensureFullCommit() async {
     return EnsureFullCommitResponse(instanceStartTime: "0", ok: true);
   }

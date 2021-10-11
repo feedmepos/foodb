@@ -17,6 +17,25 @@ abstract class ObjectBoxEntity<T> {
 }
 
 @Entity()
+
+class UtilsEntity extends ObjectBoxEntity<String> {
+  @override
+  int id;
+
+  @override
+  @Index()
+  String key;
+
+  @override
+  String value;
+
+  factory UtilsEntity.get(int id, String key, String value) =>
+      UtilsEntity(id: id, key: key, value: value);
+
+  UtilsEntity({this.id = 0, this.key = '', this.value = '{}'});
+}
+
+@Entity()
 class DocEntity extends ObjectBoxEntity<String> {
   @override
   int id;

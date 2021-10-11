@@ -148,6 +148,10 @@ abstract class Foodb {
 
   Future<bool> destroy();
 
+  Future<bool> compact();
+
+  Future<bool> revsLimit(int limit);
+
   Future<GetViewResponse<T>> view<T>(
       String ddocId,
       String viewId,

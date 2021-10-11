@@ -210,10 +210,36 @@
         }
       ],
       "relations": []
+    },
+    {
+      "id": "9:3150806615709479110",
+      "lastPropertyId": "3:5411186115660847287",
+      "name": "UtilsEntity",
+      "properties": [
+        {
+          "id": "1:2186938649636581704",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:6753400030400865908",
+          "name": "key",
+          "type": 9,
+          "flags": 2048,
+          "indexId": "9:4336586824667827731"
+        },
+        {
+          "id": "3:5411186115660847287",
+          "name": "value",
+          "type": 9
+        }
+      ],
+      "relations": []
     }
   ],
-  "lastEntityId": "8:7863331895491057739",
-  "lastIndexId": "8:6063552904137448282",
+  "lastEntityId": "9:3150806615709479110",
+  "lastIndexId": "9:4336586824667827731",
   "lastRelationId": "0:0",
   "lastSequenceId": "0:0",
   "modelVersion": 5,

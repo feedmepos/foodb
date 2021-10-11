@@ -195,21 +195,25 @@ class DocHistory {
     if (doc == null) {
       return null;
     }
-    Revisions? _revisions = getRevision(rev)!;
+    Revisions? _revisions = getRevision(rev);
     List<RevsInfo>? _revsInfo;
-    if (showRevInfo == true) {
-      _revsInfo = [];
-      var index = _revisions.start;
-      for (final id in _revisions.ids) {
-        final rev = Rev(index: index, md5: id);
-        if (docs[rev.toString()] != null) {
-          _revsInfo.add(RevsInfo(rev: rev, status: 'available'));
-        } else {
-          _revsInfo.add(RevsInfo(rev: rev, status: 'missing'));
-        }
-        index -= 1;
-      }
+    if (_revisions == null) {
+      return null;
     }
+    if (showRevInfo == true) {
+        _revsInfo = [];
+        var index = _revisions.start;
+        for (final id in _revisions.ids) {
+          final rev = Rev(index: index, md5: id);
+          if (docs[rev.toString()] != null) {
+            _revsInfo.add(RevsInfo(rev: rev, status: 'available'));
+          } else {
+            _revsInfo.add(RevsInfo(rev: rev, status: 'missing'));
+          }
+          index -= 1;
+        }
+      }
+    
     return Doc(
         id: id,
         model: fromT(doc.data),
@@ -251,5 +255,29 @@ class DocHistory {
       docs: docs ?? this.docs,
       revisions: revisions ?? this.revisions,
     );
+  }
+
+  List<RevisionNode> _nodesToKeep = [];
+
+  bool compact(int limit) {
+    leafDocs.forEach((doc) {
+      _compactDFS(limit, doc.rev, RevisionNode(rev: doc.rev));
+    });
+    revisions.nodes = _nodesToKeep;
+    return true;
+  }
+
+  void _compactDFS(int limit, Rev curRev, RevisionNode _node) {
+    revisions.nodes.where((node) => node.rev == curRev).forEach((node) {
+      if (node.prevRev != null) {
+        _compactDFS(--limit, node.prevRev!, RevisionNode(rev: node.rev));
+      }
+      if (limit < 0) {
+        docs.remove(node.rev);
+      } else {
+        _node.prevRev = limit > 0 ? curRev : null;
+        _nodesToKeep.add(_node);
+      }
+    });
   }
 }
