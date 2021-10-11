@@ -404,7 +404,7 @@ class SelectorBuilder {
   Operator fromJson(Map<String, dynamic> json) {
     List<Operator> subList = [];
     json.entries.forEach((element) {
-      subList.add(DFS(Map.fromEntries([element])));
+      subList.add(DFS(json: Map.fromEntries([element])));
     });
     if (subList.length > 1) {
       this.value = AndOperator(operators: subList);
@@ -415,32 +415,41 @@ class SelectorBuilder {
     return this.value;
   }
 
-  Operator DFS(Map<String, dynamic> json) {
+  Operator DFS({String? key, required Map<String, dynamic> json}) {
     for (MapEntry<String, dynamic> entry in json.entries) {
       final operator = getOperator(entry.key);
       if (operator is CombinationOperator) {
         List<Operator> subList = [];
         entry.value.forEach((e) {
-          subList.add(DFS(e));
+          subList.add(DFS(key: key, json: e));
         });
         operator.operators = subList;
-        this.value = operator;
-        return value;
+        return operator;
       } else if (operator == null) {
         List<Operator> subList = [];
+        print(entry.value);
         entry.value.forEach((operatorStr, arg) {
-          final operator =
+          final subOperator =
               getOperator(operatorStr, key: entry.key, expected: arg);
-          if (operator is ConditionOperator) {
-            subList.add(operator);
-          } else {
-            throw AdapterException(error: "Invalid Format of Selector");
+          if (subOperator is ConditionOperator) {
+            subList.add(subOperator);
+          } else if (subOperator is CombinationOperator) {
+            subList.add(DFS(key: entry.key, json: {operatorStr: arg}));
+          } else if (subOperator == null) {
+            if(arg is Map<String,dynamic>){
+              subList.add(_nestedOperator(
+                  "${key != null ? "$key." : ""}${entry.key}.${operatorStr}",
+                  arg));
+            } 
+            else {
+              throw AdapterException(error: 'Invalid Selector Format');
+            }
           }
         });
         if (subList.length > 1) {
           return AndOperator(operators: subList);
         } else {
-          return subList[0];
+          return subList.first;
         }
       } else {
         throw AdapterException(error: "Invalid Format of Selector");
@@ -448,5 +457,24 @@ class SelectorBuilder {
     }
 
     return this.value;
+  }
+
+  _nestedOperator(String nestedKey, Map<String,dynamic> value) {
+    List<Operator> operators = [];
+    value.forEach((key, value) {
+      final operator = getOperator(key, key: nestedKey, expected: value);
+      if (operator is Operator) {
+        operators.add(DFS(json: {
+          nestedKey: {key: value}
+        }));
+      } else {
+        operators.add(_nestedOperator("$nestedKey.$key", value));
+      }
+    });
+
+    if (operators.length > 1) {
+      return AndOperator(operators: operators);
+    }
+    return operators.first;
   }
 }
