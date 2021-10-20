@@ -20,12 +20,12 @@ void main() {
 
   test('Can sort encoded view key', () {
     final toSort = [
-      ViewKeyMeta(key: ['order', 'PENDING'], docId: 'a', index: 0),
-      ViewKeyMeta(key: ['order', 'COMPLETED'], docId: 'a', index: 0),
-      ViewKeyMeta(key: ['bill', 'PENDING'], docId: 'a', index: 0),
-      ViewKeyMeta(key: ['bill', 'DRAFT'], docId: 'a', index: 0),
-      ViewKeyMeta(key: ['item', 'DRAFT'], docId: 'a', index: 0),
-      ViewKeyMeta(key: ['item', 'COMPLETED'], docId: 'a', index: 0),
+      ViewKeyMeta(key: ['order', 'PENDING']),
+      ViewKeyMeta(key: ['order', 'COMPLETED']),
+      ViewKeyMeta(key: ['bill', 'PENDING']),
+      ViewKeyMeta(key: ['bill', 'DRAFT']),
+      ViewKeyMeta(key: ['item', 'DRAFT']),
+      ViewKeyMeta(key: ['item', 'COMPLETED']),
     ];
 
     final keys = toSort.map((e) => e.encode()).toList();

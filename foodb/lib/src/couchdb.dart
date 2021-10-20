@@ -82,7 +82,6 @@ class _Couchdb extends Foodb {
           'new_edits': newEdits,
           'docs': body.map((e) {
             Map<String, dynamic> map = e.toJson((value) => value);
-            map.removeWhere((key, value) => value == null);
             return map;
           }).toList()
         })));
