@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:math';
 
 import "package:crypto/crypto.dart";
-import 'package:synchronized/synchronized.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:foodb/foodb.dart';
@@ -110,7 +109,6 @@ parseSeqInt(String seq) {
 }
 
 class _Replicator {
-  final _lock = Lock();
   List<ChangeResult> pendingList = [];
   bool isRunning = false;
   bool cancelled = false;
@@ -132,16 +130,11 @@ class _Replicator {
   }
 
   Future<void> run() async {
-    final canRun = await _lock.synchronized(() {
-      if (isRunning) return false;
-      isRunning = true;
-      return true;
-    });
-    if (!canRun || cancelled || pendingList.isEmpty) return;
+    if (isRunning || cancelled || pendingList.isEmpty) return;
+    isRunning = true;
+    String sessionId = Uuid().v4();
+    DateTime startTime = DateTime.now();
     try {
-      DateTime startTime = DateTime.now();
-      String sessionId = Uuid().v4();
-
       // get last change which has seq (determine by couchdb seq_interval) inside maximum batch to process
       var toProcess =
           pendingList.sublist(0, min(maxBatchSize, pendingList.length));
@@ -239,7 +232,7 @@ class _Replicator {
       isRunning = false;
       onFinishCheckpoint
           ?.call(ReplicationCheckpoint(log: targetLog, processed: toProcess));
-    } finally {
+    } catch (err) {
       isRunning = false;
     }
   }
@@ -265,7 +258,7 @@ ReplicationStream replicate(
    * used when continuous = true.
    * specify a certain millisecond before kick start the cycle
    */
-  Duration debounce = const Duration(microseconds: 3000),
+  Duration debounce = const Duration(milliseconds: 30),
   /**
    * when continuous = true, when is size meet but replictor still in debounce, replication cycle will be triggered
    * when continuous = false, batchSize is used in seq_interval in ChangeRequest, let the couchdb decide the upperbound

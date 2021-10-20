@@ -2,14 +2,12 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:foodb/key_value_adapter.dart';
-import 'package:synchronized/synchronized.dart';
 import 'package:uuid/uuid.dart';
 
 typedef StoreObject = SplayTreeMap<AbstractKey, Map<String, dynamic>>;
 typedef Stores = Map<String, StoreObject?>;
 
 class InMemoryAdapterSession extends KeyValueAdapterSession {
-  static final _lock = Lock();
   static final Map<String, List<Function>> _activeSession = {};
 
   final sessionId = Uuid().v1();
@@ -24,12 +22,10 @@ class InMemoryAdapterSession extends KeyValueAdapterSession {
 
   @override
   commit() async {
-    _lock.synchronized(() async {
-      for (final task in _activeSession[sessionId]!) {
-        // revert operation
-        await task();
-      }
-    });
+    for (final task in _activeSession[sessionId]!) {
+      // revert operation
+      await task();
+    }
   }
 }
 

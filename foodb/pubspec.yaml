@@ -1,6 +1,6 @@
 name: foodb
 description: A CouchDB warpper with dart implementation
-version: 0.2.5
+version: 0.2.6
 homepage:
 
 environment:
@@ -9,7 +9,6 @@ environment:
 dependencies:
   http: ^0.13.3
   json_annotation: ^4.0.1
-  synchronized: ^3.0.0
   uri: ^1.0.0
   uuid: ^3.0.4
   crypto: ^3.0.1

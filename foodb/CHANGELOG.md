@@ -1,3 +1,7 @@
+## 0.2.6
+* (fix) fix mutex for replication
+* (fix) bulk_doc should not remove null field
+
 ## 0.2.4
 * (add) _find API for key value foodb
 * (fix) replication will not continuous

@@ -180,6 +180,32 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
         Future.delayed(Duration(seconds: 1),
             () => source.put(doc: Doc(id: 'b', model: {})));
       });
+      test('continuous replication, fast oepration', () async {
+        final source = await sourceCtx.db('replicate-fast-operation');
+        final target = await targetCtx.db('replicate-fast-operation');
+        var complete = expectAsync0(() => {});
+        var resultCnt = expectAsync1((r) => {}, count: 10);
+
+        replicate(
+          source,
+          target,
+          continuous: true,
+          debounce: Duration(milliseconds: 1),
+          onResult: resultCnt,
+          onError: (p0, stackTrace) {
+            if (p0 is Exception) {
+              throw p0;
+            }
+            throw Exception('replication error');
+          },
+        );
+        var list = List.generate(10, (index) => index);
+        for (var i in list) {
+          await Future.delayed(Duration(milliseconds: 10));
+          source.put(doc: Doc(id: '$i', model: {}));
+        }
+        Future.delayed(Duration(seconds: 3), complete);
+      });
     }
   ];
 }
