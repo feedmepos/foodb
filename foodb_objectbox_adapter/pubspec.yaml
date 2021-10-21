@@ -1,6 +1,6 @@
 name: foodb_objectbox_adapter
 description: Foodb database persistance using object
-version: 0.1.0
+version: 0.3.0
 homepage:
 
 environment:
@@ -11,7 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   objectbox: ^1.2.0
-  foodb: ^0.2.4
+  foodb: ^0.3.0
   # foodb:
   #   path: ../foodb
   objectbox_flutter_libs: ^1.2.0
