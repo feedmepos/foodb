@@ -213,6 +213,31 @@ final _entities = <ModelEntity>[
             flags: 0)
       ],
       relations: <ModelRelation>[],
+      backlinks: <ModelBacklink>[]),
+  ModelEntity(
+      id: const IdUid(9, 3150806615709479110),
+      name: 'UtilsEntity',
+      lastPropertyId: const IdUid(3, 5411186115660847287),
+      flags: 0,
+      properties: <ModelProperty>[
+        ModelProperty(
+            id: const IdUid(1, 2186938649636581704),
+            name: 'id',
+            type: 6,
+            flags: 1),
+        ModelProperty(
+            id: const IdUid(2, 6753400030400865908),
+            name: 'key',
+            type: 9,
+            flags: 2048,
+            indexId: const IdUid(9, 4336586824667827731)),
+        ModelProperty(
+            id: const IdUid(3, 5411186115660847287),
+            name: 'value',
+            type: 9,
+            flags: 0)
+      ],
+      relations: <ModelRelation>[],
       backlinks: <ModelBacklink>[])
 ];
 
@@ -236,8 +261,8 @@ Future<Store> openStore(
 ModelDefinition getObjectBoxModel() {
   final model = ModelInfo(
       entities: _entities,
-      lastEntityId: const IdUid(8, 7863331895491057739),
-      lastIndexId: const IdUid(8, 6063552904137448282),
+      lastEntityId: const IdUid(9, 3150806615709479110),
+      lastIndexId: const IdUid(9, 4336586824667827731),
       lastRelationId: const IdUid(0, 0),
       lastSequenceId: const IdUid(0, 0),
       retiredEntityUids: const [],
@@ -487,6 +512,36 @@ ModelDefinition getObjectBoxModel() {
                   const fb.StringReader().vTableGet(buffer, rootOffset, 8, ''));
 
           return object;
+        }),
+    UtilsEntity: EntityDefinition<UtilsEntity>(
+        model: _entities[8],
+        toOneRelations: (UtilsEntity object) => [],
+        toManyRelations: (UtilsEntity object) => {},
+        getId: (UtilsEntity object) => object.id,
+        setId: (UtilsEntity object, int id) {
+          object.id = id;
+        },
+        objectToFB: (UtilsEntity object, fb.Builder fbb) {
+          final keyOffset = fbb.writeString(object.key);
+          final valueOffset = fbb.writeString(object.value);
+          fbb.startTable(4);
+          fbb.addInt64(0, object.id);
+          fbb.addOffset(1, keyOffset);
+          fbb.addOffset(2, valueOffset);
+          fbb.finish(fbb.endTable());
+          return object.id;
+        },
+        objectFromFB: (Store store, ByteData fbData) {
+          final buffer = fb.BufferContext(fbData);
+          final rootOffset = buffer.derefObject(0);
+
+          final object = UtilsEntity(
+              id: const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0),
+              key: const fb.StringReader().vTableGet(buffer, rootOffset, 6, ''),
+              value:
+                  const fb.StringReader().vTableGet(buffer, rootOffset, 8, ''));
+
+          return object;
         })
   };
 
@@ -609,4 +664,19 @@ class ViewMetaEntity_ {
   /// see [ViewMetaEntity.value]
   static final value =
       QueryStringProperty<ViewMetaEntity>(_entities[7].properties[2]);
+}
+
+/// [UtilsEntity] entity fields to define ObjectBox queries.
+class UtilsEntity_ {
+  /// see [UtilsEntity.id]
+  static final id =
+      QueryIntegerProperty<UtilsEntity>(_entities[8].properties[0]);
+
+  /// see [UtilsEntity.key]
+  static final key =
+      QueryStringProperty<UtilsEntity>(_entities[8].properties[1]);
+
+  /// see [UtilsEntity.value]
+  static final value =
+      QueryStringProperty<UtilsEntity>(_entities[8].properties[2]);
 }

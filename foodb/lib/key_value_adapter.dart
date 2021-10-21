@@ -52,6 +52,16 @@ abstract class AbstractViewKey<T extends Comparable> extends AbstractKey<T> {
   }
 }
 
+class UtilsKey extends AbstractKey<String> {
+  UtilsKey({String? key}) : super(key: key, tableName: "utils");
+
+  @override
+  copyWithKey({required String newKey}) {
+    return UtilsKey(key: newKey);
+  }
+}
+
+
 class DocKey extends AbstractKey<String> {
   DocKey({String? key}) : super(key: key, tableName: "doc");
 

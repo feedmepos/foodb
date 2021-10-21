@@ -174,6 +174,9 @@ class ObjectBoxType<T1 extends ObjectBoxEntity, T2> {
   }
 }
 
+final utilsBox = ObjectBoxType<UtilsEntity, String>(
+    keyQuery: ObjectBoxStringKey(queryKey: UtilsEntity_.key),
+    factory: () => UtilsEntity());
 final sequenceBox = ObjectBoxType<SequenceEntity, int>(
     keyQuery: ObjectBoxIntKey(queryKey: SequenceEntity_.key),
     factory: () => SequenceEntity());
@@ -222,6 +225,7 @@ final allDocViewKeyMetaBox = ObjectBoxType<AllDocViewKeyMetaEntity, String>(
     });
 
 List<ObjectBoxType> allBoxes() => [
+      utilsBox,
       sequenceBox,
       docBox,
       localDocBox,
@@ -257,6 +261,8 @@ class ObjectBoxAdapter implements KeyValueAdapter {
         return allDocViewKeyMetaBox;
       else
         return viewKeyMetaBox;
+    } else if (key is UtilsKey) {
+      return utilsBox;
     } else {
       throw Exception('invalid key');
     }

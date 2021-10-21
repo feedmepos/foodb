@@ -354,6 +354,18 @@ class _Couchdb extends Foodb {
     return true;
   }
 
+  @override
+  Future<bool> compact() async {
+    await this.client.post(this.getUri('_compact'));
+    return true;
+  }
+
+  @override
+  Future<bool> revsLimit(int limit) async {
+    await this.client.put(this.getUri('_revs_limit'), body: jsonEncode(limit));
+    return true;
+  }
+
   Future<GetViewResponse<T>> _view<T>(
       UriBuilder uriBuilder,
       GetViewRequest getViewRequest,
