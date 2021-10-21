@@ -5,7 +5,7 @@ import 'package:foodb/foodb.dart';
 import 'package:foodb_test/foodb_test.dart';
 
 void main() {
-  //final ctx = CouchdbTestContext();
+  // final ctx = CouchdbTestContext();
   final ctx = InMemoryTestContext();
   utilTest().forEach((t) {
     t(ctx);
@@ -108,8 +108,8 @@ List<Function(FoodbTestContext)> utilTest() {
         await db.compact();
 
         // id =1
-        var doc1 =
-            await db.get(id: '1', rev: '2-b', revs:true,fromJsonT: (value) => value);
+        var doc1 = await db.get(
+            id: '1', rev: '2-b', revs: true, fromJsonT: (value) => value);
         expect(doc1, isNotNull);
         expect(doc1?.revisions?.toJson(),
             Revisions(start: 2, ids: ['b']).toJson());
@@ -120,14 +120,14 @@ List<Function(FoodbTestContext)> utilTest() {
         expect(await db.get(id: '2', rev: '1-a', fromJsonT: (value) => value),
             isNull);
 
-        var doc2 =
-            await db.get(id: '2', rev: '2-b',revs: true, fromJsonT: (value) => value);
+        var doc2 = await db.get(
+            id: '2', rev: '2-b', revs: true, fromJsonT: (value) => value);
         expect(doc2, isNotNull);
         expect(doc2?.revisions?.toJson(),
             Revisions(start: 2, ids: ['b']).toJson());
 
-        var doc3 =
-            await db.get(id: '2', rev: '2-c',revs: true, fromJsonT: (value) => value);
+        var doc3 = await db.get(
+            id: '2', rev: '2-c', revs: true, fromJsonT: (value) => value);
         expect(doc3, isNotNull);
         expect(doc3?.revisions?.toJson(),
             Revisions(start: 2, ids: ['c']).toJson());
