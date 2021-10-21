@@ -26,6 +26,18 @@ List<Function(FoodbTestContext)> getTest() {
       });
     },
     (FoodbTestContext ctx) {
+      test('get() utf-8 character', () async {
+        final db = await ctx.db('put-get-chinese');
+        var putResponse =
+            await db.put(doc: Doc(id: 'test-get', model: {'a': '這是中文'}));
+        expect(putResponse.ok, isTrue);
+
+        var doc1 = await db.get(id: 'test-get', fromJsonT: (v) => v);
+        expect(doc1, isNotNull);
+        expect(doc1!.model['a'], '這是中文');
+      });
+    },
+    (FoodbTestContext ctx) {
       test('bulkget with doc and error ', () async {
         final db = await ctx.db('bulkget');
         await db.put(

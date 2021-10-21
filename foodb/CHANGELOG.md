@@ -1,4 +1,5 @@
-## 0.2.8
+## 0.2.9
+* (fix) utf-8 decode all http response
 * (fix) create same index will not pump version
 * (fix) fix key value adapter change stream max int
 * (fix) fix mutex for replication
