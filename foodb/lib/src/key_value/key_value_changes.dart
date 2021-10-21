@@ -40,7 +40,7 @@ mixin _KeyValueChange on _AbstractKeyValue {
       // now get new changes
       var lastSeq =
           ((await keyValueDb.last(SequenceKey(key: 0)))?.key)?.key ?? 0;
-      var limit = request.limit ?? 9223372036854775807;
+      var limit = request.limit ?? 9007199254740991;
       var pending = 0;
       var changeCount = 0;
       List<ChangeResult> _results = [];
