@@ -106,6 +106,25 @@ List<Function(FoodbTestContext)> findTest() {
       });
     },
     (FoodbTestContext ctx) {
+      test('multiple create will update existing with indexFields only',
+          () async {
+        final db = await ctx.db('index');
+        var indexResponse = await db.createIndex(
+            index: QueryViewOptionsDef(fields: ['_id']), ddoc: 'test');
+        expect(indexResponse, isNotNull);
+        var doc = await db.get(id: indexResponse.id, fromJsonT: (json) => json);
+        expect(doc, isNotNull);
+        var allDoc = await db.allDocs(GetViewRequest(), (json) => json);
+        expect(allDoc.rows, hasLength(1));
+        indexResponse = await db.createIndex(
+            index: QueryViewOptionsDef(fields: ['_id']), ddoc: 'test');
+        allDoc = await db.allDocs(GetViewRequest(), (json) => json);
+        expect(indexResponse.result, 'exists');
+        expect(allDoc.rows, hasLength(1));
+        expect(allDoc.rows[0].value['rev'], startsWith('1'));
+      });
+    },
+    (FoodbTestContext ctx) {
       group('find()', () {
         test(
             'flat selector without _id, docs with missing keys, fields of design_doc< fields of selector',
@@ -311,7 +330,8 @@ List<Function(FoodbTestContext)> findTest() {
               sort: [
                 {'_id': 'asc'}
               ]));
-          var chosen = index.id.compareTo(index2.id)<0? index.name: index2.name;
+          var chosen =
+              index.id.compareTo(index2.id) < 0 ? index.name : index2.name;
           expect(explainResponse.index.name, chosen);
         });
         test(

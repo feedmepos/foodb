@@ -67,23 +67,32 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
         reduce: "_count",
         options: QueryViewOptions(def: index));
 
+    var exist = false;
     if (doc == null) {
       doc = new Doc<DesignDoc>(
           id: ddocName,
           model:
               DesignDoc(language: "query", views: {viewName: queryDesignDoc}));
     } else {
-      doc.model.views[viewName] = queryDesignDoc;
+      if (doc.model.views.containsKey(viewName)) {
+        exist = true;
+      } else {
+        doc.model.views[viewName] = queryDesignDoc;
+      }
     }
     Doc<Map<String, dynamic>> mappedDoc = Doc<Map<String, dynamic>>.fromJson(
         doc.toJson((value) => value.toJson()),
         (json) => json as Map<String, dynamic>);
 
-    PutResponse putResponse = await put(doc: mappedDoc);
-    if (putResponse.ok) {
-      return IndexResponse(result: "created", id: ddocName, name: viewName);
+    if (!exist) {
+      PutResponse putResponse = await put(doc: mappedDoc);
+      if (putResponse.ok) {
+        return IndexResponse(result: "created", id: ddocName, name: viewName);
+      } else {
+        throw AdapterException(error: "failed to put design doc");
+      }
     } else {
-      throw AdapterException(error: "failed to put design doc");
+      return IndexResponse(result: "exists", id: ddocName, name: viewName);
     }
   }
 

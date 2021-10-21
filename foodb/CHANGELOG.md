@@ -1,4 +1,5 @@
-## 0.2.7
+## 0.2.8
+* (fix) create same index will not pump version
 * (fix) fix key value adapter change stream max int
 * (fix) fix mutex for replication
 * (fix) bulk_doc should not remove null field
