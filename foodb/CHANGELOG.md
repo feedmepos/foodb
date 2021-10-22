@@ -1,5 +1,6 @@
-## 0.3.1
+## 0.3.2
 * (add) support compact for any keyvalue adapter
+* (fix) fix wrong pubpec dependency
 
 ## 0.2.9
 * (fix) utf-8 decode all http response
