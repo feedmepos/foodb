@@ -65,7 +65,7 @@ Future<Foodb> getCouchDb(String dbName, {bool persist = false}) async {
   return db;
 }
 
-final List<Function(FoodbTestContext)> fullTestSuite = [
+final List<Function(FoodbTestContext)> foodbFullTestSuite = [
   ...allDocTest(),
   ...bulkDocTest(),
   ...changeStreamTest(),

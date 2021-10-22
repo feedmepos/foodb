@@ -1,7 +1,8 @@
-## 0.3.0
+## 0.3.1
 * (add) support compact for any keyvalue adapter
 
-## 0.2.8
+## 0.2.9
+* (fix) utf-8 decode all http response
 * (fix) create same index will not pump version
 * (fix) fix key value adapter change stream max int
 * (fix) fix mutex for replication

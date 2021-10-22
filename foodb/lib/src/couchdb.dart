@@ -59,7 +59,8 @@ class _Couchdb extends Foodb {
         body: jsonEncode(body.toJson())));
     if (response.statusCode == 200) {
       // var list = jsonDecode(response.body)["results"];
-      return BulkGetResponse<T>.fromJson(jsonDecode(response.body),
+      return BulkGetResponse<T>.fromJson(
+          jsonDecode(utf8.decode(response.bodyBytes)),
           (json) => fromJsonT(json as Map<String, dynamic>));
       // .fromIterable(list,
       //     key: (idDoc) => idDoc["id"],
@@ -87,7 +88,7 @@ class _Couchdb extends Foodb {
         })));
 
     if (response.statusCode == 201) {
-      List<dynamic> responses = jsonDecode(response.body);
+      List<dynamic> responses = jsonDecode(utf8.decode(response.bodyBytes));
       List<PutResponse> putResponses = [];
       for (Map<String, dynamic> row in responses) {
         putResponses.add(PutResponse.fromJson(row));
@@ -160,10 +161,15 @@ class _Couchdb extends Foodb {
 
   @override
   Future<EnsureFullCommitResponse> ensureFullCommit() async {
-    return EnsureFullCommitResponse.fromJson(jsonDecode((await this.client.post(
-            this.getUri('_ensure_full_commit'),
-            headers: {'Content-Type': 'application/json'}))
-        .body));
+    return EnsureFullCommitResponse.fromJson(
+      jsonDecode(
+        utf8.decode(
+          (await this.client.post(this.getUri('_ensure_full_commit'),
+                  headers: {'Content-Type': 'application/json'}))
+              .bodyBytes,
+        ),
+      ),
+    );
   }
 
   @override
@@ -196,7 +202,8 @@ class _Couchdb extends Foodb {
       'revs_info': revsInfo
     });
 
-    var response = (await this.client.get(uriBuilder.build())).body;
+    var response =
+        utf8.decode((await this.client.get(uriBuilder.build())).bodyBytes);
     Map<String, dynamic> result = jsonDecode(response);
 
     return result.containsKey('_id')
@@ -211,13 +218,14 @@ class _Couchdb extends Foodb {
     if (response.statusCode != 200) {
       throw AdapterException(error: 'database not found');
     }
-    return GetInfoResponse.fromJson(jsonDecode(response.body));
+    return GetInfoResponse.fromJson(
+        jsonDecode(utf8.decode(response.bodyBytes)));
   }
 
   @override
   Future<GetServerInfoResponse> serverInfo() async {
-    return GetServerInfoResponse.fromJson(
-        jsonDecode((await this.client.get(this.baseUri)).body));
+    return GetServerInfoResponse.fromJson(jsonDecode(
+        utf8.decode((await this.client.get(this.baseUri)).bodyBytes)));
   }
 
   @override
@@ -239,9 +247,9 @@ class _Couchdb extends Foodb {
         newBody['_revisions'] = doc.revisions!.toJson();
       }
     }
-    var responseBody = jsonDecode(
+    var responseBody = jsonDecode(utf8.decode(
         (await this.client.put(uriBuilder.build(), body: jsonEncode(newBody)))
-            .body);
+            .bodyBytes));
 
     if (responseBody['error'] != null) {
       throw AdapterException(
@@ -254,8 +262,8 @@ class _Couchdb extends Foodb {
   Future<DeleteResponse> delete({required String id, required Rev rev}) async {
     UriBuilder uriBuilder = new UriBuilder.fromUri(this.getUri(id));
     uriBuilder.queryParameters = convertToParams({'rev': rev.toString()});
-    var result =
-        jsonDecode((await this.client.delete(uriBuilder.build())).body);
+    var result = jsonDecode(
+        utf8.decode((await this.client.delete(uriBuilder.build())).bodyBytes));
     if (result['error'] != null) {
       throw AdapterException(error: result['error'], reason: result['reason']);
     }
@@ -269,7 +277,7 @@ class _Couchdb extends Foodb {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(body.map((key, value) =>
             MapEntry(key, value.map((e) => e.toString()).toList()))));
-    Map<String, dynamic> decoded = jsonDecode(response.body);
+    Map<String, dynamic> decoded = jsonDecode(utf8.decode(response.bodyBytes));
     if (decoded.isEmpty) {
       return {};
     }
@@ -298,10 +306,11 @@ class _Couchdb extends Foodb {
       body['name'] = name;
     }
 
-    var response = (jsonDecode((await this.client.post(this.getUri('_index'),
+    var response = (jsonDecode(utf8.decode((await this.client.post(
+            this.getUri('_index'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode(body)))
-        .body));
+        .bodyBytes)));
 
     return IndexResponse.fromJson(response);
   }
@@ -312,10 +321,10 @@ class _Couchdb extends Foodb {
     Map<String, dynamic> body = findRequest.toJson();
     body.removeWhere((key, value) => value == null);
 
-    var response = (await this.client.post(this.getUri('_find'),
+    var response = utf8.decode((await this.client.post(this.getUri('_find'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode(body)))
-        .body;
+        .bodyBytes);
 
     return FindResponse.fromJson(
         jsonDecode(response), (e) => fromJsonT(e as Map<String, dynamic>));
@@ -325,10 +334,11 @@ class _Couchdb extends Foodb {
   Future<ExplainResponse> explain(FindRequest findRequest) async {
     Map<String, dynamic> body = findRequest.toJson();
     body.removeWhere((key, value) => value == null);
-    var response = jsonDecode((await this.client.post(this.getUri('_explain'),
+    var response = jsonDecode(utf8.decode((await this.client.post(
+            this.getUri('_explain'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode(body)))
-        .body);
+        .bodyBytes));
     return ExplainResponse.fromJson(response);
   }
 
@@ -337,7 +347,7 @@ class _Couchdb extends Foodb {
     final response = await this.client.head(this.getUri(""));
     if (response.statusCode == 404) {
       final response = await this.client.put(this.getUri(""));
-      final body = jsonDecode(response.body);
+      final body = jsonDecode(utf8.decode(response.bodyBytes));
       if (body['error'] != null) {
         throw new AdapterException(
             error: body['error'], reason: body['reason']);
@@ -385,12 +395,12 @@ class _Couchdb extends Foodb {
     } else {
       Map<String, dynamic> map = Map();
       map['keys'] = getViewRequest.keys;
-      result = (await this.client.post(
+      result = utf8.decode((await this.client.post(
         uriBuilder.build(),
         body: jsonEncode(map),
         headers: {'Content-Type': 'application/json'},
       ))
-          .body;
+          .bodyBytes);
     }
     return GetViewResponse.fromJson(
         jsonDecode(result), (json) => fromJsonT(json as Map<String, dynamic>));

@@ -47,7 +47,7 @@ void main() {
   //     t(objectBox, couchdb);
   //   });
   // });
-  
+
   findTest().forEach((fn) {
     fn(objectBox);
   });
