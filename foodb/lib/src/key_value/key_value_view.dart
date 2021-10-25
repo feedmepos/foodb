@@ -178,6 +178,8 @@ mixin _KeyValueView on _AbstractKeyValue {
           desc: getViewRequest.descending == true,
           inclusiveEnd: getViewRequest.inclusiveEnd != false,
           inclusiveStart: true,
+          limit: getViewRequest.limit,
+          skip: getViewRequest.skip,
         );
       }
 

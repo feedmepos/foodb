@@ -112,6 +112,8 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
       required bool desc,
       required bool inclusiveStart,
       required bool inclusiveEnd,
+      int? skip,
+      int? limit,
       InMemoryAdapterSession? session}) async {
     var table = _getTable(keyType);
     Map<T, Map<String, dynamic>> result = {};
@@ -135,9 +137,14 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
       }
       if ((inclusiveStart ? startCmp >= 0 : startCmp > 0) &&
           (inclusiveEnd ? endCmp <= 0 : endCmp < 0)) {
-        result.putIfAbsent(keys[x] as T, () => table[keys[x]]!);
-        offSet ??= x;
+        if (skip != null && skip > 0) {
+          --skip;
+        } else {
+          result.putIfAbsent(keys[x] as T, () => table[keys[x]]!);
+          offSet ??= x;
+        }
       }
+      if (limit != null && result.length >= limit) break;
     }
     offSet ??= table.length;
     return ReadResult(records: result, offset: offSet, totalRows: table.length);

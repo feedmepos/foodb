@@ -61,7 +61,6 @@ class UtilsKey extends AbstractKey<String> {
   }
 }
 
-
 class DocKey extends AbstractKey<String> {
   DocKey({String? key}) : super(key: key, tableName: "doc");
 
@@ -205,13 +204,17 @@ abstract class KeyValueAdapter<T extends KeyValueAdapterSession> {
       T2 key,
       {T? session});
 
-  Future<ReadResult<T2>> read<T2 extends AbstractKey>(T2 keyType,
-      {T2? startkey,
-      T2? endkey,
-      T? session,
-      required bool desc,
-      required bool inclusiveStart,
-      required bool inclusiveEnd});
+  Future<ReadResult<T2>> read<T2 extends AbstractKey>(
+    T2 keyType, {
+    T2? startkey,
+    T2? endkey,
+    T? session,
+    required bool desc,
+    required bool inclusiveStart,
+    required bool inclusiveEnd,
+    int? skip,
+    int? limit,
+  });
 
   Future<bool> put(AbstractKey key, Map<String, dynamic> value, {T? session});
   Future<bool> putMany(Map<AbstractKey, Map<String, dynamic>> entries,

@@ -190,11 +190,11 @@ abstract class _AbstractKeyValue extends Foodb {
   _AbstractKeyValue({required dbName, required this.keyValueDb, this.jsRuntime})
       : super(dbName: dbName);
 
-  encodeSeq(int seq) {
+  String encodeSeq(int seq) {
     return '$seq-0';
   }
 
-  decodeSeq(String seq) {
+  int decodeSeq(String seq) {
     return int.parse(seq.split('-')[0]);
   }
 }

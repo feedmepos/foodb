@@ -7,6 +7,20 @@ import 'package:json_annotation/json_annotation.dart';
 part 'common.g.dart';
 
 @JsonSerializable()
+class CompactionMeta {
+  int lastSeq;
+  int revLimit;
+  CompactionMeta({
+    required this.lastSeq,
+    required this.revLimit,
+  });
+
+  factory CompactionMeta.fromJson(Map<String, dynamic> json) =>
+      _$CompactionMetaFromJson(json);
+  Map<String, dynamic> toJson() => _$CompactionMetaToJson(this);
+}
+
+@JsonSerializable()
 class ViewMeta {
   int lastSeq;
 

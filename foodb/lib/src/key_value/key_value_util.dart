@@ -51,15 +51,46 @@ mixin _KeyValueUtil on _AbstractKeyValue {
 
   @override
   Future<bool> compact() async {
-    ReadResult<DocKey> result = await keyValueDb.read<DocKey>(DocKey(),
-        desc: false, inclusiveStart: true, inclusiveEnd: true);
-    Map<DocKey, Map<String, dynamic>> histories =
-        result.records.map((key, value) {
-      DocHistory history = DocHistory.fromJson(value);
-      return MapEntry(key, history.compact(_revLimit).toJson());
+    var doc = await keyValueDb.get(UtilsKey(key: '_compaction'));
+    var meta = doc != null
+        ? CompactionMeta.fromJson(doc.value)
+        : CompactionMeta(lastSeq: 0, revLimit: _revLimit);
+
+    if (meta.revLimit != _revLimit) {
+      meta.lastSeq = 0;
+      meta.revLimit = _revLimit;
+    }
+
+    var compacting = Completer();
+
+    changesStream(
+        ChangeRequest(since: encodeSeq(meta.lastSeq), feed: ChangeFeed.normal),
+        onComplete: (resp) async {
+      int checkpointSize = 100;
+      for (int i = 0; i < resp.results.length; ++i) {
+        final change = resp.results[i];
+        var docToProcess = DocHistory.fromJson(
+            (await keyValueDb.get(DocKey(key: change.id)))!.value);
+        await keyValueDb.put(DocKey(key: docToProcess.id),
+            docToProcess.compact(meta.revLimit).toJson());
+        if (i % checkpointSize == 0) {
+          await keyValueDb.put(
+              UtilsKey(key: '_compaction'),
+              CompactionMeta(
+                      lastSeq: decodeSeq(change.seq!), revLimit: meta.revLimit)
+                  .toJson());
+        }
+      }
+      await keyValueDb.put(
+          UtilsKey(key: '_compaction'),
+          CompactionMeta(
+                  lastSeq: decodeSeq(resp.lastSeq!), revLimit: meta.revLimit)
+              .toJson());
+      compacting.complete();
     });
 
-    return await keyValueDb.putMany(histories);
+    await compacting.future;
+    return true;
   }
 
   @override

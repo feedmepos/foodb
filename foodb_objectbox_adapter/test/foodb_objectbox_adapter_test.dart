@@ -48,31 +48,31 @@ void main() {
   //   });
   // });
 
-  findTest().forEach((fn) {
-    fn(objectBox);
-  });
+  // findTest().forEach((fn) {
+  //   fn(objectBox);
+  // });
 
-  findBenchmarkTest(10000, objectBox);
+  // findBenchmarkTest(10000, objectBox);
 
-  allDocTest().forEach((fn) {
+  allDocTest().skip(8).take(1).forEach((fn) {
     fn(objectBox);
   });
-  getTest().forEach((fn) {
-    fn(objectBox);
-  });
-  bulkDocTest().forEach((fn) {
-    fn(objectBox);
-  });
-  changeStreamTest().forEach((fn) {
-    fn(objectBox);
-  });
-  deleteTest().forEach((fn) {
-    fn(objectBox);
-  });
-  putTest().forEach((fn) {
-    fn(objectBox);
-  });
-  utilTest().forEach((fn) {
-    fn(objectBox);
-  });
+  // getTest().forEach((fn) {
+  //   fn(objectBox);
+  // });
+  // bulkDocTest().forEach((fn) {
+  //   fn(objectBox);
+  // });
+  // changeStreamTest().forEach((fn) {
+  //   fn(objectBox);
+  // });
+  // deleteTest().forEach((fn) {
+  //   fn(objectBox);
+  // });
+  // putTest().forEach((fn) {
+  //   fn(objectBox);
+  // });
+  // utilTest().forEach((fn) {
+  //   fn(objectBox);
+  // });
 }

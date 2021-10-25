@@ -1,3 +1,7 @@
+## 0.4.0
+* (add) all doc limit and skip
+* (fix) compact run form checkpoint instead of beginning
+
 ## 0.3.3
 * (add) support compact and rev limit for any keyvalue adapter
 * (fix) fix wrong pubpec dependency

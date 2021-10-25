@@ -123,7 +123,9 @@ class ObjectBoxType<T1 extends ObjectBoxEntity, T2> {
       T2? endkey,
       required bool descending,
       required bool inclusiveStart,
-      required bool inclusiveEnd}) {
+      required bool inclusiveEnd,
+      int? offset,
+      int? limit}) {
     List<Condition<T1>> conditions = [];
     if (startkey != null) {
       if (inclusiveStart) {
@@ -154,11 +156,13 @@ class ObjectBoxType<T1 extends ObjectBoxEntity, T2> {
           conditions.reduce((value, element) => value.and(element));
     }
 
-    QueryBuilder<T1> query = box(store).query(finalContidion);
-    query.order(keyQuery.property, flags: descending ? Order.descending : 0);
+    final query = (box(store).query(finalContidion)
+          ..order(keyQuery.property, flags: descending ? Order.descending : 0))
+        .build();
 
-    var result = query.build().find();
-    return result;
+    if (offset != null) query.offset = offset;
+    if (limit != null) query.limit = limit;
+    return query.find();
   }
 
   ObjectBoxEntity? last(Store store, key) {
@@ -393,6 +397,8 @@ class ObjectBoxAdapter implements KeyValueAdapter {
       required bool desc,
       required bool inclusiveEnd,
       required bool inclusiveStart,
+      int? limit,
+      int? skip,
       KeyValueAdapterSession? session}) async {
     final boxType = _getBoxFromKey(keyType);
     final totalRows = boxType.count(store);
@@ -402,7 +408,9 @@ class ObjectBoxAdapter implements KeyValueAdapter {
         endkey: encodeKey(endkey),
         descending: desc,
         inclusiveEnd: inclusiveEnd,
-        inclusiveStart: inclusiveStart);
+        inclusiveStart: inclusiveStart,
+        offset: skip,
+        limit: limit);
 
     return ReadResult(
         totalRows: totalRows,

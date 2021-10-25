@@ -101,8 +101,6 @@ List<Function(FoodbTestContext)> allDocTest() {
             (value) => value);
         expect(result.totalRows, 4);
         expect(result.rows, hasLength(1));
-        // TODO handle for objectbox;
-        // expect(result.offset, 2);
       });
     },
     (FoodbTestContext ctx) {
@@ -123,8 +121,6 @@ List<Function(FoodbTestContext)> allDocTest() {
             (value) => value);
         expect(result.totalRows, 4);
         expect(result.rows, hasLength(0));
-        // TODO handle for objectbox;
-        // expect(result.offset, 2);
       });
     },
     (FoodbTestContext ctx) {
@@ -140,8 +136,6 @@ List<Function(FoodbTestContext)> allDocTest() {
             (value) => value);
         expect(result.totalRows, 4);
         expect(result.rows, hasLength(3));
-        // TODO handle for objectbox;
-        // expect(result.offset, 1);
       });
     },
     (FoodbTestContext ctx) {
@@ -157,8 +151,29 @@ List<Function(FoodbTestContext)> allDocTest() {
             (value) => value);
         expect(result.totalRows, 4);
         expect(result.rows, hasLength(2));
-        // TODO handle for objectbox;
-        // expect(result.offset, 0);
+      });
+    },
+    (FoodbTestContext ctx) {
+      test('all docs with skip and limit', () async {
+        final db = await ctx.db('all-docs-with-skip');
+        await db.put(doc: Doc(id: 'a', model: {}));
+        await db.put(doc: Doc(id: 'b', model: {}));
+        await db.put(doc: Doc(id: 'c', model: {}));
+        await db.put(doc: Doc(id: 'd', model: {}));
+
+        var result = await db.allDocs<Map<String, dynamic>>(
+            GetViewRequest(startkey: 'b', skip: 1), (value) => value);
+        expect(result.rows, hasLength(2));
+        expect(result.rows[0].id, 'c');
+        expect(result.rows[1].id, 'd');
+        result = await db.allDocs<Map<String, dynamic>>(
+            GetViewRequest(startkey: 'b', skip: 1, limit: 1), (value) => value);
+        expect(result.rows, hasLength(1));
+        expect(result.rows[0].id, 'c');
+        result = await db.allDocs<Map<String, dynamic>>(
+            GetViewRequest(startkey: 'b', limit: 1), (value) => value);
+        expect(result.rows, hasLength(1));
+        expect(result.rows[0].id, 'b');
       });
     },
   ];

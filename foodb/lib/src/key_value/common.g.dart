@@ -6,6 +6,19 @@ part of 'common.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+CompactionMeta _$CompactionMetaFromJson(Map<String, dynamic> json) {
+  return CompactionMeta(
+    lastSeq: json['lastSeq'] as int,
+    revLimit: json['revLimit'] as int,
+  );
+}
+
+Map<String, dynamic> _$CompactionMetaToJson(CompactionMeta instance) =>
+    <String, dynamic>{
+      'lastSeq': instance.lastSeq,
+      'revLimit': instance.revLimit,
+    };
+
 ViewMeta _$ViewMetaFromJson(Map<String, dynamic> json) {
   return ViewMeta(
     lastSeq: json['lastSeq'] as int,
