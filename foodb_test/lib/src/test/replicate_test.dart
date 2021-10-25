@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:test/test.dart';
 import 'package:foodb/foodb.dart';
 import 'package:foodb_test/foodb_test.dart';
@@ -35,9 +37,71 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
     replicateTest() {
   return [
     (FoodbTestContext sourceCtx, FoodbTestContext targetCtx) {
+      test('replication with compaction and rev limit', () async {
+        final source = await sourceCtx.db('source-compact');
+        final target = await targetCtx.db('target-compact');
+        onetimeReplicate([reverse = false]) async {
+          var replication = Completer();
+          if (reverse)
+            replicate(target, source, onComplete: replication.complete);
+          else
+            replicate(source, target, onComplete: replication.complete);
+          await replication.future;
+        }
+
+        putDoc(Foodb db, List<String> revs) {
+          var revisions = Revisions(
+            start: int.parse(revs[0].split('-')[0]),
+            ids: revs.map((e) => e.split('-')[1]).toList(),
+          );
+          var rev = Rev.fromString(revs[0]);
+          return db.put(
+              doc: Doc(
+                id: 'a',
+                rev: rev,
+                model: {},
+                revisions: revisions,
+              ),
+              newEdits: false);
+        }
+
+        getDoc(Foodb db, [String? rev]) {
+          return db.get(
+            id: 'a',
+            fromJsonT: (json) => json,
+            rev: rev,
+            revs: true,
+            conflicts: true,
+            meta: true,
+          );
+        }
+
+        runCompact(Foodb db) async {
+          await db.compact();
+          await Future.delayed(Duration(seconds: 1));
+        }
+
+        var targetDoc;
+        var sourceDoc;
+        await putDoc(source, ['1-a']);
+        await putDoc(source, ['2-a', '1-a']);
+        await putDoc(source, ['2-b', '1-a']);
+        await runCompact(source);
+        await source.revsLimit(1);
+        await runCompact(source);
+        sourceDoc = await getDoc(source);
+        await onetimeReplicate();
+        targetDoc = await getDoc(target);
+
+        print(sourceDoc);
+      });
+    },
+    (FoodbTestContext sourceCtx, FoodbTestContext targetCtx) {
       test('repliacte resume on correct checkpoint', () async {
-        final source = await sourceCtx.db('replicate-correct-checkpoint');
-        final target = await targetCtx.db('replicate-correct-checkpoint');
+        final source =
+            await sourceCtx.db('source-replicate-correct-checkpoint');
+        final target =
+            await targetCtx.db('target-replicate-correct-checkpoint');
 
         var complete = expectAsync0(() => {});
         var onSecondResult = expectAsync1((ChangeResult r) {}, count: 1);
@@ -86,8 +150,10 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
         });
       });
       test('repliacte non-continuous, max-batch-size', () async {
-        final source = await sourceCtx.db('replicate-source-max-batch-size');
-        final target = await targetCtx.db('replicate-target-max-batch-size');
+        final source =
+            await sourceCtx.db('source-replicate-source-max-batch-size');
+        final target =
+            await targetCtx.db('target-replicate-target-max-batch-size');
 
         var complete = expectAsync0(() => {});
         var checkpoint = expectAsync0(() => {}, count: 2);
@@ -181,8 +247,8 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
             () => source.put(doc: Doc(id: 'b', model: {})));
       });
       test('continuous replication, fast oepration', () async {
-        final source = await sourceCtx.db('replicate-fast-operation');
-        final target = await targetCtx.db('replicate-fast-operation');
+        final source = await sourceCtx.db('source-replicate-fast-operation');
+        final target = await targetCtx.db('target-replicate-fast-operation');
         var complete = expectAsync0(() => {});
         var resultCnt = expectAsync1((r) => {}, count: 10);
 
@@ -201,10 +267,9 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
         );
         var list = List.generate(10, (index) => index);
         for (var i in list) {
-          await Future.delayed(Duration(milliseconds: 10));
-          source.put(doc: Doc(id: '$i', model: {}));
+          await source.put(doc: Doc(id: '$i', model: {}));
         }
-        Future.delayed(Duration(seconds: 3), complete);
+        await Future.delayed(Duration(seconds: 3), complete);
       });
     }
   ];

@@ -30,10 +30,14 @@ mixin _KeyValueGet on _AbstractKeyValue {
     Doc<T>? doc;
     var targetRev = rev != null ? Rev.fromString(rev) : result.winner?.rev;
     if (targetRev != null) {
-      doc = result.toDoc(targetRev, fromJsonT,
-          showRevision: revs,
-          showRevInfo: revsInfo || meta,
-          showConflicts: conflicts || meta);
+      doc = result.toDoc(
+        targetRev,
+        fromJsonT,
+        showRevision: revs,
+        showRevInfo: rev == null && (revsInfo || meta),
+        showConflicts: rev == null && (conflicts || meta),
+        revLimit: _revLimit,
+      );
     }
     return doc;
   }

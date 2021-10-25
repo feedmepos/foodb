@@ -3,8 +3,8 @@ import 'package:foodb/foodb.dart';
 import 'package:foodb_test/foodb_test.dart';
 
 void main() {
-  final ctx = CouchdbTestContext();
-  // final ctx = InMemoryTestContext();
+  // final ctx = CouchdbTestContext();
+  final ctx = InMemoryTestContext();
   putTest().forEach((t) {
     t(ctx);
   });
@@ -25,8 +25,8 @@ List<Function(FoodbTestContext)> putTest() {
       });
     },
     (FoodbTestContext ctx) {
-      const id = 'put-new-edits-false';
       test('with Rev should be success put', () async {
+        const id = 'put-new-edits-false';
         final db = await ctx.db('put-new-edits-false');
         var putResponse = await db.put(
             doc: Doc(
@@ -39,8 +39,8 @@ List<Function(FoodbTestContext)> putTest() {
       });
     },
     (FoodbTestContext ctx) {
-      const id = 'put-new-edits-false';
       test('without Rev should catch error', () async {
+        const id = 'put-new-edits-false';
         final db = await ctx.db('put-new-edit-false-no-rev');
         try {
           await db.put(
@@ -52,8 +52,8 @@ List<Function(FoodbTestContext)> putTest() {
       });
     },
     (FoodbTestContext ctx) {
-      const id = 'put-new-edits-false';
       test('empty revisions, create new history', () async {
+        const id = 'put-new-edits-false';
         final db = await ctx.db('put-new-edit-false-empty-revisions');
         await db.put(
             doc: Doc(
@@ -76,8 +76,8 @@ List<Function(FoodbTestContext)> putTest() {
       });
     },
     (FoodbTestContext ctx) {
-      const id = 'put-new-edits-false';
       test('with revision, link to existing', () async {
+        const id = 'put-new-edits-false';
         final db = await ctx.db('put-new-edits-false-with-reivisions');
         await db.put(
             doc: Doc(
@@ -98,6 +98,30 @@ List<Function(FoodbTestContext)> putTest() {
         expect(doc!.conflicts, isNull);
         expect(doc.revisions!.ids.length, 2);
         await db.delete(id: id, rev: Rev.fromString('2-a'));
+      });
+    },
+    (FoodbTestContext ctx) {
+      test('correct winner decision', () async {
+        final db = await ctx.db('put-correct-winner');
+        await db.put(
+            doc: Doc(id: 'a', rev: Rev.fromString('1-a'), model: {}),
+            newEdits: false);
+        await db.put(
+            doc: Doc(
+                id: 'a',
+                rev: Rev.fromString('2-a'),
+                model: {},
+                revisions: Revisions(start: 2, ids: ['a', 'a'])),
+            newEdits: false);
+        await db.put(
+            doc: Doc(id: 'a', rev: Rev.fromString('3-a'), model: {}),
+            newEdits: false);
+
+        var doc = await db.get(
+            id: 'a', fromJsonT: (json) => json, revs: true, conflicts: true);
+        expect(doc?.conflicts, hasLength(1));
+        expect(doc?.revisions!.start, 3);
+        expect(doc?.revisions!.ids, hasLength(1));
       });
     },
     (FoodbTestContext ctx) {

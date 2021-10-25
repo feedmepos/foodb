@@ -18,7 +18,11 @@ mixin _KeyValueChange on _AbstractKeyValue {
           (await keyValueDb.get(DocKey(key: update.id)))!.value);
 
       Doc<Map<String, dynamic>>? winner = docs.winner != null
-          ? docs.toDoc(docs.winner!.rev, (json) => json)
+          ? docs.toDoc(
+              docs.winner!.rev,
+              (json) => json,
+              revLimit: _revLimit,
+            )
           : null;
       result.doc = winner;
     }

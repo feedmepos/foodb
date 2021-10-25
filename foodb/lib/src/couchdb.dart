@@ -366,7 +366,8 @@ class _Couchdb extends Foodb {
 
   @override
   Future<bool> compact() async {
-    await this.client.post(this.getUri('_compact'));
+    await this.client.post(this.getUri('_compact'),
+        headers: {'content-type': 'application/json'});
     return true;
   }
 

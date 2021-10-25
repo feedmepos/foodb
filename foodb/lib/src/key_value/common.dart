@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:foodb/foodb.dart';
 import 'package:foodb/key_value_adapter.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -173,7 +175,7 @@ class DocHistory {
     return sortedLeaves.length > 0 ? sortedLeaves.first : null;
   }
 
-  Revisions? getRevision(Rev rev) {
+  Revisions? getRevision(Rev rev, [int? revLimit]) {
     List<RevisionNode> nodes =
         revisions.nodes.where((element) => element.rev == rev).toList();
 
@@ -192,7 +194,8 @@ class DocHistory {
   }
 
   Doc<T>? toDoc<T>(Rev rev, T Function(Map<String, dynamic> json) fromT,
-      {bool showRevision = false,
+      {required revLimit,
+      bool showRevision = false,
       bool showRevInfo = false,
       showConflicts = false}) {
     final doc = docs[rev.toString()];
@@ -204,26 +207,31 @@ class DocHistory {
     if (_revisions == null) {
       return null;
     }
-    if (showRevInfo == true) {
-        _revsInfo = [];
-        var index = _revisions.start;
-        for (final id in _revisions.ids) {
-          final rev = Rev(index: index, md5: id);
-          if (docs[rev.toString()] != null) {
-            _revsInfo.add(RevsInfo(rev: rev, status: 'available'));
-          } else {
-            _revsInfo.add(RevsInfo(rev: rev, status: 'missing'));
-          }
-          index -= 1;
+    if (showRevInfo == true && winnerRev == rev) {
+      _revsInfo = [];
+      var index = _revisions.start;
+      for (final id in _revisions.ids) {
+        final rev = Rev(index: index, md5: id);
+        if (docs[rev.toString()] != null) {
+          _revsInfo.add(RevsInfo(rev: rev, status: 'available'));
+        } else {
+          _revsInfo.add(RevsInfo(rev: rev, status: 'missing'));
         }
+        index -= 1;
       }
-    
+    }
+
     return Doc(
         id: id,
         model: fromT(doc.data),
         rev: doc.rev,
         deleted: doc.deleted,
-        revisions: showRevision ? _revisions : null,
+        revisions: showRevision
+            ? Revisions(
+                start: _revisions.start,
+                ids: _revisions.ids
+                    .sublist(0, min(revLimit, _revisions.ids.length)))
+            : null,
         revsInfo: _revsInfo,
         deletedConflicts: showConflicts && deletedConflicts.length > 0
             ? deletedConflicts.map((e) => e.rev).toList()
@@ -261,27 +269,27 @@ class DocHistory {
     );
   }
 
-  List<RevisionNode> _nodesToKeep = [];
-
-  bool compact(int limit) {
+  DocHistory compact(int limit) {
+    final newDocs = Map<String, InternalDoc>();
+    List<RevisionNode> newNodes = [];
     leafDocs.forEach((doc) {
-      _compactDFS(limit, doc.rev, RevisionNode(rev: doc.rev));
+      newDocs[doc.rev.toString()] = doc;
+      var i = 0;
+      Rev? currRev = doc.rev;
+      do {
+        var nodeToAdd = revisions.nodes
+            .firstWhere((element) => element.rev == currRev)
+            .copyWith();
+        ++i;
+        if (i >= limit) {
+          nodeToAdd.prevRev = null;
+        }
+        newNodes.add(nodeToAdd);
+        currRev = nodeToAdd.prevRev;
+      } while (currRev != null);
     });
-    revisions.nodes = _nodesToKeep;
-    return true;
-  }
 
-  void _compactDFS(int limit, Rev curRev, RevisionNode _node) {
-    revisions.nodes.where((node) => node.rev == curRev).forEach((node) {
-      if (node.prevRev != null) {
-        _compactDFS(--limit, node.prevRev!, RevisionNode(rev: node.rev));
-      }
-      if (limit < 0) {
-        docs.remove(node.rev);
-      } else {
-        _node.prevRev = limit > 0 ? curRev : null;
-        _nodesToKeep.add(_node);
-      }
-    });
+    return this
+        .copyWith(revisions: RevisionTree(nodes: newNodes), docs: newDocs);
   }
 }

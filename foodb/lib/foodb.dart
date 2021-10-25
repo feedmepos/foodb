@@ -22,7 +22,6 @@ import 'package:foodb/src/methods/put.dart';
 import 'package:foodb/src/methods/revs_diff.dart';
 import 'package:foodb/src/methods/server.dart';
 import 'package:foodb/src/methods/view.dart';
-import 'package:foodb/src/replicate.dart';
 import 'package:http/http.dart' as http;
 import 'package:uri/uri.dart';
 
@@ -180,6 +179,7 @@ final String allDocViewName = getViewName(
 abstract class _AbstractKeyValue extends Foodb {
   KeyValueAdapter keyValueDb;
   JSRuntime? jsRuntime;
+  int _revLimit = 1000;
 
   StreamController<MapEntry<SequenceKey, UpdateSequence>>
       localChangeStreamController = StreamController.broadcast();

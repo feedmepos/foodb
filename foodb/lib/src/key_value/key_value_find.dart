@@ -173,7 +173,11 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
       var doc = history.winner!.data;
       doc['_id'] = history.id;
       if (selector.evaluate(doc)) {
-        finalDocs.add(history.toDoc(history.winnerRev!, fromJsonT)!);
+        finalDocs.add(history.toDoc(
+          history.winnerRev!,
+          fromJsonT,
+          revLimit: _revLimit,
+        )!);
       }
     });
     // if (findRequest.sort != null) {

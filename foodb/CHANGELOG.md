@@ -1,5 +1,5 @@
-## 0.3.2
-* (add) support compact for any keyvalue adapter
+## 0.3.3
+* (add) support compact and rev limit for any keyvalue adapter
 * (fix) fix wrong pubpec dependency
 
 ## 0.2.9

@@ -208,7 +208,11 @@ mixin _KeyValueView on _AbstractKeyValue {
             key: key.key,
             value: value.value,
             doc: getViewRequest.includeDocs == true
-                ? map[docId]!.toDoc<T>(map[docId]!.winner!.rev, fromJsonT)
+                ? map[docId]!.toDoc<T>(
+                    map[docId]!.winner!.rev,
+                    fromJsonT,
+                    revLimit: _revLimit,
+                  )
                 : null);
         rows.add(row);
       }

@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:test/test.dart';
 import 'package:foodb/foodb.dart';
 import 'package:foodb_test/foodb_test.dart';
@@ -74,63 +72,94 @@ List<Function(FoodbTestContext)> utilTest() {
       });
     },
     (FoodbTestContext ctx) {
-      test('compact', () async {
-        final db = await ctx.db('compact');
-        await db.revsLimit(1);
-        await db.put(
-            doc: Doc(id: '1', rev: Rev.fromString('1-a'), model: {'name': '1'}),
-            newEdits: false);
-        await db.put(
-            doc: Doc(
-                id: '1',
-                rev: Rev.fromString('2-b'),
-                revisions: Revisions(ids: ['b', 'a'], start: 2),
-                model: {'name': '2'}),
-            newEdits: false);
-        await db.put(
-            doc: Doc(id: '2', rev: Rev.fromString('1-a'), model: {'name': '3'}),
-            newEdits: false);
-        await db.put(
-            doc: Doc(
-                id: '2',
-                rev: Rev.fromString('2-b'),
-                revisions: Revisions(ids: ['b', 'a'], start: 2),
-                model: {'name': '4'}),
-            newEdits: false);
-        await db.put(
-            doc: Doc(
-                id: '2',
-                rev: Rev.fromString('2-c'),
-                revisions: Revisions(ids: ['c', 'a'], start: 2),
-                model: {'name': '5'}),
-            newEdits: false);
+      test('rev limit and compaction', () async {
+        final db = await ctx.db('rev-limit-and-compaction');
+        putDoc(List<String> revs) {
+          var revisions = Revisions(
+            start: int.parse(revs[0].split('-')[0]),
+            ids: revs.map((e) => e.split('-')[1]).toList(),
+          );
+          var rev = Rev.fromString(revs[0]);
+          return db.put(
+              doc: Doc(
+                id: 'a',
+                rev: rev,
+                model: {},
+                revisions: revisions,
+              ),
+              newEdits: false);
+        }
 
+        getDoc([String? rev]) {
+          return db.get(
+            id: 'a',
+            fromJsonT: (json) => json,
+            rev: rev,
+            revsInfo: true,
+            revs: true,
+            conflicts: true,
+            meta: true,
+          );
+        }
+
+        await putDoc(['1-a']);
+        await putDoc(['2-a', '1-a']);
+        await putDoc(['3-a', '2-a', '1-a']);
+        await putDoc(['4-a', '3-a', '2-a', '1-a']);
+        await putDoc(['3-b', '2-a', '1-a']);
+        await putDoc(['4-b', '3-b', '2-a', '1-a']);
+        // rev limit will not remove revinfos, just change revisions ouput, doc still exist
+        await db.revsLimit(2);
+        var winner = await getDoc();
+        var winnerUsingRev = await getDoc('4-b');
+        var winnerBranch = await getDoc('3-b');
+        var commonAccestor = await getDoc('2-a');
+        var conflictLeaf = await getDoc('4-a');
+        var conflictBranch = await getDoc('3-a');
+        expect(winner, isNotNull);
+        expect(winner!.conflicts, hasLength(1));
+        expect(winnerUsingRev, isNotNull);
+        expect(winnerBranch, isNotNull);
+        expect(commonAccestor, isNotNull);
+        expect(conflictLeaf, isNotNull);
+        expect(conflictBranch, isNotNull);
+        expect(winner.revsInfo, hasLength(4));
+        expect(winnerUsingRev!.revsInfo, isNull);
+        expect(winnerBranch!.revsInfo, isNull);
+        expect(commonAccestor!.revsInfo, isNull);
+        expect(conflictLeaf!.revsInfo, isNull);
+        expect(conflictBranch!.revsInfo, isNull);
+        expect(winner.revisions!.ids, hasLength(2));
+        expect(winnerBranch.revisions!.ids, hasLength(2));
+        expect(commonAccestor.revisions!.ids, hasLength(2));
+        expect(conflictLeaf.revisions!.ids, hasLength(2));
+        expect(conflictBranch.revisions!.ids, hasLength(2));
+
+        // compact before rev limit will not reduce revisions.ids, doc disappear
+        await db.revsLimit(100);
         await db.compact();
+        await Future.delayed(Duration(seconds: 1));
+        winner = await getDoc();
+        winnerBranch = await getDoc('3-b');
+        commonAccestor = await getDoc('2-a');
+        conflictLeaf = await getDoc('4-a');
+        conflictBranch = await getDoc('3-a');
+        expect(winner, isNotNull);
+        expect(conflictLeaf, isNotNull);
+        expect(winnerBranch, isNull);
+        expect(commonAccestor, isNull);
+        expect(conflictBranch, isNull);
+        expect(winner!.revisions!.ids, hasLength(4));
+        expect(conflictLeaf!.revisions!.ids, hasLength(4));
 
-        // id =1
-        var doc1 = await db.get(
-            id: '1', rev: '2-b', revs: true, fromJsonT: (value) => value);
-        expect(doc1, isNotNull);
-        expect(doc1?.revisions?.toJson(),
-            Revisions(start: 2, ids: ['b']).toJson());
-        expect(await db.get(id: '1', rev: '1-a', fromJsonT: (value) => value),
-            isNull);
-
-        //id =2
-        expect(await db.get(id: '2', rev: '1-a', fromJsonT: (value) => value),
-            isNull);
-
-        var doc2 = await db.get(
-            id: '2', rev: '2-b', revs: true, fromJsonT: (value) => value);
-        expect(doc2, isNotNull);
-        expect(doc2?.revisions?.toJson(),
-            Revisions(start: 2, ids: ['b']).toJson());
-
-        var doc3 = await db.get(
-            id: '2', rev: '2-c', revs: true, fromJsonT: (value) => value);
-        expect(doc3, isNotNull);
-        expect(doc3?.revisions?.toJson(),
-            Revisions(start: 2, ids: ['c']).toJson());
+        // compact after change rev limit, revisions id dissappear
+        await db.revsLimit(2);
+        await db.compact();
+        await Future.delayed(Duration(seconds: 1));
+        winner = await getDoc();
+        conflictLeaf = await getDoc('4-a');
+        expect(winner!.revisions!.ids, hasLength(2));
+        expect(conflictLeaf!.revisions!.ids, hasLength(2));
       });
     },
   ];
