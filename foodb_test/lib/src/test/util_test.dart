@@ -3,8 +3,8 @@ import 'package:foodb/foodb.dart';
 import 'package:foodb_test/foodb_test.dart';
 
 void main() {
-  final ctx = CouchdbTestContext();
-  // final ctx = InMemoryTestContext();
+  // final ctx = CouchdbTestContext();
+  final ctx = InMemoryTestContext();
   utilTest().forEach((t) {
     t(ctx);
   });
@@ -15,9 +15,13 @@ List<Function(FoodbTestContext)> utilTest() {
     (FoodbTestContext ctx) {
       test('info()', () async {
         final db = await ctx.db('test-info');
+        var doc1 = await db.put(doc: Doc(id: 'a', model: {}));
+        await db.put(doc: Doc(id: 'b', model: {}));
+        await db.delete(id: doc1.id, rev: doc1.rev);
         var result = await db.info();
         expect(result, isNotNull);
         expect(result.dbName.endsWith('test-info'), true);
+        expect(result.docCount, 1);
       });
     },
     (FoodbTestContext ctx) {

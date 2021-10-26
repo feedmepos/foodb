@@ -11,6 +11,7 @@ GetInfoResponse _$GetInfoResponseFromJson(Map<String, dynamic> json) {
     instanceStartTime: json['instance_start_time'] as String,
     updateSeq: json['update_seq'] as String,
     dbName: json['db_name'] as String,
+    docCount: json['doc_count'] as int,
   );
 }
 
@@ -19,4 +20,5 @@ Map<String, dynamic> _$GetInfoResponseToJson(GetInfoResponse instance) =>
       'instance_start_time': instance.instanceStartTime,
       'update_seq': instance.updateSeq,
       'db_name': instance.dbName,
+      'doc_count': instance.docCount,
     };

@@ -162,14 +162,11 @@ mixin _KeyValuePut on _AbstractKeyValue {
     // perform actual database operation base on local doc or normal doc
     if (!isLocal) {
       if (winnerBeforeUpdate != null) {
-        // await timed('delete old sequence', () async {
         await keyValueDb.delete(
           SequenceKey(key: winnerBeforeUpdate.localSeq!),
         );
-        // });
       }
       late UpdateSequence newUpdateSeqObject;
-      // await timed('save new update sequence', () async {
       newUpdateSeqObject = UpdateSequence(
           id: doc.id,
           winnerRev: newDocHistoryObject.winner?.rev ?? newDocObject.rev,
@@ -178,14 +175,11 @@ mixin _KeyValuePut on _AbstractKeyValue {
         SequenceKey(key: newUpdateSeq),
         newUpdateSeqObject.toJson(),
       );
-      // });
 
-      // await timed('save new doc', () async {
       await keyValueDb.put(
         baseType,
         newDocHistoryObject.toJson(),
       );
-      // });
 
       localChangeStreamController.sink
           .add(MapEntry(SequenceKey(key: newUpdateSeq), newUpdateSeqObject));

@@ -27,21 +27,23 @@ export './src/test/replicate_test.dart' show replicateTest;
 export './src/test/replicate_benchmark_test.dart' show replicateBenchmarkTest;
 
 abstract class FoodbTestContext {
-  Future<Foodb> db(String dbName);
+  Future<Foodb> db(String dbName, {bool? persist, String prefix});
 }
 
 class CouchdbTestContext extends FoodbTestContext {
   @override
-  Future<Foodb> db(String dbName) async {
-    return getCouchDb('test-$dbName');
+  Future<Foodb> db(String dbName,
+      {bool? persist, String prefix = 'test-'}) async {
+    return getCouchDb('$prefix$dbName', persist: persist ?? false);
   }
 }
 
 class InMemoryTestContext extends FoodbTestContext {
   @override
-  Future<Foodb> db(String dbName) async {
+  Future<Foodb> db(String dbName,
+      {bool? persist, String prefix = 'test-'}) async {
     return Foodb.keyvalue(
-        dbName: 'test-$dbName', keyValueDb: KeyValueAdapter.inMemory());
+        dbName: '$prefix$dbName', keyValueDb: KeyValueAdapter.inMemory());
   }
 }
 
@@ -61,6 +63,8 @@ Future<Foodb> getCouchDb(String dbName, {bool persist = false}) async {
     addTearDown(() async {
       await db.destroy();
     });
+  } else {
+    await db.initDb();
   }
   return db;
 }

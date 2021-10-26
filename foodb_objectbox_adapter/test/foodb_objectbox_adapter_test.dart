@@ -9,7 +9,7 @@ import 'package:path/path.dart';
 
 Future<ObjectBoxAdapter> getAdapter(String dbName,
     {bool persist = false}) async {
-  var directory = join(Directory.current.path, 'temp/test-$dbName');
+  var directory = join(Directory.current.path, 'temp/$dbName');
   final dir = Directory(directory);
   late Store store;
   if (!persist) {
@@ -27,9 +27,11 @@ Future<ObjectBoxAdapter> getAdapter(String dbName,
 
 class ObjectBoxTestContext extends FoodbTestContext {
   @override
-  Future<Foodb> db(String dbName) async {
-    var db = await getAdapter(dbName);
-    return Foodb.keyvalue(dbName: dbName, keyValueDb: db);
+  Future<Foodb> db(String dbName,
+      {bool? persist, String prefix = 'test-'}) async {
+    var name = '$prefix$dbName';
+    var db = await getAdapter(name);
+    return Foodb.keyvalue(dbName: '$name', keyValueDb: db);
   }
 }
 

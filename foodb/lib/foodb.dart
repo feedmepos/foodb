@@ -55,6 +55,51 @@ part 'src/key_value/key_value_put.dart';
 part 'src/key_value/key_value_util.dart';
 part 'src/key_value/key_value_view.dart';
 
+enum LOG_LEVEL { off, debug }
+
+class FoodbDebug {
+  static LOG_LEVEL logLevel = LOG_LEVEL.off;
+  static Map<String, Stopwatch> _cache = {};
+
+  static _print(Stopwatch stopwatch, String step) {
+    print(
+        '[${stopwatch.elapsed.inMilliseconds.toString().padLeft(7, ' ')} ms]: $step');
+  }
+
+  static timed(String step, Function fn) async {
+    if (logLevel == LOG_LEVEL.debug) {
+      Stopwatch stopwatch = Stopwatch();
+      stopwatch.reset();
+      stopwatch.start();
+      await fn();
+      stopwatch.stop();
+      _print(stopwatch, step);
+    }
+  }
+
+  static timedStart(String step) {
+    if (logLevel == LOG_LEVEL.debug) {
+      var stopwatch = _cache[step];
+      if (stopwatch == null) {
+        stopwatch = Stopwatch();
+        _cache[step] = stopwatch;
+        stopwatch.start();
+      }
+    }
+  }
+
+  static timedEnd(String step, String Function(int) message) {
+    if (logLevel == LOG_LEVEL.debug) {
+      var stopwatch = _cache[step];
+      if (stopwatch != null) {
+        _print(stopwatch, message(stopwatch.elapsedMilliseconds));
+        stopwatch.stop();
+        _cache.remove(step);
+      }
+    }
+  }
+}
+
 abstract class Foodb {
   String dbName;
   Foodb({required this.dbName});
@@ -227,15 +272,6 @@ class _KeyvalueFoodb extends _AbstractKeyValue
       required KeyValueAdapter keyValueDb,
       JSRuntime? jsRuntime})
       : super(dbName: dbName, keyValueDb: keyValueDb, jsRuntime: jsRuntime);
-}
-
-timed(String step, Function fn) async {
-  Stopwatch stopwatch = Stopwatch();
-  stopwatch.reset();
-  stopwatch.start();
-  await fn();
-  stopwatch.stop();
-  print('$step: ${stopwatch.elapsed.inMilliseconds}ms');
 }
 
 defaultOnError(Object? e, StackTrace? s) {

@@ -143,78 +143,81 @@ class _Replicator {
 
       // get revs diff
       late Map<String, RevsDiff> revsDiff;
-      // await timed('get revs diff', () async {
-      Map<String, List<Rev>> groupedChange = new Map();
-      toProcess.forEach((changeResult) {
-        groupedChange[changeResult.id] =
-            changeResult.changes.map((e) => e.rev).toList();
+      await FoodbDebug.timed('<replication>: get revs diff', () async {
+        Map<String, List<Rev>> groupedChange = new Map();
+        toProcess.forEach((changeResult) {
+          groupedChange[changeResult.id] =
+              changeResult.changes.map((e) => e.rev).toList();
+        });
+        revsDiff = await _target.revsDiff(body: groupedChange);
       });
-      revsDiff = await _target.revsDiff(body: groupedChange);
-      // });
 
       // have revs diff, need fetch doc
       if (revsDiff.isNotEmpty) {
         List<Doc<Map<String, dynamic>>> toInsert = [];
 
         // optimization from pouchdb, use allDoc to get doc that missing only 1 generation
-        // await timed('handle gen-1 through bulkGet', () async {
-        final gen1Ids = revsDiff.keys
-            .where((key) =>
-                revsDiff[key]!.missing.length == 1 &&
-                revsDiff[key]!.missing[0].index == 1)
-            .toList();
-        if (gen1Ids.length > 0) {
-          final docs = await _source.allDocs(
-              GetViewRequest(keys: gen1Ids, includeDocs: true, conflicts: true),
-              (json) => json);
-          if (cancelled) throw ReplicationException('cancelled');
-          docs.rows.forEach((row) {
-            if (row.doc == null ||
-                row.doc!.deleted == true ||
-                row.doc!.rev!.index != 1 ||
-                (row.doc!.conflicts != null &&
-                    row.doc!.conflicts!.length > 0)) {
-              return;
-            }
-            toInsert.add(row.doc!);
-            revsDiff.remove(row.id);
-          });
-        }
-        // });
+        await FoodbDebug.timed('<replication>: retrieve gen-1 using allDoc',
+            () async {
+          final gen1Ids = revsDiff.keys
+              .where((key) =>
+                  revsDiff[key]!.missing.length == 1 &&
+                  revsDiff[key]!.missing[0].index == 1)
+              .toList();
+          if (gen1Ids.length > 0) {
+            final docs = await _source.allDocs(
+                GetViewRequest(
+                    keys: gen1Ids, includeDocs: true, conflicts: true),
+                (json) => json);
+            if (cancelled) throw ReplicationException('cancelled');
+            docs.rows.forEach((row) {
+              if (row.doc == null ||
+                  row.doc!.deleted == true ||
+                  row.doc!.rev!.index != 1 ||
+                  (row.doc!.conflicts != null &&
+                      row.doc!.conflicts!.length > 0)) {
+                return;
+              }
+              toInsert.add(row.doc!);
+              revsDiff.remove(row.id);
+            });
+          }
+        });
 
         // handle the rest through bulkGet
-        // await timed('handle through bulkGet', () async {
-        toInsert.addAll((await _source.bulkGet<Map<String, dynamic>>(
-                body: BulkGetRequest(
-                    docs: revsDiff.keys
-                        .expand((k) => revsDiff[k]!
-                            .missing
-                            .map((r) => BulkGetRequestDoc(id: k, rev: r)))
-                        .toList()),
-                revs: true,
-                fromJsonT: (json) => json))
-            .results
-            .expand((BulkGetIdDocs<Map<String, dynamic>> result) => result.docs
-                .where(
-                    (BulkGetDoc<Map<String, dynamic>> item) => item.doc != null)
-                .expand((BulkGetDoc<Map<String, dynamic>> item) => [item.doc!])
-                .toList()));
-        // });
+        await FoodbDebug.timed('<replication>: retrieve the rest using bulkGet',
+            () async {
+          toInsert.addAll((await _source.bulkGet<Map<String, dynamic>>(
+                  body: BulkGetRequest(
+                      docs: revsDiff.keys
+                          .expand((k) => revsDiff[k]!
+                              .missing
+                              .map((r) => BulkGetRequestDoc(id: k, rev: r)))
+                          .toList()),
+                  revs: true,
+                  fromJsonT: (json) => json))
+              .results
+              .expand((BulkGetIdDocs<Map<String, dynamic>> result) => result
+                  .docs
+                  .where((BulkGetDoc<Map<String, dynamic>> item) =>
+                      item.doc != null)
+                  .expand(
+                      (BulkGetDoc<Map<String, dynamic>> item) => [item.doc!])
+                  .toList()));
+        });
 
         // perform bulkDoc
-        // await timed('perform bulkDoc', () async {
-        await _target.bulkDocs(body: toInsert, newEdits: false);
-        // });
+        await FoodbDebug.timed('<replication>: update DB using bulkDoc',
+            () async {
+          await _target.bulkDocs(body: toInsert, newEdits: false);
+        });
 
         // ensure full commit
-        // await timed('ensure full commit', () async {
         await _target.ensureFullCommit();
-        // });
       }
       String lastSeq = toProcess.last.seq!;
 
       // add checkpoint
-      // await timed('add checkpoint', () async {
       sourceLog = await _setReplicationCheckpoint(
           db: _source,
           oldLog: sourceLog,
@@ -227,7 +230,6 @@ class _Replicator {
           startime: startTime,
           lastSeq: lastSeq,
           sessionId: sessionId);
-      // });
       pendingList = pendingList.sublist(toProcess.length);
       isRunning = false;
       onFinishCheckpoint
@@ -290,10 +292,20 @@ ReplicationStream replicate(
   void Function(ReplicationCheckpoint)? onCheckpoint,
 }) {
   late ReplicationStream resultStream;
-  var _onError = (e, s) {
+  int _cycleCount = 0;
+  _onError(e, s) {
     resultStream.abort();
     onError(e, s);
-  };
+  }
+
+  FoodbDebug.timedStart('replication full');
+  FoodbDebug.timedStart('replication checkpoint');
+
+  _onComplete() {
+    FoodbDebug.timedEnd(
+        'replication full', (_) => '<replication>: replication complete');
+    onComplete?.call();
+  }
 
   runZonedGuarded(() async {
     late final _Replicator replicator;
@@ -301,13 +313,20 @@ ReplicationStream replicate(
     var timer = Timer(debounce, () {});
     replicator = _Replicator(source, target, maxBatchSize: maxBatchSize,
         onFinishCheckpoint: (checkpoint) async {
+      ++_cycleCount;
+      FoodbDebug.timedEnd(
+          'replication checkpoint',
+          (ms) =>
+              '<replication>: checkpoint $_cycleCount, processed ${checkpoint.processed.length}, ${ms / checkpoint.processed.length} ms/doc');
+      FoodbDebug.timedStart('replication checkpoint');
+
       onCheckpoint?.call(checkpoint);
 
       if (replicator.pendingList.isNotEmpty) {
         replicator.run();
       } else {
         if (!continuous) {
-          onComplete?.call();
+          _onComplete();
         }
       }
     });
@@ -377,7 +396,7 @@ ReplicationStream replicate(
     }, onComplete: (result) async {
       if (!continuous) {
         if (result.results.isEmpty) {
-          onComplete?.call();
+          _onComplete();
         } else {
           result.results.last.seq =
               result.lastSeq ?? (await source.info()).updateSeq;

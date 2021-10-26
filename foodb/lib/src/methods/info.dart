@@ -10,10 +10,13 @@ class GetInfoResponse {
   String updateSeq;
   @JsonKey(name: 'db_name')
   String dbName;
+  @JsonKey(name: 'doc_count')
+  int docCount;
   GetInfoResponse({
     required this.instanceStartTime,
     required this.updateSeq,
     required this.dbName,
+    required this.docCount,
   });
 
   factory GetInfoResponse.fromJson(Map<String, dynamic> json) =>

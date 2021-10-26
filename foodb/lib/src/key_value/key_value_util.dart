@@ -3,11 +3,14 @@ part of '../../foodb.dart';
 mixin _KeyValueUtil on _AbstractKeyValue {
   @override
   Future<GetInfoResponse> info() async {
+    await allDocs(GetViewRequest(), (json) => json);
     return Future.value(GetInfoResponse(
         instanceStartTime: "0",
         updateSeq:
             (await keyValueDb.last(SequenceKey(key: 0)))?.key.toString() ?? "0",
-        dbName: dbName));
+        dbName: dbName,
+        docCount: (await keyValueDb
+            .tableSize(ViewKeyMetaKey(viewName: allDocViewName)))));
   }
 
   @override
