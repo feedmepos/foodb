@@ -1,4 +1,4 @@
-## 0.4.2
+## 0.4.3
 * (add) all doc limit and skip
 * (add) debug logging on replication
 * (change) expose type checking and reaccess to adapter

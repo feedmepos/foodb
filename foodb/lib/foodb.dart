@@ -74,6 +74,8 @@ class FoodbDebug {
       await fn();
       stopwatch.stop();
       _print(stopwatch, step);
+    } else {
+      await fn();
     }
   }
 
