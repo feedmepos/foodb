@@ -15,11 +15,11 @@ Map<String, String> convertToParams(Map<String, dynamic> objects) {
   return params;
 }
 
-class _Couchdb extends Foodb {
+class _CouchdbFoodb extends Foodb {
   late http.Client client;
   Uri baseUri;
 
-  _Couchdb({required String dbName, required this.baseUri})
+  _CouchdbFoodb({required String dbName, required this.baseUri})
       : super(dbName: dbName) {
     try {
       this.client = getClient();

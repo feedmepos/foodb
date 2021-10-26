@@ -80,9 +80,6 @@ mixin _KeyValueView on _AbstractKeyValue {
               }
             }
 
-            await keyValueDb.deleteMany(keysForDelete
-                .map((k) => ViewKeyMetaKey(key: k, viewName: viewName))
-                .toList());
             await keyValueDb
                 .delete(ViewDocMetaKey(viewName: viewName, key: history.id));
           }

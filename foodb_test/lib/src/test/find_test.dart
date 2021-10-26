@@ -125,6 +125,40 @@ List<Function(FoodbTestContext)> findTest() {
       });
     },
     (FoodbTestContext ctx) {
+      test('find-correct-rebuild', () async {
+        final db = await ctx.db('view-by-keys');
+        var doc1 = await db.put(
+          doc: Doc(id: '1', model: {'type': true, 'status': 'D'}),
+        );
+        var doc2 = await db.put(
+          doc: Doc(id: '2', model: {'type': true, 'status': 'D'}),
+        );
+
+        //"-" is not allowed as index name
+        var indexResponse = await db.createIndex(
+            index: QueryViewOptionsDef(fields: ['type', 'status']),
+            ddoc: 'status_view',
+            name: 'status_index');
+        expect(indexResponse, isNotNull);
+        var query = FindRequest(
+            selector: AndOperator(operators: [
+          EqualOperator(key: 'type', expected: true),
+          EqualOperator(key: 'status', expected: 'D')
+        ]));
+        var result = await db.find(query, (p0) => p0);
+        expect(result.docs.length, equals(2));
+        await db.put(
+            doc: Doc(
+          id: '2',
+          model: {'type': true, 'status': 'D'},
+          rev: doc2.rev,
+        ));
+
+        result = await db.find(query, (p0) => p0);
+        expect(result.docs.length, equals(2));
+      });
+    },
+    (FoodbTestContext ctx) {
       group('find()', () {
         test(
             'flat selector without _id, docs with missing keys, fields of design_doc< fields of selector',

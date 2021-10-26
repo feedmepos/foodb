@@ -11,7 +11,7 @@ dependencies:
   dotenv: ^3.0.0
   foodb: ">=0.4.0"
   # foodb:
-  #   path: ../foodb
+    # path: ../foodb
 
 
 dev_dependencies:

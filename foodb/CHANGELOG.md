@@ -1,5 +1,7 @@
-## 0.4.0
+## 0.4.1
 * (add) all doc limit and skip
+* (change) expose type checking and reaccess to adapter
+* (fix) generate view will delete existing index
 * (fix) compact run form checkpoint instead of beginning
 
 ## 0.3.3

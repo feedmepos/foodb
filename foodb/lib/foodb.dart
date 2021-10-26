@@ -60,12 +60,27 @@ abstract class Foodb {
   Foodb({required this.dbName});
 
   factory Foodb.couchdb({required String dbName, required Uri baseUri}) {
-    return _Couchdb(dbName: dbName, baseUri: baseUri);
+    return _CouchdbFoodb(dbName: dbName, baseUri: baseUri);
   }
 
   factory Foodb.keyvalue(
       {required String dbName, required KeyValueAdapter keyValueDb}) {
-    return _KeyValue(dbName: dbName, keyValueDb: keyValueDb);
+    return _KeyvalueFoodb(dbName: dbName, keyValueDb: keyValueDb);
+  }
+
+  get isCouchdb {
+    return this is _CouchdbFoodb;
+  }
+
+  get isKeyValue {
+    return this is _KeyvalueFoodb;
+  }
+
+  get keyValueAdapter {
+    if (this is _KeyvalueFoodb) {
+      return (this as _KeyvalueFoodb).keyValueDb;
+    }
+    return null;
   }
 
   String get dbUri;
@@ -199,7 +214,7 @@ abstract class _AbstractKeyValue extends Foodb {
   }
 }
 
-class _KeyValue extends _AbstractKeyValue
+class _KeyvalueFoodb extends _AbstractKeyValue
     with
         _KeyValueGet,
         _KeyValueFind,
@@ -207,7 +222,7 @@ class _KeyValue extends _AbstractKeyValue
         _KeyValuePut,
         _KeyValueChange,
         _KeyValueView {
-  _KeyValue(
+  _KeyvalueFoodb(
       {required dbName,
       required KeyValueAdapter keyValueDb,
       JSRuntime? jsRuntime})
