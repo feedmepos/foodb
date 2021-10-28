@@ -45,7 +45,7 @@ String _generateReplicationId(
     bool? createTarget,
     bool? continuous,
     Map<String, String>? headers,
-    String? filterFn,
+    String? filter,
     Map<String, String>? params}) {
   return md5
       .convert(utf8.encode([
@@ -56,7 +56,7 @@ String _generateReplicationId(
         createTarget?.toString() ?? "",
         continuous?.toString() ?? "",
         headers?.toString() ?? "",
-        filterFn ?? "",
+        filter ?? "",
         params?.toString() ?? ""
       ].join()))
       .toString();
@@ -250,9 +250,9 @@ class _Replicator {
 }
 
 class WhereFunction<T> {
-  final int version;
+  final String id;
   final bool Function(T) whereFn;
-  WhereFunction(this.version, this.whereFn);
+  WhereFunction(this.id, this.whereFn);
   bool call(T val) {
     return whereFn(val);
   }
@@ -381,7 +381,7 @@ ReplicationStream replicate(
         targetUri: target.dbUri,
         createTarget: createTarget,
         continuous: continuous,
-        filterFn: whereChange != null ? whereChange.version.toString() : null);
+        filter: whereChange != null ? 'whereChange_${whereChange.id}' : null);
 
     // get first start seq
     var startSeq = '0';

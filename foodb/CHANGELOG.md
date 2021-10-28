@@ -1,4 +1,4 @@
-## 0.4.4
+## 0.4.5
 * (add) all doc limit and skip
 * (add) debug logging on replication
 * (add) client side change result filter during replication
