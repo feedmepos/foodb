@@ -5,62 +5,17 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "foodb",
-            "cwd": "foodb",
+            "name": "foodb_isolate_example",
+            "cwd": "foodb_isolate_example",
             "request": "launch",
             "type": "dart"
         },
         {
-            "name": "foodb (profile mode)",
-            "cwd": "foodb",
+            "name": "foodb_isolate_example (profile mode)",
+            "cwd": "foodb_isolate_example",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile"
         },
-        {
-            "name": "foodb_benchmark",
-            "cwd": "foodb_benchmark",
-            "request": "launch",
-            "type": "dart"
-        },
-        {
-            "name": "foodb_benchmark (profile mode)",
-            "cwd": "foodb_benchmark",
-            "request": "launch",
-            "type": "dart",
-            "flutterMode": "profile"
-        },
-        {
-            "name": "foodb_objectbox_adapter",
-            "cwd": "foodb_objectbox_adapter",
-            "request": "launch",
-            "type": "dart"
-        },
-        {
-            "name": "foodb_objectbox_adapter (profile mode)",
-            "cwd": "foodb_objectbox_adapter",
-            "request": "launch",
-            "type": "dart",
-            "flutterMode": "profile"
-        },
-        {
-            "name": "foodb_repository",
-            "cwd": "foodb_repository",
-            "request": "launch",
-            "type": "dart"
-        },
-        {
-            "name": "foodb_repository (profile mode)",
-            "cwd": "foodb_repository",
-            "request": "launch",
-            "type": "dart",
-            "flutterMode": "profile"
-        },
-        {
-            "name": "couchdb_dart",
-            "cwd": "foodb\\couchdb_dart",
-            "request": "launch",
-            "type": "dart"
-        }
     ]
 }

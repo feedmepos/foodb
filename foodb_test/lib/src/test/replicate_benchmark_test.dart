@@ -23,26 +23,9 @@ Future<void> generateSourceDb(
     {required Foodb db, required int docCount}) async {
   var batch = 100;
   var docs = <Doc<Map<String, dynamic>>>[];
-  const _chars =
-      'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz1234567890';
-  var _rnd = Random();
-  String getRandomString(int length) => String.fromCharCodes(Iterable.generate(
-      length, (_) => _chars.codeUnitAt(_rnd.nextInt(_chars.length))));
 
   for (var i = 0; i < docCount; ++i) {
-    var doc = Doc(
-      id: '$i',
-      model: Map<String, dynamic>.from(List.generate(
-        30,
-        (index) => 'field$index',
-      ).asMap().map(
-            (key, value) => MapEntry(
-              value,
-              getRandomString(300),
-            ),
-          )),
-    );
-    docs.add(doc);
+    docs.add(getLargeDoc('$i'));
     if (i % batch == 0) {
       await db.bulkDocs(body: docs);
       docs = [];

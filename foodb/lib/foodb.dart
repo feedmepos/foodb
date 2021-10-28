@@ -106,8 +106,16 @@ abstract class Foodb {
   String dbName;
   Foodb({required this.dbName});
 
-  factory Foodb.couchdb({required String dbName, required Uri baseUri}) {
-    return _CouchdbFoodb(dbName: dbName, baseUri: baseUri);
+  factory Foodb.couchdb({
+    required String dbName,
+    required Uri baseUri,
+    http.BaseClient Function()? clientFactory,
+  }) {
+    return _CouchdbFoodb(
+      dbName: dbName,
+      baseUri: baseUri,
+      clientFactory: clientFactory,
+    );
   }
 
   factory Foodb.keyvalue(

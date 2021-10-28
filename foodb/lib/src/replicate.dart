@@ -12,7 +12,9 @@ final replicatorVersion = 1;
 class ReplicationCheckpoint {
   Doc<ReplicationLog> log;
   List<ChangeResult> processed;
+  List<ChangeResult> replicated;
   ReplicationCheckpoint({
+    required this.replicated,
     required this.log,
     required this.processed,
   });
@@ -118,11 +120,13 @@ class _Replicator {
   late Doc<ReplicationLog> sourceLog;
   late Doc<ReplicationLog> targetLog;
   void Function(ReplicationCheckpoint)? onFinishCheckpoint;
+  WhereFunction<ChangeResult>? whereChange;
   _Replicator(
     this._source,
     this._target, {
     required this.maxBatchSize,
     this.onFinishCheckpoint,
+    this.whereChange,
   });
 
   cancel() {
@@ -141,11 +145,16 @@ class _Replicator {
       toProcess = toProcess.sublist(
           0, toProcess.lastIndexWhere((element) => element.seq != null) + 1);
 
+      // filter id to process
+      var toReplicate = toProcess
+          .where((element) => whereChange?.call(element) ?? true)
+          .toList();
+
       // get revs diff
       late Map<String, RevsDiff> revsDiff;
       await FoodbDebug.timed('<replication>: get revs diff', () async {
         Map<String, List<Rev>> groupedChange = new Map();
-        toProcess.forEach((changeResult) {
+        toReplicate.forEach((changeResult) {
           groupedChange[changeResult.id] =
               changeResult.changes.map((e) => e.rev).toList();
         });
@@ -232,11 +241,20 @@ class _Replicator {
           sessionId: sessionId);
       pendingList = pendingList.sublist(toProcess.length);
       isRunning = false;
-      onFinishCheckpoint
-          ?.call(ReplicationCheckpoint(log: targetLog, processed: toProcess));
+      onFinishCheckpoint?.call(ReplicationCheckpoint(
+          log: targetLog, processed: toProcess, replicated: toReplicate));
     } catch (err) {
       isRunning = false;
     }
+  }
+}
+
+class WhereFunction<T> {
+  final int version;
+  final bool Function(T) whereFn;
+  WhereFunction(this.version, this.whereFn);
+  bool call(T val) {
+    return whereFn(val);
   }
 }
 
@@ -275,6 +293,14 @@ ReplicationStream replicate(
    */
   int timeout = 30000,
   /**
+   * Client side run filter for each change result
+   * this will prevent the whole document being fetched over the wire during bulkGet
+   * 
+   * Version is required to determine the replication id, so that the replication stay consistance
+   * Do update the version when changing the whereFn
+   */
+  WhereFunction<ChangeResult>? whereChange,
+  /**
    * when counter error, can use the stream to decide retry or abort
    */
   void Function(Object?, StackTrace? stackTrace) onError = defaultOnError,
@@ -311,8 +337,9 @@ ReplicationStream replicate(
     late final _Replicator replicator;
     ChangesStream? changeStream;
     var timer = Timer(debounce, () {});
-    replicator = _Replicator(source, target, maxBatchSize: maxBatchSize,
-        onFinishCheckpoint: (checkpoint) async {
+    replicator = _Replicator(source, target,
+        maxBatchSize: maxBatchSize,
+        whereChange: whereChange, onFinishCheckpoint: (checkpoint) async {
       ++_cycleCount;
       FoodbDebug.timedEnd(
           'replication checkpoint',
@@ -353,7 +380,8 @@ ReplicationStream replicate(
         targetUuid: targetInstanceInfo.uuid,
         targetUri: target.dbUri,
         createTarget: createTarget,
-        continuous: continuous);
+        continuous: continuous,
+        filterFn: whereChange != null ? whereChange.version.toString() : null);
 
     // get first start seq
     var startSeq = '0';

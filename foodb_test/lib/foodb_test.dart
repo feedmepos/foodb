@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:dotenv/dotenv.dart';
 import 'package:foodb/key_value_adapter.dart';
@@ -47,10 +48,19 @@ class InMemoryTestContext extends FoodbTestContext {
   }
 }
 
+class MyHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true;
+  }
+}
+
 Future<Foodb> getCouchDb(String dbName, {bool persist = false}) async {
-  HttpOverrides.global = null;
+  HttpOverrides.global = MyHttpOverrides();
   load('.env');
-  var baseUri = env['COUCHDB_LOCAL_URI']!;
+  var baseUri = env['COUCHDB_TEST_URI']!;
   var db = Foodb.couchdb(dbName: dbName, baseUri: Uri.parse(baseUri));
   if (!persist) {
     try {
@@ -67,6 +77,46 @@ Future<Foodb> getCouchDb(String dbName, {bool persist = false}) async {
     await db.initDb();
   }
   return db;
+}
+
+Map<String, dynamic> _getObject(int keyCount, Function() val) {
+  return Map<String, dynamic>.from(List.generate(
+    keyCount,
+    (index) => 'field$index',
+  ).asMap().map(
+        (key, value) => MapEntry(
+          value,
+          val(),
+        ),
+      ));
+}
+
+const _chars = 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz1234567890';
+var _rnd = Random();
+String _getRandomString(int length) => String.fromCharCodes(Iterable.generate(
+    length, (_) => _chars.codeUnitAt(_rnd.nextInt(_chars.length))));
+
+getDoc(String id) {
+  return Doc(id: id, model: _getObject(0, () => null));
+}
+
+getLargeDoc(String id) {
+  return Doc(
+    id: id,
+    model: _getObject(
+      30,
+      () => _getObject(
+        3,
+        () => _getObject(
+          2,
+          () => _getObject(
+            1,
+            () => _getRandomString(30).split(''),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 final List<Function(FoodbTestContext)> foodbFullTestSuite = [

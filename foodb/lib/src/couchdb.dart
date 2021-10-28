@@ -18,8 +18,10 @@ Map<String, String> convertToParams(Map<String, dynamic> objects) {
 class _CouchdbFoodb extends Foodb {
   late http.Client client;
   Uri baseUri;
+  http.BaseClient Function()? clientFactory;
 
-  _CouchdbFoodb({required String dbName, required this.baseUri})
+  _CouchdbFoodb(
+      {required String dbName, required this.baseUri, this.clientFactory})
       : super(dbName: dbName) {
     try {
       this.client = getClient();
@@ -33,7 +35,7 @@ class _CouchdbFoodb extends Foodb {
   }
 
   http.Client getClient() {
-    return new http.Client();
+    return clientFactory?.call() ?? new http.Client();
   }
 
   Uri getUri(String path) {
@@ -58,17 +60,9 @@ class _CouchdbFoodb extends Foodb {
         },
         body: jsonEncode(body.toJson())));
     if (response.statusCode == 200) {
-      // var list = jsonDecode(response.body)["results"];
       return BulkGetResponse<T>.fromJson(
           jsonDecode(utf8.decode(response.bodyBytes)),
           (json) => fromJsonT(json as Map<String, dynamic>));
-      // .fromIterable(list,
-      //     key: (idDoc) => idDoc["id"],
-      //     value: (idDoc) => idDoc["docs"]
-      //         .where((item) => item.containsKey("ok") == true)
-      //         .map<Doc<T>>((doc) => Doc<T>.fromJson(
-      //             doc["ok"], (json) => fromJsonT(json as Map<String, dynamic>)))
-      //         .toList());
     }
     throw AdapterException(error: "Invalid Status Code");
   }

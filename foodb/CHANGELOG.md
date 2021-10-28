@@ -1,6 +1,8 @@
-## 0.4.3
+## 0.4.4
 * (add) all doc limit and skip
 * (add) debug logging on replication
+* (add) client side change result filter during replication
+* (add) example repo to run foodb in isolate, when UI has heavy animation, http fetch being heavily slow
 * (change) expose type checking and reaccess to adapter
 * (fix) generate view will delete existing index
 * (fix) compact run form checkpoint instead of beginning

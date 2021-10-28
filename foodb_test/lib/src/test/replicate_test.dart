@@ -33,6 +33,13 @@ void main() {
   });
 }
 
+handleTestReplicationError(p0, stackTrace) {
+  if (p0 is Exception) {
+    throw p0;
+  }
+  throw Exception('replication error: $p0, $stackTrace');
+}
+
 List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
     replicateTest() {
   return [
@@ -107,7 +114,8 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
         var onSecondResult = expectAsync1((ChangeResult r) {}, count: 1);
 
         await source.put(doc: Doc(id: 'a', model: {}));
-        replicate(source, target, onComplete: () async {
+        replicate(source, target, onError: handleTestReplicationError,
+            onComplete: () async {
           var docs = await target.allDocs(GetViewRequest(), (json) => json);
           expect(docs.totalRows, equals(1));
           await source.put(doc: Doc(id: 'b', model: {}));
@@ -258,18 +266,44 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
           continuous: true,
           debounce: Duration(milliseconds: 1),
           onResult: resultCnt,
-          onError: (p0, stackTrace) {
-            if (p0 is Exception) {
-              throw p0;
-            }
-            throw Exception('replication error');
-          },
+          onError: handleTestReplicationError,
         );
         var list = List.generate(10, (index) => index);
         for (var i in list) {
           await source.put(doc: Doc(id: '$i', model: {}));
         }
         await Future.delayed(Duration(seconds: 3), complete);
+      });
+    },
+    (FoodbTestContext sourceCtx, FoodbTestContext targetCtx) {
+      test('replication with client side id filter', () async {
+        final source = await sourceCtx.db('source-replicate-id-filter');
+        final target = await targetCtx.db('target-replicate-id-filter');
+        var complete = expectAsync0(() => {});
+
+        await source.put(doc: Doc(id: 'a_1', model: {}));
+        await source.put(doc: Doc(id: 'a_2', model: {}));
+        await source.put(doc: Doc(id: 'a_3', model: {}));
+        await source.put(doc: Doc(id: 'b_1', model: {}));
+        await source.put(doc: Doc(id: 'b_2', model: {}));
+        await source.put(doc: Doc(id: 'c_1', model: {}));
+        await source.put(doc: Doc(id: 'c_4', model: {}));
+
+        replicate(source, target,
+            onError: handleTestReplicationError,
+            whereChange: WhereFunction(1, (change) {
+              var splitted = change.id.split('_');
+              return !['a', 'c'].contains(splitted[0]) ||
+                  int.parse(splitted[1]) > 2;
+            }), onComplete: () async {
+          var docs = await target.allDocs(GetViewRequest(), (json) => json);
+          expect(docs.totalRows, 4);
+          ['a_3', 'b_1', 'b_2', 'c_4'].forEach((expectedId) {
+            expect(docs.rows.where((element) => element.id == expectedId),
+                hasLength(1));
+          });
+          complete();
+        });
       });
     }
   ];

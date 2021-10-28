@@ -12,6 +12,9 @@
     },
     {
       "path": "../foodb_objectbox_adapter"
+    },
+    {
+      "path": "../foodb_isolate_example"
     }
   ],
   "settings": {
@@ -19,7 +22,8 @@
     "files.exclude": {
       "foodb/": true,
       "foodb_test/": true,
-      "foodb_objectbox_adapter/": true
+      "foodb_objectbox_adapter/": true,
+      "foodb_isolate_example/": true
     }
   }
 }
