@@ -1,3 +1,6 @@
+## 0.5.0
+* (add) added isolate worker for map reduce
+
 ## 0.4.5
 * (add) all doc limit and skip
 * (add) debug logging on replication
