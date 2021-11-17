@@ -147,13 +147,18 @@ mixin _KeyValueView on _AbstractKeyValue {
                 .toList()));
         FoodbDebug.timedEnd('docMetas');
         FoodbDebug.timedStart('worker');
-        var res = await FoodbWorker.execute(
-            generateViewForDocs,
-            _GenerateViewReq(
-                view: view,
-                viewName: viewName,
-                docs: docsToProcess,
-                docMetas: docMetas));
+        var res = await generateViewForDocs(_GenerateViewReq(
+            view: view,
+            viewName: viewName,
+            docs: docsToProcess,
+            docMetas: docMetas));
+        // var res = await FoodbWorker.execute(
+        //     generateViewForDocs,
+        //     _GenerateViewReq(
+        //         view: view,
+        //         viewName: viewName,
+        //         docs: docsToProcess,
+        //         docMetas: docMetas));
         FoodbDebug.timedEnd('worker');
 
         final newDocMetas = res.docMetas;

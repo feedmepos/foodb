@@ -45,4 +45,12 @@ void main() {
         .getMany([DocKey(key: '1'), DocKey(key: '3'), DocKey(key: '2')]);
     print(res);
   });
+  test('get-many-int', () async {
+    final adapter = await getAdapter('get-many');
+    await adapter.put(SequenceKey(key: 1), {});
+    await adapter.put(SequenceKey(key: 2), {});
+    var res = await adapter.getMany(
+        [SequenceKey(key: 1), SequenceKey(key: 3), SequenceKey(key: 2)]);
+    print(res);
+  });
 }

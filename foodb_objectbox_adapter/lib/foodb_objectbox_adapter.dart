@@ -13,7 +13,7 @@ const int int64MaxValue = 9223372036854775807;
 abstract class ObjectBoxKey<T1 extends ObjectBoxEntity, T2> {
   QueryProperty<T1, T2> get property;
   Condition<T1> equals(T2 key);
-  Condition<T1> oneOf(List<T2> keys);
+  Condition<T1> oneOf(List<dynamic> keys);
   Condition<T1> greaterOrEqual(T2 key);
   Condition<T1> lessOrEqual(T2 key);
   Condition<T1> greaterThan(T2 key);
@@ -31,8 +31,8 @@ class ObjectBoxStringKey<T extends ObjectBoxEntity>
     return queryKey.equals(key);
   }
 
-  Condition<T> oneOf(List<String> keys) {
-    return queryKey.oneOf(keys);
+  Condition<T> oneOf(List<dynamic> keys) {
+    return queryKey.oneOf(keys.cast<String>());
   }
 
   Condition<T> greaterThan(String key) {
@@ -63,8 +63,8 @@ class ObjectBoxIntKey<T extends ObjectBoxEntity>
     return queryKey.equals(key);
   }
 
-  Condition<T> oneOf(List<int> keys) {
-    return queryKey.oneOf(keys);
+  Condition<T> oneOf(List<dynamic> keys) {
+    return queryKey.oneOf(keys.cast<int>());
   }
 
   Condition<T> greaterThan(int key) {
@@ -127,9 +127,12 @@ class ObjectBoxType<T1 extends ObjectBoxEntity, T2> {
     return null;
   }
 
-  List<T1?> getMany(Store store, key) {
-    var list = box(store).query(keyQuery.oneOf(key)).build().find();
-    return list;
+  Map<T2, T1?> getMany(Store store, List<dynamic> keys) {
+    var list = Map<dynamic, T1>.fromIterable(
+        box(store).query(keyQuery.oneOf(keys)).build().find(),
+        key: (v) => v.key,
+        value: (v) => v);
+    return Map.fromIterable(keys.map((e) => MapEntry(e, list[e])));
   }
 
   List<T1> readBetween(Store store,
@@ -286,7 +289,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     }
   }
 
-  String encodeKey(AbstractKey? key) {
+  dynamic encodeKey(AbstractKey? key) {
     dynamic result = key?.key;
     if (key is AbstractViewKey) {
       final viewName = key.viewName;

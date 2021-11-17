@@ -37,7 +37,7 @@ mixin _KeyValueUtil on _AbstractKeyValue {
   Future<bool> initDb() async {
     var map = await keyValueDb.get(UtilsKey(key: '_revs_limit'));
     _revLimit = map?.value['_revs_limit'] ?? 1000;
-    await FoodbWorker.init();
+    // await FoodbWorker.init();
     return keyValueDb.initDb();
   }
 
