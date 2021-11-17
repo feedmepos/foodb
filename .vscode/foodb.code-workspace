@@ -14,7 +14,7 @@
       "path": "../foodb_objectbox_adapter"
     },
     {
-      "path": "../foodb_isolate_example"
+      "path": "../foodb_flutter_test"
     }
   ],
   "settings": {
@@ -23,7 +23,7 @@
       "foodb/": true,
       "foodb_test/": true,
       "foodb_objectbox_adapter/": true,
-      "foodb_isolate_example/": true
+      "foodb_flutter_test/": true
     }
   }
 }

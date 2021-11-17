@@ -19,7 +19,7 @@ List<Function(FoodbTestContext)> findTest() {
             index: QueryViewOptionsDef(fields: ['name']),
             ddoc: 'type_user_name',
             name: 'index_by_name');
-        var designDoc = await db.fetchDesignDoc(id: '_design/type_user_name');
+        var designDoc = await db.fetchDesignDoc(ddocName: 'type_user_name');
         expect(designDoc, isNotNull);
         expect(designDoc!.model.language, 'query');
         var view = designDoc.model.views['index_by_name'];
@@ -43,6 +43,47 @@ List<Function(FoodbTestContext)> findTest() {
             ddoc: 'type_user_name');
         List<Doc<DesignDoc>?> designDoc = await db.fetchAllDesignDocs();
         expect(designDoc.length, equals(2));
+      });
+    },
+    (FoodbTestContext ctx) {
+      test('correct-view-building-after-crud', () async {
+        final db = await ctx.db('correct-view-building-after-crud');
+        var a = await db.put(doc: Doc(id: 'a', model: {'name': 'a'}));
+        var a2 = await db.put(doc: Doc(id: 'a-2', model: {'name': 'a'}));
+        await db.delete(id: 'a-2', rev: a2.rev);
+        await db.put(doc: Doc(id: 'b', model: {'name': 'b'}));
+
+        //"-" is not allowed as index name
+        var indexResponse = await db.createIndex(
+            index: QueryViewOptionsDef(fields: ['name']),
+            ddoc: 'name_view',
+            name: 'name_index');
+        expect(indexResponse, isNotNull);
+
+        var result = await db.view(
+            'name_view',
+            'name_index',
+            GetViewRequest(
+                startkey: ['a'], endkey: ['a\ufff0'], includeDocs: true),
+            (json) => json);
+        expect(result.rows.length, equals(1));
+        await db.put(doc: Doc(id: 'c', model: {'name': 'c'}));
+        await db.put(doc: Doc(id: 'c-2', model: {}));
+        await db.delete(id: 'a', rev: a.rev);
+        var result2 = await db.view(
+            'name_view',
+            'name_index',
+            GetViewRequest(
+                startkey: ['a'], endkey: ['a\ufff0'], includeDocs: true),
+            (json) => json);
+        expect(result2.rows.length, equals(0));
+        var result3 = await db.view(
+            'name_view',
+            'name_index',
+            GetViewRequest(
+                startkey: ['b'], endkey: ['c\ufff0'], includeDocs: true),
+            (json) => json);
+        expect(result3.rows.length, equals(2));
       });
     },
     (FoodbTestContext ctx) {
@@ -118,7 +159,8 @@ List<Function(FoodbTestContext)> findTest() {
         expect(allDoc.rows, hasLength(1));
         indexResponse = await db.createIndex(
             index: QueryViewOptionsDef(fields: ['_id']), ddoc: 'test');
-        allDoc = await db.allDocs(GetViewRequest(), (json) => json);
+        allDoc =
+            await db.allDocs(GetViewRequest(includeDocs: true), (json) => json);
         expect(indexResponse.result, 'exists');
         expect(allDoc.rows, hasLength(1));
         expect(allDoc.rows[0].value['rev'], startsWith('1'));

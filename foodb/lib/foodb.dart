@@ -2,7 +2,9 @@ library foodb;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:isolate';
 import 'package:crypto/crypto.dart' as crypto;
+import 'package:foodb/foodb_worker.dart';
 import 'package:foodb/src/common.dart';
 import 'package:foodb/src/selector.dart';
 import 'package:foodb/src/design_doc.dart';
@@ -46,6 +48,7 @@ export 'package:foodb/src/methods/server.dart';
 export 'package:foodb/src/methods/view.dart';
 
 export 'foodb.dart';
+export 'foodb_worker.dart';
 
 part 'src/couchdb.dart';
 part 'src/key_value/key_value_changes.dart';
@@ -90,11 +93,11 @@ class FoodbDebug {
     }
   }
 
-  static timedEnd(String step, String Function(int) message) {
+  static timedEnd(String step, [String Function(int)? message]) {
     if (logLevel == LOG_LEVEL.debug) {
       var stopwatch = _cache[step];
       if (stopwatch != null) {
-        _print(stopwatch, message(stopwatch.elapsedMilliseconds));
+        _print(stopwatch, message?.call(stopwatch.elapsedMilliseconds) ?? step);
         stopwatch.stop();
         _cache.remove(step);
       }
@@ -159,10 +162,10 @@ abstract class Foodb {
       required T Function(Map<String, dynamic> json) fromJsonT});
 
   Future<Doc<DesignDoc>?> fetchDesignDoc({
-    required String id,
+    required String ddocName,
   }) async {
     return get<DesignDoc>(
-        id: id, fromJsonT: (json) => DesignDoc.fromJson(json));
+        id: '_design/$ddocName', fromJsonT: (json) => DesignDoc.fromJson(json));
   }
 
   Future<List<Doc<DesignDoc>>> fetchAllDesignDocs() async {
@@ -200,6 +203,11 @@ abstract class Foodb {
 
   Future<GetViewResponse<T>> allDocs<T>(GetViewRequest allDocsRequest,
       T Function(Map<String, dynamic> json) fromJsonT);
+
+  Future<DeleteIndexResponse> deleteIndex({
+    required String ddoc,
+    required String name,
+  });
 
   Future<IndexResponse> createIndex(
       {required QueryViewOptionsDef index,

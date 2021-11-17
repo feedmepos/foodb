@@ -9,9 +9,9 @@ dependencies:
   test: ^1.16.0
   path: ^1.8.0
   dotenv: ^3.0.0
-  foodb: ">=0.4.2"
-  # foodb:
-  #   path: ../foodb
+  # foodb: ">=0.5.0"
+  foodb:
+    path: ../foodb
 
 
 dev_dependencies:

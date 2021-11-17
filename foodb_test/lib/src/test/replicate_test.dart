@@ -291,7 +291,7 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
 
         replicate(source, target,
             onError: handleTestReplicationError,
-            whereChange: WhereFunction(1, (change) {
+            whereChange: WhereFunction('1', (change) {
               var splitted = change.id.split('_');
               return !['a', 'c'].contains(splitted[0]) ||
                   int.parse(splitted[1]) > 2;

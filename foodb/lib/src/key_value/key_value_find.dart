@@ -97,6 +97,39 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
   }
 
   @override
+  Future<DeleteIndexResponse> deleteIndex({
+    required String ddoc,
+    required String name,
+  }) async {
+    final Doc<DesignDoc> designDoc;
+    final MapEntry<String, AbstracDesignDocView> view;
+    try {
+      designDoc = (await fetchDesignDoc(ddocName: ddoc))!;
+      view = designDoc.model.views.entries
+          .firstWhere((element) => element.key == name);
+      if (view.value.runtimeType != QueryDesignDocView) {
+        throw Exception('invalid design doc');
+      }
+    } catch (err) {
+      throw AdapterException(error: 'index not found');
+    }
+    var newViews =
+        Map<String, AbstracDesignDocView>.from(designDoc.model.views);
+    newViews.removeWhere((key, value) => key == name);
+    await _clearView(designDoc.id, name);
+    if (newViews.isNotEmpty) {
+      await put(
+          doc: Doc<Map<String, dynamic>>.fromJson(
+              designDoc.toJson((value) => value.toJson()),
+              (json) => json as Map<String, dynamic>));
+      await _generateView(designDoc);
+    } else {
+      await delete(id: designDoc.id, rev: designDoc.rev!);
+    }
+    return DeleteIndexResponse(ok: true);
+  }
+
+  @override
   Future<ExplainResponse> explain(FindRequest findRequest) async {
     MapEntry<String, Doc<DesignDoc>> selectedView =
         await _pickDesignDoc(findRequest.selector.keys().toSet());
@@ -127,24 +160,24 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
   Future<FindResponse<T>> find<T>(FindRequest findRequest,
       T Function(Map<String, dynamic> p1) fromJsonT) async {
     final selector = findRequest.selector;
-    MapEntry<String, Doc<DesignDoc>> selectedView =
-        await _pickDesignDoc(selector.keys().toSet());
+    late MapEntry<String, Doc<DesignDoc>> selectedView;
+    selectedView = await _pickDesignDoc(selector.keys().toSet());
     await _generateView(selectedView.value);
-
     var viewName = getViewName(
         designDocId: selectedView.value.id, viewId: selectedView.key);
 
-    final result = await keyValueDb.read<ViewKeyMetaKey>(
+    late ReadResult<ViewKeyMetaKey> result;
+    late AbstracDesignDocView docView;
+    result = await keyValueDb.read<ViewKeyMetaKey>(
         ViewKeyMetaKey(viewName: viewName),
         desc: false,
         inclusiveEnd: true,
         inclusiveStart: true);
-    AbstracDesignDocView docView =
-        selectedView.value.model.views[selectedView.key]!;
+    docView = selectedView.value.model.views[selectedView.key]!;
 
     List<String> docFields;
     if (docView is QueryDesignDocView) {
-      docFields = docView.options.def.fields;
+      docFields = (docView as QueryDesignDocView).options.def.fields;
     } else {
       docFields = ["_id"];
     }
@@ -163,7 +196,8 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
       }
     });
 
-    var map = (await keyValueDb
+    late Map<DocKey, Map<String, dynamic>?> map;
+    map = (await keyValueDb
         .getMany(filteredIndex.map((e) => DocKey(key: e)).toList()));
     map.removeWhere((key, value) => value == null);
     var docHistories = map.values.map((value) => DocHistory.fromJson(value!));

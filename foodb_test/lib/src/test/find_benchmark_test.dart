@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:test/test.dart';
 import 'package:foodb/foodb.dart';
 import 'package:foodb_test/foodb_test.dart';
 
 void main() async {
-  findBenchmarkTest(10000, InMemoryTestContext());
+  // findBenchmarkTest(10000, InMemoryTestContext());
   // findBenchmarkTest(10000, CouchdbTestContext());
+  FoodbDebug.logLevel = LOG_LEVEL.debug;
+  findProductionTest(CouchdbTestContext(), InMemoryTestContext());
 }
 
 void findBenchmarkTest(int size, FoodbTestContext targetCtx) async {
@@ -19,7 +23,8 @@ void findBenchmarkTest(int size, FoodbTestContext targetCtx) async {
 
     var allDocStopWatch = Stopwatch()..start();
     var response = await db.find(
-        FindRequest(selector: GreaterThanOperator(key: 'no', expected: 9899)),
+        FindRequest(
+            selector: GreaterThanOperator(key: 'no', expected: size - 101)),
         (value) => value);
     allDocStopWatch.stop();
 
@@ -33,7 +38,8 @@ void findBenchmarkTest(int size, FoodbTestContext targetCtx) async {
 
     var designDocStopWatch = Stopwatch()..start();
     var responseAfterIndex = await db.find(
-        FindRequest(selector: GreaterThanOperator(key: 'no', expected: 9899)),
+        FindRequest(
+            selector: GreaterThanOperator(key: 'no', expected: size - 101)),
         (value) => value);
     designDocStopWatch.stop();
 
@@ -44,13 +50,39 @@ void findBenchmarkTest(int size, FoodbTestContext targetCtx) async {
 
     var designDocStopWatch2 = Stopwatch()..start();
     var responseAfterIndex2 = await db.find(
-        FindRequest(selector: GreaterThanOperator(key: 'no', expected: 9899)),
+        FindRequest(
+            selector: GreaterThanOperator(key: 'no', expected: size - 101)),
         (value) => value);
-  
+
     designDocStopWatch2.stop();
     print('design_docs 2 in seconds: ${designDocStopWatch2.elapsed.inSeconds}');
     print(
         'design_docs 2 perDoc: ${designDocStopWatch2.elapsed.inMilliseconds / (size * 1000)}');
     expect(responseAfterIndex2.docs.length, equals(100));
+  });
+}
+
+void findProductionTest(
+    FoodbTestContext sourceCtx, FoodbTestContext targetCtx) {
+  test('find benchmark test real data', () async {
+    final source = await sourceCtx.db('find-production', persist: true);
+    final target = await targetCtx.db('find-production', persist: true);
+    final firstSync = new Completer();
+    replicate(source, target, onComplete: firstSync.complete);
+    await firstSync.future;
+
+    await FoodbDebug.timed('first find', () async {
+      await target.find(
+          FindRequest(
+              selector: EqualOperator(key: 'status', expected: 'DRAFT')),
+          (json) => json);
+    });
+
+    await FoodbDebug.timed('second first find', () async {
+      await target.find(
+          FindRequest(
+              selector: EqualOperator(key: 'status', expected: 'DRAFT')),
+          (json) => json);
+    });
   });
 }

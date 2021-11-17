@@ -20,3 +20,15 @@ Map<String, dynamic> _$IndexResponseToJson(IndexResponse instance) =>
       'id': instance.id,
       'name': instance.name,
     };
+
+DeleteIndexResponse _$DeleteIndexResponseFromJson(Map<String, dynamic> json) {
+  return DeleteIndexResponse(
+    ok: json['ok'] as bool,
+  );
+}
+
+Map<String, dynamic> _$DeleteIndexResponseToJson(
+        DeleteIndexResponse instance) =>
+    <String, dynamic>{
+      'ok': instance.ok,
+    };

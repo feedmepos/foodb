@@ -43,8 +43,10 @@ class InMemoryTestContext extends FoodbTestContext {
   @override
   Future<Foodb> db(String dbName,
       {bool? persist, String prefix = 'test-'}) async {
-    return Foodb.keyvalue(
+    var inMemoryDb = Foodb.keyvalue(
         dbName: '$prefix$dbName', keyValueDb: KeyValueAdapter.inMemory());
+    await inMemoryDb.initDb();
+    return inMemoryDb;
   }
 }
 

@@ -95,6 +95,16 @@ class _CouchdbFoodb extends Foodb {
   }
 
   @override
+  Future<ChangeResponse> changes(ChangeRequest request) async {
+    var changeClient = getClient();
+    request.feed = ChangeFeed.normal;
+    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_changes')));
+    uriBuilder.queryParameters = convertToParams(request.toJson());
+    var res = await changeClient.get(uriBuilder.build());
+    return ChangeResponse.fromJson(jsonDecode(res.body));
+  }
+
+  @override
   ChangesStream changesStream(
     ChangeRequest request, {
     Function(ChangeResponse)? onComplete,
@@ -110,41 +120,48 @@ class _CouchdbFoodb extends Foodb {
     runZonedGuarded(() async {
       UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_changes')));
       uriBuilder.queryParameters = convertToParams(request.toJson());
-      var res =
-          await changeClient.send(http.Request('get', uriBuilder.build()));
-      var streamedRes = res.stream.transform(utf8.decoder);
-      String cache = "";
-      List<ChangeResult> _results = [];
-      subscription = streamedRes.listen((event) {
-        if (request.feed == ChangeFeed.continuous) {
-          if (event.trim() != '') cache += event.trim();
-          var items =
-              RegExp("^{\".*},?\n?\$", multiLine: true).allMatches(cache);
-          if (items.isNotEmpty) {
-            items.forEach((i) {
-              var json = jsonDecode(cache.substring(i.start, i.end).trim());
-              if (json['id'] != null)
-                onResult?.call(ChangeResult.fromJson(json));
-            });
-            cache = '';
+      if (request.feed == ChangeFeed.normal) {
+        var res = await changeClient.get(uriBuilder.build());
+        var changeRes = ChangeResponse.fromJson(jsonDecode(res.body));
+        changeRes.results.forEach((element) => onResult?.call(element));
+        onComplete?.call(changeRes);
+      } else {
+        var res =
+            await changeClient.send(http.Request('get', uriBuilder.build()));
+        var streamedRes = res.stream.transform(utf8.decoder);
+        String cache = "";
+        List<ChangeResult> _results = [];
+        subscription = streamedRes.listen((event) {
+          if (request.feed == ChangeFeed.continuous) {
+            if (event.trim() != '') cache += event.trim();
+            var items =
+                RegExp("^{\".*},?\n?\$", multiLine: true).allMatches(cache);
+            if (items.isNotEmpty) {
+              items.forEach((i) {
+                var json = jsonDecode(cache.substring(i.start, i.end).trim());
+                if (json['id'] != null)
+                  onResult?.call(ChangeResult.fromJson(json));
+              });
+              cache = '';
+            }
+          } else {
+            cache += event;
+            if (event.contains('last_seq')) {
+              Map<String, dynamic> map = jsonDecode(cache);
+              ChangeResponse changeResponse =
+                  new ChangeResponse(results: _results);
+              map['results'].forEach((r) {
+                final result = ChangeResult.fromJson(r);
+                changeResponse.results.add(result);
+                onResult?.call(result);
+              });
+              changeResponse.lastSeq = map['last_seq'];
+              changeResponse.pending = map['pending'];
+              onComplete?.call(changeResponse);
+            }
           }
-        } else {
-          cache += event;
-          if (event.contains('last_seq')) {
-            Map<String, dynamic> map = jsonDecode(cache);
-            ChangeResponse changeResponse =
-                new ChangeResponse(results: _results);
-            map['results'].forEach((r) {
-              final result = ChangeResult.fromJson(r);
-              changeResponse.results.add(result);
-              onResult?.call(result);
-            });
-            changeResponse.lastSeq = map['last_seq'];
-            changeResponse.pending = map['pending'];
-            onComplete?.call(changeResponse);
-          }
-        }
-      }, onError: onError);
+        }, onError: onError);
+      }
     }, (e, s) {
       streamedResponse.cancel();
       onError(e, s);
@@ -307,6 +324,17 @@ class _CouchdbFoodb extends Foodb {
         .bodyBytes)));
 
     return IndexResponse.fromJson(response);
+  }
+
+  Future<DeleteIndexResponse> deleteIndex({
+    required String ddoc,
+    required String name,
+  }) async {
+    return DeleteIndexResponse.fromJson(json.decode((await this.client.delete(
+      this.getUri('$ddoc/json/$name'),
+      headers: {'Content-Type': 'application/json'},
+    ))
+        .body));
   }
 
   @override

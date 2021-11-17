@@ -13,6 +13,7 @@ const int int64MaxValue = 9223372036854775807;
 abstract class ObjectBoxKey<T1 extends ObjectBoxEntity, T2> {
   QueryProperty<T1, T2> get property;
   Condition<T1> equals(T2 key);
+  Condition<T1> oneOf(List<T2> keys);
   Condition<T1> greaterOrEqual(T2 key);
   Condition<T1> lessOrEqual(T2 key);
   Condition<T1> greaterThan(T2 key);
@@ -28,6 +29,10 @@ class ObjectBoxStringKey<T extends ObjectBoxEntity>
 
   Condition<T> equals(String key) {
     return queryKey.equals(key);
+  }
+
+  Condition<T> oneOf(List<String> keys) {
+    return queryKey.oneOf(keys);
   }
 
   Condition<T> greaterThan(String key) {
@@ -56,6 +61,10 @@ class ObjectBoxIntKey<T extends ObjectBoxEntity>
 
   Condition<T> equals(int key) {
     return queryKey.equals(key);
+  }
+
+  Condition<T> oneOf(List<int> keys) {
+    return queryKey.oneOf(keys);
   }
 
   Condition<T> greaterThan(int key) {
@@ -116,6 +125,11 @@ class ObjectBoxType<T1 extends ObjectBoxEntity, T2> {
     var list = box(store).query(keyQuery.equals(key)).build().find();
     if (list.length > 0) return list[0];
     return null;
+  }
+
+  List<T1?> getMany(Store store, key) {
+    var list = box(store).query(keyQuery.oneOf(key)).build().find();
+    return list;
   }
 
   List<T1> readBetween(Store store,
@@ -272,7 +286,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     }
   }
 
-  dynamic encodeKey(AbstractKey? key) {
+  String encodeKey(AbstractKey? key) {
     dynamic result = key?.key;
     if (key is AbstractViewKey) {
       final viewName = key.viewName;
@@ -386,7 +400,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<bool> putMany(
       Map<AbstractKey<Comparable>, Map<String, dynamic>> entries,
       {KeyValueAdapterSession? session}) async {
-    Future.wait(entries.entries.map((e) async => put(e.key, e.value)));
+    await Future.wait(entries.entries.map((e) async => put(e.key, e.value)));
     return true;
   }
 

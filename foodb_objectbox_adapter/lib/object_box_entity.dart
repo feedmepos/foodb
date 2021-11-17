@@ -17,7 +17,6 @@ abstract class ObjectBoxEntity<T> {
 }
 
 @Entity()
-
 class UtilsEntity extends ObjectBoxEntity<String> {
   @override
   int id;

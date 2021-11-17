@@ -5,14 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "foodb_isolate_example",
-            "cwd": "foodb_isolate_example",
+            "name": "foodb_flutter_test",
+            "cwd": "foodb_flutter_test",
             "request": "launch",
             "type": "dart"
         },
         {
-            "name": "foodb_isolate_example (profile mode)",
-            "cwd": "foodb_isolate_example",
+            "name": "foodb_flutter_test (profile mode)",
+            "cwd": "foodb_flutter_test",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile"

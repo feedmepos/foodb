@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodb/foodb.dart';
+import 'package:foodb/key_value_adapter.dart';
 import 'package:foodb_test/foodb_test.dart';
 import 'package:foodb_objectbox_adapter/foodb_objectbox_adapter.dart';
 import 'package:foodb_objectbox_adapter/objectbox.g.dart';
@@ -36,45 +37,12 @@ class ObjectBoxTestContext extends FoodbTestContext {
 }
 
 void main() {
-  final objectBox = ObjectBoxTestContext();
-  final couchdb = CouchdbTestContext();
-  // replicateBenchmarkTest(1000, 30, objectBox);
-  // group('couchdb > objectBox', () {
-  //   replicateTest().forEach((t) {
-  //     t(couchdb, objectBox);
-  //   });
-  // });
-  // group('objectBox > couchbdb', () {
-  //   replicateTest().forEach((t) {
-  //     t(objectBox, couchdb);
-  //   });
-  // });
-
-  // findTest().forEach((fn) {
-  //   fn(objectBox);
-  // });
-
-  // findBenchmarkTest(10000, objectBox);
-
-  allDocTest().skip(8).take(1).forEach((fn) {
-    fn(objectBox);
+  test('get-many', () async {
+    final adapter = await getAdapter('get-many');
+    await adapter.put(DocKey(key: '1'), {});
+    await adapter.put(DocKey(key: '2'), {});
+    var res = await adapter
+        .getMany([DocKey(key: '1'), DocKey(key: '3'), DocKey(key: '2')]);
+    print(res);
   });
-  // getTest().forEach((fn) {
-  //   fn(objectBox);
-  // });
-  // bulkDocTest().forEach((fn) {
-  //   fn(objectBox);
-  // });
-  // changeStreamTest().forEach((fn) {
-  //   fn(objectBox);
-  // });
-  // deleteTest().forEach((fn) {
-  //   fn(objectBox);
-  // });
-  // putTest().forEach((fn) {
-  //   fn(objectBox);
-  // });
-  // utilTest().forEach((fn) {
-  //   fn(objectBox);
-  // });
 }

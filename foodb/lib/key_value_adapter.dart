@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:isolate';
 
 import 'package:foodb/src/key_value/collate.dart';
 import 'package:foodb/src/in_memory_adapter.dart';
@@ -33,6 +34,16 @@ abstract class AbstractKey<T extends Comparable> implements Comparable {
     }
     return -1;
   }
+
+  @override
+  int get hashCode => Object.hash(key.hashCode, tableName.hashCode);
+
+  @override
+  bool operator ==(o) =>
+      o is AbstractKey &&
+      tableName == o.tableName &&
+      key != null &&
+      key!.compareTo(o.key) == 0;
 }
 
 abstract class AbstractViewKey<T extends Comparable> extends AbstractKey<T> {
@@ -50,6 +61,14 @@ abstract class AbstractViewKey<T extends Comparable> extends AbstractKey<T> {
     }
     return -1;
   }
+
+  @override
+  int get hashCode =>
+      Object.hash(viewName.hashCode, key.hashCode, tableName.hashCode);
+
+  @override
+  bool operator ==(o) =>
+      o is AbstractViewKey && super == o && viewName == o.viewName;
 }
 
 class UtilsKey extends AbstractKey<String> {
@@ -124,6 +143,12 @@ class ViewKeyMeta<T> implements Comparable {
   String encode() {
     return encodeToIndex(key);
   }
+
+  @override
+  int get hashCode => this.encode().hashCode;
+
+  @override
+  bool operator ==(o) => o is ViewKeyMeta && this.encode() == o.encode();
 }
 
 ListOfViewKeyMetaFromJsonString(String str) {
