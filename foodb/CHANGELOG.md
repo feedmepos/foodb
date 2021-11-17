@@ -1,5 +1,5 @@
-## 0.5.2-dev
-* (add) (WIP) added isolate worker for map reduce
+## 0.5.3
+* (add) improve getMany and putMany for objectbox
 
 ## 0.4.5
 * (add) all doc limit and skip

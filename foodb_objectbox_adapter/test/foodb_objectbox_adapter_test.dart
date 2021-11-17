@@ -39,18 +39,45 @@ class ObjectBoxTestContext extends FoodbTestContext {
 void main() {
   test('get-many', () async {
     final adapter = await getAdapter('get-many');
-    await adapter.put(DocKey(key: '1'), {});
-    await adapter.put(DocKey(key: '2'), {});
+    await adapter.put(DocKey(key: '1'), {'a': 1});
+    await adapter.put(DocKey(key: '2'), {'b': 1});
     var res = await adapter
         .getMany([DocKey(key: '1'), DocKey(key: '3'), DocKey(key: '2')]);
     print(res);
+    expect(res, hasLength(3));
+    expect(res[DocKey(key: '1')], isNotNull);
+    expect(res[DocKey(key: '2')], isNotNull);
+    expect(res.containsKey(DocKey(key: '3')), true);
+    expect(res[DocKey(key: '3')], isNull);
   });
   test('get-many-int', () async {
-    final adapter = await getAdapter('get-many');
-    await adapter.put(SequenceKey(key: 1), {});
-    await adapter.put(SequenceKey(key: 2), {});
+    final adapter = await getAdapter('get-many-int');
+    await adapter.put(SequenceKey(key: 1), {'a': 1});
+    await adapter.put(SequenceKey(key: 2), {'b': 1});
     var res = await adapter.getMany(
         [SequenceKey(key: 1), SequenceKey(key: 3), SequenceKey(key: 2)]);
     print(res);
+    expect(res, hasLength(3));
+    expect(res[SequenceKey(key: 1)], isNotNull);
+    expect(res[SequenceKey(key: 2)], isNotNull);
+    expect(res.containsKey(SequenceKey(key: 3)), true);
+    expect(res[SequenceKey(key: 3)], isNull);
+  });
+  test('put-many', () async {
+    final adapter = await getAdapter('put-many');
+    await adapter.putMany(Map.from({
+      DocKey(key: '1'): {'n': 1},
+      DocKey(key: '2'): {'n': 1},
+    }));
+    await adapter.putMany(Map.from({
+      DocKey(key: '2'): {'n': 2},
+      DocKey(key: '3'): {'n': 1},
+    }));
+    expect(await adapter.tableSize(DocKey()), 3);
+    var res = await adapter
+        .getMany([DocKey(key: '1'), DocKey(key: '2'), DocKey(key: '3')]);
+    expect(res[DocKey(key: '1')]!['n'], 1);
+    expect(res[DocKey(key: '2')]!['n'], 2);
+    expect(res[DocKey(key: '3')]!['n'], 1);
   });
 }

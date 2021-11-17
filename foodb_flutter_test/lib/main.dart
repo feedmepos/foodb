@@ -121,7 +121,7 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
     sourceFoodb = Foodb.couchdb(
         dbName: 'find-production',
-        baseUri: Uri.parse('http://admin:secret@localhost:6984'));
+        baseUri: Uri.parse('http://admin:secret@192.168.68.103:6984'));
     () async {
       store = await openStore();
     }();
@@ -157,8 +157,12 @@ class _MyHomePageState extends State<MyHomePage> {
                               keyValueDb: ObjectBoxAdapter(store));
                         });
                         await targetFoodb.initDb();
-                        replicate(sourceFoodb, targetFoodb,
-                            onComplete: firstSync.complete);
+                        replicate(
+                          sourceFoodb,
+                          targetFoodb,
+                          maxBatchSize: 300,
+                          onComplete: firstSync.complete,
+                        );
                         await firstSync.future;
                         await targetFoodb.createIndex(
                             index: QueryViewOptionsDef(

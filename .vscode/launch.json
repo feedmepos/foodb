@@ -17,5 +17,12 @@
             "type": "dart",
             "flutterMode": "profile"
         },
+        {
+            "name": "foodb_flutter_test (release mode)",
+            "cwd": "foodb_flutter_test",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
     ]
 }

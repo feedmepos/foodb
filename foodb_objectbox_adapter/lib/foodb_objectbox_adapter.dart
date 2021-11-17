@@ -117,6 +117,18 @@ class ObjectBoxType<T1 extends ObjectBoxEntity, T2> {
     return box(store).put(obj);
   }
 
+  putMany(Store store, Map<dynamic, String> entries) {
+    final toPut = getMany(store, entries.keys.toList()).entries.map((e) {
+      final key = e.key;
+      final value = e.value;
+      var obj = value ?? factory();
+      obj.key = key;
+      obj.value = entries[key]!;
+      return obj;
+    }).toList();
+    return box(store).putMany(toPut);
+  }
+
   remove(Store store, key) {
     return box(store).query(keyQuery.equals(key)).build().remove();
   }
@@ -127,12 +139,15 @@ class ObjectBoxType<T1 extends ObjectBoxEntity, T2> {
     return null;
   }
 
-  Map<T2, T1?> getMany(Store store, List<dynamic> keys) {
-    var list = Map<dynamic, T1>.fromIterable(
+  Map<dynamic, T1?> getMany(Store store, List<dynamic> keys) {
+    var map = Map<dynamic, T1>.fromIterable(
         box(store).query(keyQuery.oneOf(keys)).build().find(),
         key: (v) => v.key,
         value: (v) => v);
-    return Map.fromIterable(keys.map((e) => MapEntry(e, list[e])));
+    var result = keys.asMap().map((k, e) {
+      return MapEntry(e, map[e]);
+    });
+    return result;
   }
 
   List<T1> readBetween(Store store,
@@ -367,12 +382,13 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<Map<T2, Map<String, dynamic>?>>
       getMany<T2 extends AbstractKey<Comparable>>(List<T2> keys,
           {KeyValueAdapterSession? session}) async {
-    Map<T2, Map<String, dynamic>?> result = {};
-    for (final r in keys) {
-      final value = await get(r, session: session);
-      result.putIfAbsent(r, () => value?.value);
+    if (keys.isEmpty) {
+      return Map<T2, Map<String, dynamic>?>();
     }
-    return result;
+    var result = _getBoxFromKey(keys[0])
+        .getMany(store, keys.map((k) => encodeKey(k)).toList());
+    return result.map(
+        (key, value) => MapEntry(decodeKey(keys[0], key) as T2, value?.doc));
   }
 
   @override
@@ -403,7 +419,10 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<bool> putMany(
       Map<AbstractKey<Comparable>, Map<String, dynamic>> entries,
       {KeyValueAdapterSession? session}) async {
-    await Future.wait(entries.entries.map((e) async => put(e.key, e.value)));
+    await _getBoxFromKey(entries.keys.first).putMany(
+        store,
+        entries
+            .map((key, value) => MapEntry(encodeKey(key), jsonEncode(value))));
     return true;
   }
 

@@ -227,14 +227,14 @@ packages:
       path: "../foodb"
       relative: true
     source: path
-    version: "0.5.0"
+    version: "0.5.2-dev"
   foodb_test:
     dependency: "direct dev"
     description:
       path: "../foodb_test"
       relative: true
     source: path
-    version: "0.5.0"
+    version: "0.5.2-dev"
   frontend_server_client:
     dependency: transitive
     description:
