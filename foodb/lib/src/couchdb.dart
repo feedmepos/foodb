@@ -411,10 +411,10 @@ class _CouchdbFoodb extends Foodb {
     uriBuilder.queryParameters = convertToParams(json);
     var result;
     if (getViewRequest.keys == null) {
-      result = (await this.client.get(
+      result = utf8.decode((await this.client.get(
                 uriBuilder.build(),
               ))
-          .body;
+          .bodyBytes);
     } else {
       Map<String, dynamic> map = Map();
       map['keys'] = getViewRequest.keys;

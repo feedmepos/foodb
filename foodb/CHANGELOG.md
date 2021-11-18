@@ -1,5 +1,6 @@
-## 0.5.3
+## 0.5.4
 * (add) improve getMany and putMany for objectbox
+* (fix) utf8 decode for allDoc/view request
 
 ## 0.4.5
 * (add) all doc limit and skip
