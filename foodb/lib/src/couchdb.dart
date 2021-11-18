@@ -137,12 +137,19 @@ class _CouchdbFoodb extends Foodb {
             var items =
                 RegExp("^{\".*},?\n?\$", multiLine: true).allMatches(cache);
             if (items.isNotEmpty) {
+              var parseSuccess = false;
               items.forEach((i) {
-                var json = jsonDecode(cache.substring(i.start, i.end).trim());
-                if (json['id'] != null)
-                  onResult?.call(ChangeResult.fromJson(json));
+                try {
+                  var json = jsonDecode(cache.substring(i.start, i.end).trim());
+                  if (json['id'] != null) {
+                    onResult?.call(ChangeResult.fromJson(json));
+                    parseSuccess = true;
+                  }
+                } catch (err) {}
               });
-              cache = '';
+              if (parseSuccess) {
+                cache = '';
+              }
             }
           } else {
             cache += event;

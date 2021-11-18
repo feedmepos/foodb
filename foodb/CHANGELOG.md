@@ -1,4 +1,4 @@
-## 0.5.4
+## 0.5.5
 * (add) improve getMany and putMany for objectbox
 * (fix) utf8 decode for allDoc/view request
 
