@@ -7,6 +7,7 @@ mixin _KeyValueChange on _AbstractKeyValue {
     ChangeResult result = ChangeResult(
         id: update.id,
         seq: encodeSeq(key.key!),
+        deleted: update.deleted,
         changes: style == 'all_docs'
             ? update.allLeafRev.map((rev) => ChangeResultRev(rev: rev)).toList()
             : [
@@ -16,15 +17,8 @@ mixin _KeyValueChange on _AbstractKeyValue {
     if (includeDocs == true) {
       DocHistory docs = DocHistory.fromJson(
           (await keyValueDb.get(DocKey(key: update.id)))!.value);
-
-      Doc<Map<String, dynamic>>? winner = docs.winner != null
-          ? docs.toDoc(
-              docs.winner!.rev,
-              (json) => json,
-              revLimit: _revLimit,
-            )
-          : null;
-      result.doc = winner;
+      result.doc =
+          docs.toDoc(update.winnerRev, (json) => json, revLimit: _revLimit);
     }
     return result;
   }

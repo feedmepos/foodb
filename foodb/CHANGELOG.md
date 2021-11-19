@@ -1,6 +1,7 @@
-## 0.5.5
+## 0.5.6
 * (add) improve getMany and putMany for objectbox
 * (fix) utf8 decode for allDoc/view request
+* (fix) change result now include deleted info
 
 ## 0.4.5
 * (add) all doc limit and skip

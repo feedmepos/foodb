@@ -6,8 +6,8 @@ import 'package:foodb/foodb.dart';
 import 'package:foodb_test/foodb_test.dart';
 
 void main() {
-  final ctx = CouchdbTestContext();
-  // final ctx = InMemoryTestContext();
+  // final ctx = CouchdbTestContext();
+  final ctx = InMemoryTestContext();
   changeStreamTest().forEach((t) {
     t(ctx);
   });
@@ -30,6 +30,28 @@ List<Function(FoodbTestContext)> changeStreamTest() {
             onResult: resultFn, onComplete: completefn);
         await Future.delayed(Duration(milliseconds: 500),
             () async => db.bulkDocs(body: [Doc(id: 'c', model: {})]));
+      });
+    },
+    (FoodbTestContext ctx) {
+      test('Test change stream: normal feed, with deleted', () async {
+        final db = await ctx.db('change-stream-normal-feed');
+        var doc = await db.put(doc: Doc(id: 'a', model: {}));
+        await db.put(doc: Doc(id: 'b', model: {}));
+        var deleted = await db.delete(id: doc.id, rev: doc.rev);
+
+        var completefn = expectAsync1((ChangeResponse res) {
+          expect(res.results, hasLength(2));
+          expect(res.results[0].deleted, isNull);
+          expect(res.results[1].deleted, true);
+          expect(res.results[1].doc, isNotNull);
+          expect(res.results[1].doc!.rev, deleted.rev);
+        });
+        var resultFn = expectAsync1((p0) => null, count: 2);
+
+        db.changesStream(
+            ChangeRequest(feed: ChangeFeed.normal, includeDocs: true),
+            onResult: resultFn,
+            onComplete: completefn);
       });
     },
     (FoodbTestContext ctx) {

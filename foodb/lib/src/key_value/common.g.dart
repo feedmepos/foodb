@@ -45,12 +45,14 @@ UpdateSequence _$UpdateSequenceFromJson(Map<String, dynamic> json) {
     id: json['id'] as String,
     winnerRev: RevFromJsonString(json['winnerRev'] as String?),
     allLeafRev: ListOfRevFromJsonString(json['allLeafRev'] as List),
+    deleted: json['deleted'] as bool?,
   );
 }
 
 Map<String, dynamic> _$UpdateSequenceToJson(UpdateSequence instance) =>
     <String, dynamic>{
       'id': instance.id,
+      'deleted': instance.deleted,
       'winnerRev': RevToJsonString(instance.winnerRev),
       'allLeafRev': ListOfRevToJsonString(instance.allLeafRev),
     };

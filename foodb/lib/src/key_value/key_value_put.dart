@@ -166,9 +166,9 @@ mixin _KeyValuePut on _AbstractKeyValue {
           SequenceKey(key: winnerBeforeUpdate.localSeq!),
         );
       }
-      late UpdateSequence newUpdateSeqObject;
-      newUpdateSeqObject = UpdateSequence(
+      UpdateSequence newUpdateSeqObject = UpdateSequence(
           id: doc.id,
+          deleted: doc.deleted == true ? true : null,
           winnerRev: newDocHistoryObject.winner?.rev ?? newDocObject.rev,
           allLeafRev: newDocHistoryObject.leafDocs.map((e) => e.rev).toList());
       await keyValueDb.put(

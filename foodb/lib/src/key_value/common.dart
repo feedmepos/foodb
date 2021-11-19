@@ -49,17 +49,19 @@ class ViewDocMeta {
 class UpdateSequence {
   String id;
 
+  bool? deleted;
+
   @JsonKey(fromJson: RevFromJsonString, toJson: RevToJsonString)
   Rev winnerRev;
 
   @JsonKey(fromJson: ListOfRevFromJsonString, toJson: ListOfRevToJsonString)
   List<Rev> allLeafRev;
 
-  UpdateSequence({
-    required this.id,
-    required this.winnerRev,
-    required this.allLeafRev,
-  });
+  UpdateSequence(
+      {required this.id,
+      required this.winnerRev,
+      required this.allLeafRev,
+      this.deleted});
 
   factory UpdateSequence.fromJson(Map<String, dynamic> json) =>
       _$UpdateSequenceFromJson(json);
