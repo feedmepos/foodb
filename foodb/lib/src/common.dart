@@ -68,7 +68,9 @@ class Rev {
   int get hashCode => index.hashCode ^ md5.hashCode;
 
   int compareTo(Rev other) {
-    return this.toString().compareTo(other.toString());
+    final indexCmp = this.index.compareTo(other.index);
+    if (indexCmp != 0) return indexCmp;
+    return this.md5.compareTo(other.md5);
   }
 }
 

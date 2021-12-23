@@ -12,11 +12,11 @@ void main() {
   //     t(couchdb, couchdb);
   //   });
   // });
-  // group('couchdb > inMemory', () {
-  //   replicateTest().forEach((t) {
-  //     t(couchdb, inMemory);
-  //   });
-  // });
+  group('couchdb > inMemory', () {
+    replicateTest().forEach((t) {
+      t(couchdb, inMemory);
+    });
+  });
   // group('inMemory > couchbdb', () {
   //   replicateTest().forEach((t) {
   //     t(inMemory, couchdb);
@@ -164,16 +164,16 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
             await targetCtx.db('target-replicate-target-max-batch-size');
 
         var complete = expectAsync0(() => {});
-        var checkpoint = expectAsync0(() => {}, count: 2);
+        var checkpoint = expectAsync0(() => {}, count: 10);
 
         await source.bulkDocs(
-            body: List.generate(30, (index) => Doc(id: '$index', model: {})));
+            body: List.generate(100, (index) => Doc(id: '$index', model: {})));
 
-        replicate(source, target, maxBatchSize: 29, onCheckpoint: (_) async {
+        replicate(source, target, maxBatchSize: 10, onCheckpoint: (_) async {
           checkpoint();
         }, onComplete: () async {
           var docs = await target.allDocs(GetViewRequest(), (json) => json);
-          expect(docs.rows, hasLength(30));
+          expect(docs.rows, hasLength(100));
           complete();
         });
       });

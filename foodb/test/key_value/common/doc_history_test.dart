@@ -195,4 +195,28 @@ void main() {
       expect(history.winner?.rev.toString(), "2-c");
     });
   });
+
+  test('test with 3 same length leafdocs, different start', () async {
+    DocHistory history = DocHistory(
+        id: 'a',
+        docs: {
+          "999-ee": InternalDoc(
+              rev: Rev.fromString("999-ee"), deleted: false, data: {}),
+          "18211-72": InternalDoc(
+              rev: Rev.fromString("18211-72"), deleted: false, data: {}),
+          "19684-a1": InternalDoc(
+              rev: Rev.fromString("19684-a1"), deleted: false, data: {}),
+        },
+        revisions: RevisionTree(nodes: [
+          RevisionNode(rev: Rev.fromString("999-ee")),
+          RevisionNode(rev: Rev.fromString("18211-72")),
+          RevisionNode(rev: Rev.fromString("19684-a1")),
+        ]));
+
+    for (InternalDoc doc in history.leafDocs) {
+      print(doc.rev);
+    }
+    expect(history.leafDocs.length, 3);
+    expect(history.winner?.rev.toString(), "19684-a1");
+  });
 }

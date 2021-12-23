@@ -1,3 +1,7 @@
+### 0.6.0
+* (change) replicate and generateView now process in chunk
+* (fix) wrong winner determine logic
+
 ## 0.5.6
 * (add) improve getMany and putMany for objectbox
 * (fix) utf8 decode for allDoc/view request

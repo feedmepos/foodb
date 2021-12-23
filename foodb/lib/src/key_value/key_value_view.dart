@@ -129,24 +129,31 @@ mixin _KeyValueView on _AbstractKeyValue {
       } else {
         meta = ViewMeta.fromJson(json);
       }
-      Completer<String> c = new Completer();
-      changesStream(
-          ChangeRequest(
-              since: encodeSeq(meta.lastSeq),
-              feed: ChangeFeed.normal), onComplete: (resp) async {
+      var c = new Completer();
+      int pending = 1;
+      processChange(String since) async {
+        FoodbDebug.timedStart('<_generateView>: getChange');
+        var getChange = new Completer<ChangeResponse>();
+        changesStream(
+            ChangeRequest(limit: 300, since: since, feed: ChangeFeed.normal),
+            onComplete: getChange.complete);
+        var resp = await getChange.future;
+        pending = resp.pending ?? 0;
+        FoodbDebug.timedEnd('<_generateView>: getChange');
+
         List<String> docIdToProcess = resp.results.map((e) => e.id).toList();
 
-        FoodbDebug.timedStart('docToProcess');
+        FoodbDebug.timedStart('<_generateView>: getDocToProcess');
         final docsToProcess = (await keyValueDb.getMany<DocKey>(
             docIdToProcess.map<DocKey>((k) => DocKey(key: k)).toList()));
-        FoodbDebug.timedEnd('docToProcess');
-        FoodbDebug.timedStart('docMetas');
+        FoodbDebug.timedEnd('<_generateView>: etDocToProcess');
+        FoodbDebug.timedStart('<_generateView>: getDocMetas');
         final docMetas = (await keyValueDb.getMany<ViewDocMetaKey>(
             docIdToProcess
                 .map((e) => ViewDocMetaKey(viewName: viewName, key: e))
                 .toList()));
-        FoodbDebug.timedEnd('docMetas');
-        FoodbDebug.timedStart('worker');
+        FoodbDebug.timedEnd('<_generateView>: getDocMetas');
+        FoodbDebug.timedStart('<_generateView>: generateView');
         var res = await generateViewForDocs(_GenerateViewReq(
             view: view,
             viewName: viewName,
@@ -159,7 +166,7 @@ mixin _KeyValueView on _AbstractKeyValue {
         //         viewName: viewName,
         //         docs: docsToProcess,
         //         docMetas: docMetas));
-        FoodbDebug.timedEnd('worker');
+        FoodbDebug.timedEnd('<_generateView>: generateView');
 
         final newDocMetas = res.docMetas;
         final keyToAdd = res.keyToAdd;
@@ -169,14 +176,13 @@ mixin _KeyValueView on _AbstractKeyValue {
           ...keyToRemove.keys.toList(),
           ...keyToAdd.keys.toList()
         ];
-        FoodbDebug.timedStart('full key');
+        FoodbDebug.timedStart('<_generateView>: updateKey');
         var fullKey = (await keyValueDb.getMany(fullKeyToChange)).map(
             (key, value) => MapEntry(
                 key,
                 value != null
                     ? ViewValue.fromJson(value)
                     : ViewValue(docs: [])));
-        FoodbDebug.timedEnd('full key');
         keyToRemove.forEach((key, value) {
           var exist = fullKey[key]!;
           exist.docs.removeWhere((element) => value.docs.any((e2) {
@@ -188,24 +194,25 @@ mixin _KeyValueView on _AbstractKeyValue {
           exist.docs.addAll(value.docs);
         });
 
-        FoodbDebug.timedStart('update full key');
         if (fullKey.isNotEmpty) {
           await keyValueDb.putMany(
               fullKey.map((key, value) => MapEntry(key, value.toJson())));
         }
-        FoodbDebug.timedEnd('update full key');
-        FoodbDebug.timedStart('update metas');
+        FoodbDebug.timedEnd('<_generateView>: updateKey');
         if (newDocMetas.isNotEmpty) {
           await keyValueDb.putMany(newDocMetas);
         }
-        FoodbDebug.timedEnd('update metas');
+        await keyValueDb.put(ViewMetaKey(key: viewName),
+            ViewMeta(lastSeq: decodeSeq(resp.lastSeq!)).toJson());
+        if (pending > 0) {
+          processChange(resp.lastSeq!);
+        } else {
+          c.complete();
+        }
+      }
 
-        c.complete(resp.lastSeq);
-      });
-
-      var lastSeq = await c.future;
-      await keyValueDb.put(ViewMetaKey(key: viewName),
-          ViewMeta(lastSeq: decodeSeq(lastSeq)).toJson());
+      processChange(encodeSeq(meta.lastSeq));
+      await c.future;
     }
   }
 

@@ -28,7 +28,10 @@ mixin _KeyValueUtil on _AbstractKeyValue {
           ? DocHistory.fromJson(result.value)
           : new DocHistory(
               id: key, docs: {}, revisions: RevisionTree(nodes: []));
-      revsDiff[key] = docHistory.revsDiff(body[key]!.map((e) => e).toList());
+      var diff = docHistory.revsDiff(body[key]!.map((e) => e).toList());
+      if (diff.missing.isNotEmpty) {
+        revsDiff[key] = docHistory.revsDiff(body[key]!.map((e) => e).toList());
+      }
     });
     return revsDiff;
   }

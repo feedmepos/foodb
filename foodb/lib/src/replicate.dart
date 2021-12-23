@@ -121,12 +121,16 @@ class _Replicator {
   late Doc<ReplicationLog> targetLog;
   void Function(ReplicationCheckpoint)? onFinishCheckpoint;
   WhereFunction<ChangeResult>? whereChange;
+  int _cycleCount = 0;
+  bool _cyclePass = false;
+  Function(Object?, StackTrace? stackTrace) onError;
   _Replicator(
     this._source,
     this._target, {
     required this.maxBatchSize,
     this.onFinishCheckpoint,
     this.whereChange,
+    required this.onError,
   });
 
   cancel() {
@@ -134,14 +138,15 @@ class _Replicator {
   }
 
   Future<void> run() async {
-    if (isRunning || cancelled || pendingList.isEmpty) return;
+    if (isRunning || cancelled) return;
     isRunning = true;
     String sessionId = Uuid().v4();
     DateTime startTime = DateTime.now();
+    FoodbDebug.timedStart('replication checkpoint');
+    List<ChangeResult> toProcess = [];
     try {
       // get last change which has seq (determine by couchdb seq_interval) inside maximum batch to process
-      var toProcess =
-          pendingList.sublist(0, min(maxBatchSize, pendingList.length));
+      toProcess = pendingList.sublist(0, min(maxBatchSize, pendingList.length));
       toProcess = toProcess.sublist(
           0, toProcess.lastIndexWhere((element) => element.seq != null) + 1);
 
@@ -150,24 +155,24 @@ class _Replicator {
           .where((element) => whereChange?.call(element) ?? true)
           .toList();
 
-      // get revs diff
-      late Map<String, RevsDiff> revsDiff;
-      await FoodbDebug.timed('<replication>: get revs diff', () async {
+      if (toProcess.isNotEmpty) {
+        // get revs diff
+        FoodbDebug.timedStart('<replication>: get revs diff');
         Map<String, List<Rev>> groupedChange = new Map();
         toReplicate.forEach((changeResult) {
           groupedChange[changeResult.id] =
               changeResult.changes.map((e) => e.rev).toList();
         });
-        revsDiff = await _target.revsDiff(body: groupedChange);
-      });
+        Map<String, RevsDiff> revsDiff =
+            await _target.revsDiff(body: groupedChange);
+        FoodbDebug.timedEnd('<replication>: get revs diff');
 
-      // have revs diff, need fetch doc
-      if (revsDiff.isNotEmpty) {
-        List<Doc<Map<String, dynamic>>> toInsert = [];
+        // have revs diff, need fetch doc
+        if (revsDiff.isNotEmpty) {
+          List<Doc<Map<String, dynamic>>> toInsert = [];
 
-        // optimization from pouchdb, use allDoc to get doc that missing only 1 generation
-        await FoodbDebug.timed('<replication>: retrieve gen-1 using allDoc',
-            () async {
+          // optimization from pouchdb, use allDoc to get doc that missing only 1 generation
+          FoodbDebug.timedStart('<replication>: retrieve gen-1 using allDoc');
           final gen1Ids = revsDiff.keys
               .where((key) =>
                   revsDiff[key]!.missing.length == 1 &&
@@ -191,11 +196,11 @@ class _Replicator {
               revsDiff.remove(row.id);
             });
           }
-        });
+          FoodbDebug.timedEnd('<replication>: retrieve gen-1 using allDoc');
 
-        // handle the rest through bulkGet
-        await FoodbDebug.timed('<replication>: retrieve the rest using bulkGet',
-            () async {
+          // handle the rest through bulkGet
+          FoodbDebug.timedStart(
+              '<replication>: retrieve the rest using bulkGet');
           toInsert.addAll((await _source.bulkGet<Map<String, dynamic>>(
                   body: BulkGetRequest(
                       docs: revsDiff.keys
@@ -213,38 +218,47 @@ class _Replicator {
                   .expand(
                       (BulkGetDoc<Map<String, dynamic>> item) => [item.doc!])
                   .toList()));
-        });
+          FoodbDebug.timedEnd('<replication>: retrieve the rest using bulkGet');
 
-        // perform bulkDoc
-        await FoodbDebug.timed('<replication>: update DB using bulkDoc',
-            () async {
+          // perform bulkDoc
+          FoodbDebug.timedStart('<replication>: update DB using bulkDoc');
           await _target.bulkDocs(body: toInsert, newEdits: false);
-        });
+          FoodbDebug.timedEnd('<replication>: update DB using bulkDoc');
 
-        // ensure full commit
-        await _target.ensureFullCommit();
+          // ensure full commit
+          await _target.ensureFullCommit();
+        }
+        String lastSeq = toProcess.last.seq!;
+
+        // add checkpoint
+        sourceLog = await _setReplicationCheckpoint(
+            db: _source,
+            oldLog: sourceLog,
+            startime: startTime,
+            lastSeq: lastSeq,
+            sessionId: sessionId);
+        targetLog = await _setReplicationCheckpoint(
+            db: _target,
+            oldLog: targetLog,
+            startime: startTime,
+            lastSeq: lastSeq,
+            sessionId: sessionId);
+        pendingList = pendingList.sublist(toProcess.length);
       }
-      String lastSeq = toProcess.last.seq!;
-
-      // add checkpoint
-      sourceLog = await _setReplicationCheckpoint(
-          db: _source,
-          oldLog: sourceLog,
-          startime: startTime,
-          lastSeq: lastSeq,
-          sessionId: sessionId);
-      targetLog = await _setReplicationCheckpoint(
-          db: _target,
-          oldLog: targetLog,
-          startime: startTime,
-          lastSeq: lastSeq,
-          sessionId: sessionId);
-      pendingList = pendingList.sublist(toProcess.length);
       isRunning = false;
       onFinishCheckpoint?.call(ReplicationCheckpoint(
           log: targetLog, processed: toProcess, replicated: toReplicate));
-    } catch (err) {
+      _cyclePass = true;
+    } catch (err, st) {
       isRunning = false;
+      _cyclePass = false;
+      onError(err, st);
+    } finally {
+      ++_cycleCount;
+      FoodbDebug.timedEnd(
+          'replication checkpoint',
+          (ms) =>
+              '<replication> ${_cyclePass ? 'pass' : 'fail'}: checkpoint $_cycleCount, processed ${toProcess.length}, ${ms / toProcess.length} ms/doc');
     }
   }
 }
@@ -318,7 +332,7 @@ ReplicationStream replicate(
   void Function(ReplicationCheckpoint)? onCheckpoint,
 }) {
   late ReplicationStream resultStream;
-  int _cycleCount = 0;
+
   _onError(e, s) {
     resultStream.abort();
     onError(e, s);
@@ -339,24 +353,8 @@ ReplicationStream replicate(
     var timer = Timer(debounce, () {});
     replicator = _Replicator(source, target,
         maxBatchSize: maxBatchSize,
-        whereChange: whereChange, onFinishCheckpoint: (checkpoint) async {
-      ++_cycleCount;
-      FoodbDebug.timedEnd(
-          'replication checkpoint',
-          (ms) =>
-              '<replication>: checkpoint $_cycleCount, processed ${checkpoint.processed.length}, ${ms / checkpoint.processed.length} ms/doc');
-      FoodbDebug.timedStart('replication checkpoint');
-
-      onCheckpoint?.call(checkpoint);
-
-      if (replicator.pendingList.isNotEmpty) {
-        replicator.run();
-      } else {
-        if (!continuous) {
-          _onComplete();
-        }
-      }
-    });
+        whereChange: whereChange,
+        onError: _onError);
     resultStream = new ReplicationStream(onCancel: () {
       replicator.cancel();
       changeStream?.cancel();
@@ -403,16 +401,21 @@ ReplicationStream replicate(
       }
     }
 
-    changeStream = await source.changesStream(
-        ChangeRequest(
-            feed: continuous ? ChangeFeed.continuous : ChangeFeed.normal,
-            style: 'all_docs',
-            heartbeat: heartbeat,
-            timeout: timeout,
-            seqInterval: continuous ? null : maxBatchSize - 1,
-            since: startSeq), onResult: (result) async {
-      onResult?.call(result);
-      if (continuous) {
+    if (continuous) {
+      replicator.onFinishCheckpoint = (checkpoint) async {
+        onCheckpoint?.call(checkpoint);
+        if (replicator.pendingList.isNotEmpty) {
+          replicator.run();
+        }
+      };
+      changeStream = await source.changesStream(
+          ChangeRequest(
+              feed: ChangeFeed.continuous,
+              style: 'all_docs',
+              heartbeat: heartbeat,
+              timeout: timeout,
+              since: startSeq), onResult: (result) async {
+        onResult?.call(result);
         replicator.pendingList.add(result);
         timer.cancel();
         timer = Timer(debounce, replicator.run);
@@ -420,20 +423,44 @@ ReplicationStream replicate(
           timer.cancel();
           replicator.run();
         }
+      }, onError: _onError);
+    } else {
+      var pending = 1;
+      var startSeqWithLimit = startSeq;
+
+      fetchNormalChangeAndRun() async {
+        changeStream = await source.changesStream(
+            ChangeRequest(
+                feed: ChangeFeed.normal,
+                style: 'all_docs',
+                heartbeat: heartbeat,
+                timeout: timeout,
+                seqInterval: maxBatchSize - 1,
+                limit: maxBatchSize,
+                since: startSeqWithLimit),
+            onResult: (result) => onResult?.call(result),
+            onComplete: (result) async {
+              pending = result.pending ?? 0;
+              if (result.results.isNotEmpty) {
+                result.results.last.seq = result.lastSeq!;
+              }
+              startSeqWithLimit = result.lastSeq!;
+              replicator.pendingList.addAll(result.results);
+              replicator.run();
+            },
+            onError: _onError);
       }
-    }, onComplete: (result) async {
-      if (!continuous) {
-        if (result.results.isEmpty) {
-          _onComplete();
+
+      replicator.onFinishCheckpoint = (checkpoint) async {
+        onCheckpoint?.call(checkpoint);
+        if (pending > 0) {
+          fetchNormalChangeAndRun();
         } else {
-          result.results.last.seq =
-              result.lastSeq ?? (await source.info()).updateSeq;
-          ;
-          replicator.pendingList.addAll(result.results);
-          replicator.run();
+          _onComplete();
         }
-      }
-    }, onError: _onError);
+      };
+      fetchNormalChangeAndRun();
+    }
   }, _onError);
   return resultStream;
 }
