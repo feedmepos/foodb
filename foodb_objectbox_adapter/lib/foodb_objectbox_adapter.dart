@@ -304,13 +304,13 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     }
   }
 
-  dynamic encodeKey(AbstractKey? key) {
+  dynamic encodeKey(AbstractKey? key, {bool isEnd = false}) {
     dynamic result = key?.key;
     if (key is AbstractViewKey) {
       final viewName = key.viewName;
       var stringKey = key.key;
       if (key is ViewKeyMetaKey) {
-        stringKey = key.key?.encode();
+        stringKey = key.key?.encode() ?? (isEnd ? '\uffff' : '');
       }
       result = '${viewName}!${stringKey}';
     }
@@ -441,7 +441,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     final offset = 0;
     final record = await boxType.readBetween(store,
         startkey: encodeKey(startkey),
-        endkey: encodeKey(endkey),
+        endkey: encodeKey(endkey, isEnd: true),
         descending: desc,
         inclusiveEnd: inclusiveEnd,
         inclusiveStart: inclusiveStart,

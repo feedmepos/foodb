@@ -170,6 +170,8 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
     late AbstracDesignDocView docView;
     result = await keyValueDb.read<ViewKeyMetaKey>(
         ViewKeyMetaKey(viewName: viewName),
+        startkey: ViewKeyMetaKey(viewName: viewName),
+        endkey: ViewKeyMetaKey(viewName: viewName),
         desc: false,
         inclusiveEnd: true,
         inclusiveStart: true);

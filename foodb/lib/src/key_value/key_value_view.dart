@@ -83,7 +83,7 @@ Future<_GenerateViewRes> generateViewForDocs(_GenerateViewReq req) async {
       for (final k in keysForDelete) {
         var key = ViewKeyMetaKey(key: k, viewName: viewName);
         keyToRemove.update(key, (value) {
-          value.docs.removeWhere((element) => element.docId == doc.id);
+          value.docs.add(ViewValueDoc(docId: doc.id));
           return value;
         }, ifAbsent: () {
           return ViewValue(docs: [ViewValueDoc(docId: doc.id)]);

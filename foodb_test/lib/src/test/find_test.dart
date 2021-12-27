@@ -456,6 +456,17 @@ List<Function(FoodbTestContext)> findTest() {
               ]));
           expect(explainResponse.index.name, 'all_docs');
         });
+        test('check when last generate view failed halfway', () async {
+          final db = await ctx.db('generate-view-fail');
+          await db.createIndex(
+              name: 'id-name-index',
+              index: QueryViewOptionsDef(fields: ['name']));
+          var doc = await db.put(doc: Doc(id: '1', model: {'name': 'a'}));
+          var find = await db.find(
+              FindRequest(selector: EqualOperator(key: 'name', expected: 'a')),
+              (p0) => p0);
+          print(find);
+        });
       });
     }
   ];

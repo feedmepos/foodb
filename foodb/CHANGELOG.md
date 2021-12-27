@@ -1,5 +1,6 @@
-### 0.6.0
+### 0.6.1
 * (change) replicate and generateView now process in chunk
+* (fix) remove multiple doc from bill
 * (fix) wrong winner determine logic
 
 ## 0.5.6
