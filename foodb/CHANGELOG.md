@@ -1,5 +1,6 @@
-### 0.7.0
+### 0.7.0 (Breaking Change)
 * (add) added hive adapter
+* (break) mh5 on view name when persist in database
 
 ### 0.6.1
 * (change) replicate and generateView now process in chunk

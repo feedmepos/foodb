@@ -1,6 +1,6 @@
 name: foodb_hive_adapter
 description: A new flutter plugin project.
-version: 0.0.1
+version: 0.7.0
 homepage:
 
 environment:
@@ -10,9 +10,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-    # foodb: ">=0.6.1"
-  foodb:
-    path: ../foodb
+  foodb: ">=0.7.0"
+  # foodb:
+  #   path: ../foodb
   hive: ^2.0.0
   hive_flutter: ^1.1.0
   path: ^1.8.0
@@ -22,9 +22,9 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^1.0.0
-  # foodb_test: ">=0.6.1"
-  foodb_test:
-    path: ../foodb_test
+  foodb_test: ">=0.7.0"
+  # foodb_test:
+  #   path: ../foodb_test
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
