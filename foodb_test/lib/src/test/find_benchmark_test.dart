@@ -59,7 +59,7 @@ void findBenchmarkTest(int size, FoodbTestContext targetCtx) async {
     print(
         'design_docs 2 perDoc: ${designDocStopWatch2.elapsed.inMilliseconds / (size * 1000)}');
     expect(responseAfterIndex2.docs.length, equals(100));
-  });
+  }, timeout: Timeout(Duration(minutes: 10)));
 }
 
 void findProductionTest(

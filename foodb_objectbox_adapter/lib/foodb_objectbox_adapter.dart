@@ -355,7 +355,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   }
 
   @override
-  Future<bool> deleteTable(AbstractKey<Comparable> key,
+  Future<bool> clearTable(AbstractKey<Comparable> key,
       {KeyValueAdapterSession? session}) async {
     final boxType = _getBoxFromKey(key);
     await boxType.removeAll(store, encodeKey(key));

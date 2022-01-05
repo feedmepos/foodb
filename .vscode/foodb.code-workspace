@@ -14,6 +14,9 @@
       "path": "../foodb_objectbox_adapter"
     },
     {
+      "path": "../foodb_hive_adapter"
+    },
+    {
       "path": "../foodb_flutter_test"
     }
   ],
@@ -23,6 +26,7 @@
       "foodb/": true,
       "foodb_test/": true,
       "foodb_objectbox_adapter/": true,
+      "foodb_hive_adapter/": true,
       "foodb_flutter_test/": true
     }
   }

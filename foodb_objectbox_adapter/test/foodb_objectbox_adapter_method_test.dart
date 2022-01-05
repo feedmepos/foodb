@@ -5,7 +5,8 @@ import 'foodb_objectbox_adapter_test.dart';
 void main() {
   final objectBox = ObjectBoxTestContext();
   final couchdb = CouchdbTestContext();
-  // replicateBenchmarkTest(1000, 30, objectBox);
+  replicateBenchmarkTest(
+      source: couchdb, target: objectBox, batchSize: 300, thousandDoc: 5);
   // group('couchdb > objectBox', () {
   //   replicateTest().forEach((t) {
   //     t(couchdb, objectBox);
@@ -21,11 +22,11 @@ void main() {
   //   fn(objectBox);
   // });
 
-  // findBenchmarkTest(10000, objectBox);
+  // findBenchmarkTest(3000, objectBox);
 
-  allDocTest().skip(1).take(1).forEach((fn) {
-    fn(objectBox);
-  });
+  // allDocTest().forEach((fn) {
+  //   fn(objectBox);
+  // });
   // getTest().forEach((fn) {
   //   fn(objectBox);
   // });

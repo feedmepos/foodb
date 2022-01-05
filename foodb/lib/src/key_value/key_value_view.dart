@@ -219,9 +219,9 @@ mixin _KeyValueView on _AbstractKeyValue {
   Future<void> _clearView(String designDocName, String viewName) async {
     var view = getViewName(designDocId: designDocName, viewId: viewName);
     await keyValueDb.delete(ViewMetaKey(key: view));
-    await keyValueDb.deleteTable(ViewDocMetaKey(viewName: view, key: ''));
+    await keyValueDb.clearTable(ViewDocMetaKey(viewName: view, key: ''));
     await keyValueDb
-        .deleteTable(ViewKeyMetaKey(viewName: view, key: ViewKeyMeta(key: '')));
+        .clearTable(ViewKeyMetaKey(viewName: view, key: ViewKeyMeta(key: '')));
   }
 
   Future<GetViewResponse<T>> view<T>(
@@ -326,7 +326,7 @@ mixin _KeyValueView on _AbstractKeyValue {
       }
 
       return GetViewResponse(
-          offset: result.offset, totalRows: data.length, rows: rows);
+          offset: result.offset, totalRows: result.totalRows, rows: rows);
     } else {
       throw AdapterException(error: "Design Doc Not Exists");
     }

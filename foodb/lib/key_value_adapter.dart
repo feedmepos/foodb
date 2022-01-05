@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:isolate';
+import 'package:collection/collection.dart';
 
 import 'package:foodb/src/key_value/collate.dart';
 import 'package:foodb/src/in_memory_adapter.dart';
@@ -213,6 +213,42 @@ abstract class KeyValueAdapter<T extends KeyValueAdapterSession> {
     return InMemoryAdapter();
   }
 
+  static String keyToTableName(AbstractKey key) {
+    String tableName = key.tableName;
+    String primaryKeyType = 'TEXT';
+    if (key is SequenceKey) {
+      primaryKeyType = 'INTEGER';
+    }
+    if (key is ViewDocMetaKey) {
+      tableName += '!${key.viewName}';
+    } else if (key is ViewKeyMetaKey) {
+      tableName += '!${key.viewName}';
+    }
+    return tableName;
+  }
+
+  static AbstractKey tableNameToKey(String tableName) {
+    var key = <AbstractKey>[
+      UtilsKey(),
+      DocKey(),
+      LocalDocKey(),
+      SequenceKey(),
+      ViewMetaKey(),
+      ViewDocMetaKey(viewName: ''),
+      ViewKeyMetaKey(viewName: '')
+    ].firstWhereOrNull((key) => tableName.startsWith(key.tableName));
+    if (key != null) {
+      if (key is ViewDocMetaKey) {
+        key = ViewDocMetaKey(viewName: tableName.split('!')[1]);
+      }
+      if (key is ViewKeyMetaKey) {
+        key = ViewKeyMetaKey(viewName: tableName.split('!')[1]);
+      }
+      return key;
+    }
+    throw Exception('Invalid key for table');
+  }
+
   Future<bool> initDb();
 
   Future<void> runInSession(Future<void> Function(T) function);
@@ -249,6 +285,6 @@ abstract class KeyValueAdapter<T extends KeyValueAdapterSession> {
   Future<bool> deleteMany(List<AbstractKey> keys, {T? session});
 
   Future<int> tableSize(AbstractKey key, {T? session});
-  Future<bool> deleteTable(AbstractKey key, {T? session});
+  Future<bool> clearTable(AbstractKey key, {T? session});
   Future<bool> destroy({T? session});
 }

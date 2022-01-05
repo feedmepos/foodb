@@ -1,3 +1,6 @@
+### 0.7.0
+* (add) added hive adapter
+
 ### 0.6.1
 * (change) replicate and generateView now process in chunk
 * (fix) remove multiple doc from bill

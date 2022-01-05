@@ -185,7 +185,7 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
   }
 
   @override
-  Future<bool> deleteTable(AbstractKey key,
+  Future<bool> clearTable(AbstractKey key,
       {InMemoryAdapterSession? session}) async {
     _stores[key]?.clear();
     return true;
