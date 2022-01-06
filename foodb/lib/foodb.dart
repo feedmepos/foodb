@@ -2,15 +2,12 @@ library foodb;
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:isolate';
 import 'package:crypto/crypto.dart' as crypto;
-import 'package:foodb/foodb_worker.dart';
 import 'package:foodb/src/common.dart';
 import 'package:foodb/src/selector.dart';
 import 'package:foodb/src/design_doc.dart';
 import 'package:foodb/src/exception.dart';
 import 'package:foodb/key_value_adapter.dart';
-import 'package:foodb/src/key_value/common.dart';
 import 'package:foodb/src/methods/bulk_docs.dart';
 import 'package:foodb/src/methods/bulk_get.dart';
 import 'package:foodb/src/methods/changes.dart';
@@ -240,19 +237,10 @@ abstract class JSRuntime {
   evaluate(String script);
 }
 
-String getViewName({required String designDocId, required String viewId}) {
-  // for debugging
-  // return '__d__${designDocId.split('/')[1]}__v__${viewId}';
-  return '__v__${crypto.md5.convert(utf8.encode(designDocId + viewId))}';
-}
-
 final allDocDesignDoc = new Doc(
     id: "_design/all_docs",
     model: DesignDoc(
         language: 'query', views: {"all_docs": AllDocDesignDocView()}));
-final String allDocViewName = getViewName(
-    designDocId: allDocDesignDoc.id,
-    viewId: allDocDesignDoc.model.views.keys.first);
 
 abstract class _AbstractKeyValue extends Foodb {
   KeyValueAdapter keyValueDb;

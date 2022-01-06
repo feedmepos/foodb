@@ -356,6 +356,7 @@ ReplicationStream replicate(
         whereChange: whereChange,
         onError: _onError);
     resultStream = new ReplicationStream(onCancel: () {
+      timer.cancel();
       replicator.cancel();
       changeStream?.cancel();
     });

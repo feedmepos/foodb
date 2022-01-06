@@ -120,7 +120,8 @@ mixin _KeyValueView on _AbstractKeyValue {
   Future<void> _generateView(Doc<DesignDoc> designDoc) async {
     for (var e in designDoc.model.views.entries) {
       var view = e.value;
-      var viewName = getViewName(designDocId: designDoc.id, viewId: e.key);
+      var viewName =
+          keyValueDb.getViewTableName(designDocId: designDoc.id, viewId: e.key);
       var json = (await keyValueDb.get(ViewMetaKey(key: viewName)))?.value;
 
       ViewMeta meta;
@@ -217,7 +218,8 @@ mixin _KeyValueView on _AbstractKeyValue {
   }
 
   Future<void> _clearView(String designDocName, String viewName) async {
-    var view = getViewName(designDocId: designDocName, viewId: viewName);
+    var view = keyValueDb.getViewTableName(
+        designDocId: designDocName, viewId: viewName);
     await keyValueDb.delete(ViewMetaKey(key: view));
     await keyValueDb.clearTable(ViewDocMetaKey(viewName: view, key: ''));
     await keyValueDb
@@ -239,7 +241,8 @@ mixin _KeyValueView on _AbstractKeyValue {
 
     if (designDoc != null) {
       await _generateView(designDoc);
-      var viewName = getViewName(designDocId: designDoc.id, viewId: viewId);
+      var viewName = keyValueDb.getViewTableName(
+          designDocId: designDoc.id, viewId: viewId);
       late ReadResult<ViewKeyMetaKey> result;
       if (getViewRequest.keys != null) {
         result = ReadResult(

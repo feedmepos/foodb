@@ -1,6 +1,6 @@
 name: foodb_test
 description: Test suite to run against different flavour of foodb
-version: 0.7.0
+version: 0.7.3
 
 environment:
   sdk: ">=2.12.0 <3.0.0"
@@ -9,7 +9,7 @@ dependencies:
   test: ^1.16.0
   path: ^1.8.0
   dotenv: ^3.0.0
-  foodb: ">=0.7.0"
+  foodb: ">=0.7.3"
   # foodb:
   #   path: ../foodb
 

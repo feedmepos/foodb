@@ -32,6 +32,11 @@ class InMemoryAdapterSession extends KeyValueAdapterSession {
 class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
   final Stores _stores = Stores();
 
+  String Function({required String designDocId, required String viewId})
+      getViewTableName = KeyValueAdapter.defaultGetViewTableName;
+  String get allDocViewName =>
+      KeyValueAdapter.getAllDocViewTableName(getViewTableName);
+
   @override
   String type = 'in_memory';
 
@@ -74,7 +79,6 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
   Future<MapEntry<T, Map<String, dynamic>>?> get<T extends AbstractKey>(T key,
       {InMemoryAdapterSession? session}) async {
     var table = _getTable(key);
-    var keys = table.keys.toList();
     var val = table[key];
     if (val != null) {
       return MapEntry(key, val);

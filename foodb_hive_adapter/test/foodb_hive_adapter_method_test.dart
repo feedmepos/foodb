@@ -6,7 +6,7 @@ void main() {
   final hive = HiveTestContext();
   final couchdb = CouchdbTestContext();
   replicateBenchmarkTest(
-      source: couchdb, target: hive, batchSize: 300, thousandDoc: 5);
+      source: couchdb, target: hive, batchSize: 500, thousandDoc: 10);
   // group('couchdb > hive', () {
   //   replicateTest().forEach((t) {
   //     t(couchdb, hive);

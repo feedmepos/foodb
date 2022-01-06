@@ -10,7 +10,7 @@ mixin _KeyValueUtil on _AbstractKeyValue {
             (await keyValueDb.last(SequenceKey(key: 0)))?.key.toString() ?? "0",
         dbName: dbName,
         docCount: (await keyValueDb
-            .tableSize(ViewKeyMetaKey(viewName: allDocViewName)))));
+            .tableSize(ViewKeyMetaKey(viewName: keyValueDb.allDocViewName)))));
   }
 
   @override

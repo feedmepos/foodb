@@ -163,7 +163,7 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
     late MapEntry<String, Doc<DesignDoc>> selectedView;
     selectedView = await _pickDesignDoc(selector.keys().toSet());
     await _generateView(selectedView.value);
-    var viewName = getViewName(
+    var viewName = keyValueDb.getViewTableName(
         designDocId: selectedView.value.id, viewId: selectedView.key);
 
     late ReadResult<ViewKeyMetaKey> result;

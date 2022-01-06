@@ -7,10 +7,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:foodb/key_value_adapter.dart';
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path/path.dart';
 import 'package:quiver/collection.dart';
+import 'package:crypto/crypto.dart';
+
+String _hiveTableName({required String designDocId, required String viewId}) {
+  return '__v__${md5.convert(utf8.encode('$designDocId$viewId'))}';
+}
 
 class FoodbHiveAdapter implements KeyValueAdapter {
   @override
@@ -19,6 +23,11 @@ class FoodbHiveAdapter implements KeyValueAdapter {
 
   final Map<String, AvlTreeSet<AbstractKey>> _avlTrees = {};
   final Map<String, LazyBox<String>> _boxes = {};
+
+  String Function({required String designDocId, required String viewId})
+      getViewTableName = _hiveTableName;
+  String get allDocViewName =>
+      KeyValueAdapter.getAllDocViewTableName(getViewTableName);
 
   FoodbHiveAdapter({required this.dataDir});
 

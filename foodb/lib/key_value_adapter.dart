@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:collection/collection.dart';
+import 'package:foodb/foodb.dart';
 
 import 'package:foodb/src/key_value/collate.dart';
 import 'package:foodb/src/in_memory_adapter.dart';
@@ -213,12 +214,28 @@ abstract class KeyValueAdapter<T extends KeyValueAdapterSession> {
     return InMemoryAdapter();
   }
 
+  static String defaultGetViewTableName(
+      {required String designDocId, required String viewId}) {
+    return 'd-${designDocId}-v-${viewId}';
+    // return 'v-${crypto.md5.convert(utf8.encode(designDocId + viewId))}';
+  }
+
+  static String getAllDocViewTableName(
+          String Function({required String designDocId, required String viewId})
+              getViewNameFn) =>
+      getViewNameFn(
+          designDocId: allDocDesignDoc.id,
+          viewId: allDocDesignDoc.model.views.keys.first);
+
+  String Function({required String designDocId, required String viewId})
+      getViewTableName = KeyValueAdapter.defaultGetViewTableName;
+
+  // used as table name, can be override according key value adapter syntax
+  String get allDocViewName =>
+      KeyValueAdapter.getAllDocViewTableName(getViewTableName);
+
   static String keyToTableName(AbstractKey key) {
     String tableName = key.tableName;
-    String primaryKeyType = 'TEXT';
-    if (key is SequenceKey) {
-      primaryKeyType = 'INTEGER';
-    }
     if (key is ViewDocMetaKey) {
       tableName += '!${key.viewName}';
     } else if (key is ViewKeyMetaKey) {

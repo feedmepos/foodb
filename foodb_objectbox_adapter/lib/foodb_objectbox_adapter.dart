@@ -278,6 +278,11 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Store store;
   ObjectBoxAdapter(this.store);
 
+  String Function({required String designDocId, required String viewId})
+      getViewTableName = KeyValueAdapter.defaultGetViewTableName;
+  String get allDocViewName =>
+      KeyValueAdapter.getAllDocViewTableName(getViewTableName);
+
   ObjectBoxType _getBoxFromKey(AbstractKey key) {
     if (key is SequenceKey) {
       return sequenceBox;
