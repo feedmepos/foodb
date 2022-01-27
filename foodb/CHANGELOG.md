@@ -1,7 +1,8 @@
-### 0.7.3
-* previous has broken, use 0.7.3 instead
+### 0.7.4
+* previous has broken, use >0.7.3 instead
 * (add) added hive adapter
 * (change) allow adapter to customer view name for persistance
+* (fix) handle empty doc id
 
 ### 0.6.1
 * (change) replicate and generateView now process in chunk
