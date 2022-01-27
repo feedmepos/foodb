@@ -13,6 +13,13 @@ void main() {
 List<Function(FoodbTestContext)> putTest() {
   return [
     (FoodbTestContext ctx) {
+      test('empty doc id should throw error', () async {
+        final db = await ctx.db('empty-doc-id');
+        expect(
+            () async => db.put(doc: Doc(id: '', model: {})), throwsException);
+      });
+    },
+    (FoodbTestContext ctx) {
       test('with Rev should be success put', () async {
         final db = await ctx.db('put-new-edits-true');
         await db.put(

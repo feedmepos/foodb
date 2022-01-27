@@ -160,8 +160,11 @@ class _Replicator {
         FoodbDebug.timedStart('<replication>: get revs diff');
         Map<String, List<Rev>> groupedChange = new Map();
         toReplicate.forEach((changeResult) {
-          groupedChange[changeResult.id] =
-              changeResult.changes.map((e) => e.rev).toList();
+          if (changeResult.id != '') {
+            // fixed doc with empty id being saved in database
+            groupedChange[changeResult.id] =
+                changeResult.changes.map((e) => e.rev).toList();
+          }
         });
         Map<String, RevsDiff> revsDiff =
             await _target.revsDiff(body: groupedChange);

@@ -99,6 +99,10 @@ mixin _KeyValuePut on _AbstractKeyValue {
     late var docJson;
     late var winnerBeforeUpdate;
     late var history;
+    if (doc.id == '') {
+      throw AdapterException(
+          error: 'INVALID_DOC_ID', reason: 'doc _id must not be empty');
+    }
     if (doc.id.startsWith('_local/')) {
       isLocal = true;
       baseType = LocalDocKey(key: doc.id);
