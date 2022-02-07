@@ -22,15 +22,17 @@ mixin _KeyValueUtil on _AbstractKeyValue {
   Future<Map<String, RevsDiff>> revsDiff(
       {required Map<String, List<Rev>> body}) async {
     Map<String, RevsDiff> revsDiff = {};
-    await Future.forEach(body.keys, (String key) async {
-      var result = await keyValueDb.get(DocKey(key: key));
+    var docs = await keyValueDb
+        .getMany(body.keys.map((key) => DocKey(key: key)).toList());
+    docs.forEach((key, result) {
       DocHistory docHistory = result != null
-          ? DocHistory.fromJson(result.value)
+          ? DocHistory.fromJson(result)
           : new DocHistory(
-              id: key, docs: {}, revisions: RevisionTree(nodes: []));
-      var diff = docHistory.revsDiff(body[key]!.map((e) => e).toList());
+              id: key.key!, docs: {}, revisions: RevisionTree(nodes: []));
+      var diff = docHistory.revsDiff(body[key.key]!.map((e) => e).toList());
       if (diff.missing.isNotEmpty) {
-        revsDiff[key] = docHistory.revsDiff(body[key]!.map((e) => e).toList());
+        revsDiff[key.key!] =
+            docHistory.revsDiff(body[key.key]!.map((e) => e).toList());
       }
     });
     return revsDiff;

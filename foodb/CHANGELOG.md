@@ -1,7 +1,8 @@
-### 0.7.4
+### 0.7.5
 * previous has broken, use >0.7.3 instead
 * (add) added hive adapter
 * (change) allow adapter to customer view name for persistance
+* (change) improve key value revsDiff
 * (fix) handle empty doc id
 
 ### 0.6.1
