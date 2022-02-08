@@ -192,6 +192,7 @@ mixin _KeyValuePut on _AbstractKeyValue {
       localChangeStreamController.sink
           .add(MapEntry(SequenceKey(key: newUpdateSeq), newUpdateSeqObject));
     } else {
+      newDocHistoryObject = newDocHistoryObject.compact(1);
       await keyValueDb.put(
         baseType,
         newDocHistoryObject.toJson(),

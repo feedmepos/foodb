@@ -1,4 +1,4 @@
-### 0.7.7
+### 0.7.8
 * previous has broken, use >0.7.3 instead
 * (add) added hive adapter
 * (add) auto compaction
@@ -6,6 +6,7 @@
 * (change) improve key value revsDiff
 * (fix) handle empty doc id
 * (fix) info will perform uneccesary allDocs()
+* (fix) _local doc will auto compact
 
 ### 0.6.1
 * (change) replicate and generateView now process in chunk
