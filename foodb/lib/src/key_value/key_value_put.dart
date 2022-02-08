@@ -146,13 +146,13 @@ mixin _KeyValuePut on _AbstractKeyValue {
         newEdits: newEdits);
 
     // get new update seq
-    late var newUpdateSeq;
+    late int newUpdateSeq;
     var lastSeq = await keyValueDb.last<SequenceKey>(SequenceKey(key: 0));
     newUpdateSeq = (lastSeq?.key.key ?? 0) + 1;
 
     // create DocHistory Object
     late InternalDoc newDocObject;
-    late DocHistory newDocHistoryObject;
+    DocHistory newDocHistoryObject;
     newDocObject = InternalDoc(
         rev: newRev,
         deleted: doc.deleted ?? false,
@@ -179,6 +179,10 @@ mixin _KeyValuePut on _AbstractKeyValue {
         SequenceKey(key: newUpdateSeq),
         newUpdateSeqObject.toJson(),
       );
+
+      if (_autoCompaction) {
+        newDocHistoryObject = newDocHistoryObject.compact(_revLimit);
+      }
 
       await keyValueDb.put(
         baseType,

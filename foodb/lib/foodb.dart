@@ -119,8 +119,11 @@ abstract class Foodb {
   }
 
   factory Foodb.keyvalue(
-      {required String dbName, required KeyValueAdapter keyValueDb}) {
-    return _KeyvalueFoodb(dbName: dbName, keyValueDb: keyValueDb);
+      {required String dbName,
+      required KeyValueAdapter keyValueDb,
+      bool autoCompaction = false}) {
+    return _KeyvalueFoodb(
+        dbName: dbName, keyValueDb: keyValueDb, autoCompaction: autoCompaction);
   }
 
   get isCouchdb {
@@ -246,6 +249,7 @@ abstract class _AbstractKeyValue extends Foodb {
   KeyValueAdapter keyValueDb;
   JSRuntime? jsRuntime;
   int _revLimit = 1000;
+  bool _autoCompaction;
 
   StreamController<MapEntry<SequenceKey, UpdateSequence>>
       localChangeStreamController = StreamController.broadcast();
@@ -253,8 +257,13 @@ abstract class _AbstractKeyValue extends Foodb {
   @override
   String get dbUri => '${this.keyValueDb.type}://${this.dbName}';
 
-  _AbstractKeyValue({required dbName, required this.keyValueDb, this.jsRuntime})
-      : super(dbName: dbName);
+  _AbstractKeyValue(
+      {required dbName,
+      required this.keyValueDb,
+      required bool autoCompaction,
+      this.jsRuntime})
+      : _autoCompaction = autoCompaction,
+        super(dbName: dbName);
 
   String encodeSeq(int seq) {
     return '$seq-0';
@@ -276,8 +285,13 @@ class _KeyvalueFoodb extends _AbstractKeyValue
   _KeyvalueFoodb(
       {required dbName,
       required KeyValueAdapter keyValueDb,
+      required bool autoCompaction,
       JSRuntime? jsRuntime})
-      : super(dbName: dbName, keyValueDb: keyValueDb, jsRuntime: jsRuntime);
+      : super(
+            dbName: dbName,
+            keyValueDb: keyValueDb,
+            jsRuntime: jsRuntime,
+            autoCompaction: autoCompaction);
 }
 
 defaultOnError(Object? e, StackTrace? s) {
