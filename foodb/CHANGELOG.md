@@ -1,10 +1,11 @@
-### 0.7.6
+### 0.7.7
 * previous has broken, use >0.7.3 instead
 * (add) added hive adapter
 * (add) auto compaction
 * (change) allow adapter to customer view name for persistance
 * (change) improve key value revsDiff
 * (fix) handle empty doc id
+* (fix) info will perform uneccesary allDocs()
 
 ### 0.6.1
 * (change) replicate and generateView now process in chunk
