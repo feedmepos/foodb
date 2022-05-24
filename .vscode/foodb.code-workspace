@@ -18,6 +18,9 @@
     },
     {
       "path": "../foodb_flutter_test"
+    },
+    {
+      "path": "../foodb_admin"
     }
   ],
   "settings": {
@@ -27,7 +30,8 @@
       "foodb_test/": true,
       "foodb_objectbox_adapter/": true,
       "foodb_hive_adapter/": true,
-      "foodb_flutter_test/": true
+      "foodb_flutter_test/": true,
+      "foodb_admin/": true
     }
   }
 }

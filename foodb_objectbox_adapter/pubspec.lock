@@ -224,17 +224,17 @@ packages:
   foodb:
     dependency: "direct main"
     description:
-      name: foodb
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "0.7.4"
+      path: "../foodb"
+      relative: true
+    source: path
+    version: "0.7.9"
   foodb_test:
     dependency: "direct dev"
     description:
-      name: foodb_test
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "0.7.4"
+      path: "../foodb_test"
+      relative: true
+    source: path
+    version: "0.7.6"
   frontend_server_client:
     dependency: transitive
     description:
@@ -339,21 +339,21 @@ packages:
       name: objectbox
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.2.0"
+    version: "1.2.1"
   objectbox_flutter_libs:
     dependency: "direct main"
     description:
       name: objectbox_flutter_libs
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.2.0"
+    version: "1.2.1"
   objectbox_generator:
     dependency: "direct dev"
     description:
       name: objectbox_generator
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.2.0"
+    version: "1.2.1"
   package_config:
     dependency: transitive
     description:
