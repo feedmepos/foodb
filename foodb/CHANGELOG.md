@@ -1,3 +1,6 @@
+### 0.8.0
+* (fix) lock process when performing put, prevent same change seq
+
 ### 0.7.9
 * previous has broken, use >0.7.3 instead
 * (add) added hive adapter

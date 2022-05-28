@@ -101,14 +101,14 @@ packages:
       path: "../foodb"
       relative: true
     source: path
-    version: "0.5.6"
+    version: "0.8.0"
   foodb_objectbox_adapter:
     dependency: "direct main"
     description:
       path: "../foodb_objectbox_adapter"
       relative: true
     source: path
-    version: "0.5.3"
+    version: "0.7.4"
   http:
     dependency: transitive
     description:
@@ -282,6 +282,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.1.0"
+  synchronized:
+    dependency: transitive
+    description:
+      name: synchronized
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "3.0.0+2"
   term_glyph:
     dependency: transitive
     description:

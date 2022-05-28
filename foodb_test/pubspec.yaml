@@ -10,9 +10,10 @@ dependencies:
   path: ^1.8.0
   dotenv: ^3.0.0
   foodb: ">=0.7.6"
-  # foodb:
-  #   path: ../foodb
 
+dependency_overrides:
+  foodb:
+    path: ../foodb
 
 dev_dependencies:
   pedantic: ^1.10.0

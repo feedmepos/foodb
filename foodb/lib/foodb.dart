@@ -23,6 +23,7 @@ import 'package:foodb/src/methods/server.dart';
 import 'package:foodb/src/methods/view.dart';
 import 'package:http/http.dart' as http;
 import 'package:uri/uri.dart';
+import 'package:synchronized/synchronized.dart';
 
 export 'package:foodb/src/replicate.dart';
 export 'package:foodb/src/selector.dart';
@@ -250,6 +251,8 @@ abstract class _AbstractKeyValue extends Foodb {
   JSRuntime? jsRuntime;
   int _revLimit = 1000;
   bool _autoCompaction;
+
+  final _lock = new Lock();
 
   StreamController<MapEntry<SequenceKey, UpdateSequence>>
       localChangeStreamController = StreamController.broadcast();

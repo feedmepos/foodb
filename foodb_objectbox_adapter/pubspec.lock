@@ -224,17 +224,17 @@ packages:
   foodb:
     dependency: "direct main"
     description:
-      name: foodb
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "0.7.4"
+      path: "../foodb"
+      relative: true
+    source: path
+    version: "0.8.0"
   foodb_test:
     dependency: "direct dev"
     description:
-      name: foodb_test
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "0.7.4"
+      path: "../foodb_test"
+      relative: true
+    source: path
+    version: "0.8.0"
   frontend_server_client:
     dependency: transitive
     description:
@@ -562,6 +562,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.1.0"
+  synchronized:
+    dependency: transitive
+    description:
+      name: synchronized
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "3.0.0+2"
   term_glyph:
     dependency: transitive
     description:

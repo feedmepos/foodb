@@ -35,6 +35,10 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
 
+  foodb: ^0.8.0
+  foodb_objectbox_adapter: ^0.7.4
+
+dependency_overrides:
   foodb:
     path: ../foodb
   foodb_objectbox_adapter: 

@@ -147,57 +147,61 @@ mixin _KeyValuePut on _AbstractKeyValue {
 
     // get new update seq
     late int newUpdateSeq;
-    var lastSeq = await keyValueDb.last<SequenceKey>(SequenceKey(key: 0));
-    newUpdateSeq = (lastSeq?.key.key ?? 0) + 1;
 
-    // create DocHistory Object
-    late InternalDoc newDocObject;
-    DocHistory newDocHistoryObject;
-    newDocObject = InternalDoc(
-        rev: newRev,
-        deleted: doc.deleted ?? false,
-        localSeq: isLocal ? 0 : newUpdateSeq,
-        data: doc.deleted == true ? {} : doc.model);
-    newDocHistoryObject = docHistory.copyWith(
-        docs: {...docHistory.docs, newDocObject.rev.toString(): newDocObject},
-        revisions: newRevisionTreeObject,
-        lastSeq: newUpdateSeq);
+    await _lock.synchronized(() async {
+      var lastSeq = await keyValueDb.last<SequenceKey>(SequenceKey(key: 0));
+      newUpdateSeq = (lastSeq?.key.key ?? 0) + 1;
 
-    // perform actual database operation base on local doc or normal doc
-    if (!isLocal) {
-      if (winnerBeforeUpdate != null) {
-        await keyValueDb.delete(
-          SequenceKey(key: winnerBeforeUpdate.localSeq!),
+      // create DocHistory Object
+      late InternalDoc newDocObject;
+      DocHistory newDocHistoryObject;
+      newDocObject = InternalDoc(
+          rev: newRev,
+          deleted: doc.deleted ?? false,
+          localSeq: isLocal ? 0 : newUpdateSeq,
+          data: doc.deleted == true ? {} : doc.model);
+      newDocHistoryObject = docHistory.copyWith(
+          docs: {...docHistory.docs, newDocObject.rev.toString(): newDocObject},
+          revisions: newRevisionTreeObject,
+          lastSeq: newUpdateSeq);
+
+      // perform actual database operation base on local doc or normal doc
+      if (!isLocal) {
+        if (winnerBeforeUpdate != null) {
+          await keyValueDb.delete(
+            SequenceKey(key: winnerBeforeUpdate.localSeq!),
+          );
+        }
+        UpdateSequence newUpdateSeqObject = UpdateSequence(
+            id: doc.id,
+            deleted: doc.deleted == true ? true : null,
+            winnerRev: newDocHistoryObject.winner?.rev ?? newDocObject.rev,
+            allLeafRev:
+                newDocHistoryObject.leafDocs.map((e) => e.rev).toList());
+        await keyValueDb.put(
+          SequenceKey(key: newUpdateSeq),
+          newUpdateSeqObject.toJson(),
+        );
+
+        if (_autoCompaction) {
+          newDocHistoryObject = newDocHistoryObject.compact(_revLimit);
+        }
+
+        await keyValueDb.put(
+          baseType,
+          newDocHistoryObject.toJson(),
+        );
+
+        localChangeStreamController.sink
+            .add(MapEntry(SequenceKey(key: newUpdateSeq), newUpdateSeqObject));
+      } else {
+        newDocHistoryObject = newDocHistoryObject.compact(1);
+        await keyValueDb.put(
+          baseType,
+          newDocHistoryObject.toJson(),
         );
       }
-      UpdateSequence newUpdateSeqObject = UpdateSequence(
-          id: doc.id,
-          deleted: doc.deleted == true ? true : null,
-          winnerRev: newDocHistoryObject.winner?.rev ?? newDocObject.rev,
-          allLeafRev: newDocHistoryObject.leafDocs.map((e) => e.rev).toList());
-      await keyValueDb.put(
-        SequenceKey(key: newUpdateSeq),
-        newUpdateSeqObject.toJson(),
-      );
-
-      if (_autoCompaction) {
-        newDocHistoryObject = newDocHistoryObject.compact(_revLimit);
-      }
-
-      await keyValueDb.put(
-        baseType,
-        newDocHistoryObject.toJson(),
-      );
-
-      localChangeStreamController.sink
-          .add(MapEntry(SequenceKey(key: newUpdateSeq), newUpdateSeqObject));
-    } else {
-      newDocHistoryObject = newDocHistoryObject.compact(1);
-      await keyValueDb.put(
-        baseType,
-        newDocHistoryObject.toJson(),
-      );
-    }
+    });
 
     return PutResponse(ok: true, id: doc.id, rev: newRev);
   }
