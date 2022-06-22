@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:foodb_flutter_test/test_concurrent_page.dart';
 import 'package:foodb_flutter_test/test_http_client_page.dart';
+import 'package:foodb_flutter_test/test_objectbox_page.dart';
 import 'package:foodb_objectbox_adapter/objectbox.g.dart';
 
 import 'package:foodb/foodb.dart';
@@ -62,6 +63,15 @@ class MainPage extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => TestConcurrentPage()),
+                );
+              },
+            ),
+            ElevatedButton(
+              child: Text(TestObjectboxPage.title),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => TestObjectboxPage()),
                 );
               },
             ),

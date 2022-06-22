@@ -117,7 +117,7 @@ void main() {
             "3-c": InternalDoc(
                 rev: Rev.fromString("3-c"), deleted: false, data: {}),
             "4-d": InternalDoc(
-                rev: Rev.fromString("2-d"), deleted: false, data: {})
+                rev: Rev.fromString("4-d"), deleted: false, data: {})
           },
           revisions: RevisionTree(nodes: [
             RevisionNode(rev: Rev.fromString("1-a")),
@@ -126,7 +126,7 @@ void main() {
             RevisionNode(
                 rev: Rev.fromString("3-c"), prevRev: Rev.fromString("2-b")),
             RevisionNode(
-                rev: Rev.fromString("2-d"), prevRev: Rev.fromString("1-a"))
+                rev: Rev.fromString("4-d"), prevRev: Rev.fromString("1-a"))
           ]));
 
       for (InternalDoc doc in history.leafDocs) {

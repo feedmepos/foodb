@@ -151,6 +151,7 @@ mixin _KeyValuePut on _AbstractKeyValue {
     await _lock.synchronized(() async {
       var lastSeq = await keyValueDb.last<SequenceKey>(SequenceKey(key: 0));
       newUpdateSeq = (lastSeq?.key.key ?? 0) + 1;
+      print(newUpdateSeq);
 
       // create DocHistory Object
       late InternalDoc newDocObject;

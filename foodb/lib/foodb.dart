@@ -135,7 +135,7 @@ abstract class Foodb {
     return this is _KeyvalueFoodb;
   }
 
-  get keyValueAdapter {
+  KeyValueAdapter? get keyValueAdapter {
     if (this is _KeyvalueFoodb) {
       return (this as _KeyvalueFoodb).keyValueDb;
     }

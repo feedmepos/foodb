@@ -10,9 +10,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  objectbox: ^1.2.0
+  objectbox: 1.2.0
   foodb: ">=0.7.4"
-  objectbox_flutter_libs: ^1.2.0
+  objectbox_flutter_libs: 1.2.0
 
 dependency_overrides:
   foodb:
