@@ -29,10 +29,11 @@ Future<ObjectBoxAdapter> getAdapter(String dbName,
 class ObjectBoxTestContext extends FoodbTestContext {
   @override
   Future<Foodb> db(String dbName,
-      {bool? persist, String prefix = 'test-'}) async {
+      {bool? persist, String prefix = 'test-', autoCompaction = false}) async {
     var name = '$prefix$dbName';
     var db = await getAdapter(name);
-    return Foodb.keyvalue(dbName: '$name', keyValueDb: db);
+    return Foodb.keyvalue(
+        dbName: '$name', keyValueDb: db, autoCompaction: autoCompaction);
   }
 }
 
