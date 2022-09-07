@@ -1,20 +1,5 @@
 part of 'package:foodb/foodb.dart';
 
-Map<String, String> convertToParams(Map<String, dynamic> objects) {
-  Map<String, String> params = new Map();
-  objects.forEach((key, value) {
-    if (value != null) {
-      if (value is String) {
-        params.putIfAbsent(key, () => value);
-      } else if (value is List || value is Map) {
-        params.putIfAbsent(key, () => jsonEncode(value));
-      } else
-        params.putIfAbsent(key, () => value.toString());
-    }
-  });
-  return params;
-}
-
 class _CouchdbFoodb extends Foodb {
   late http.Client client;
   Uri baseUri;
@@ -453,4 +438,19 @@ class _CouchdbFoodb extends Foodb {
         UriBuilder.fromUri((this.getUri('_design/$ddocId/_view/$viewId')));
     return _view(uriBuilder, getViewRequest, fromJsonT);
   }
+}
+
+Map<String, String> convertToParams(Map<String, dynamic> objects) {
+  Map<String, String> params = new Map();
+  objects.forEach((key, value) {
+    if (value != null) {
+      if (value is String) {
+        params.putIfAbsent(key, () => value);
+      } else if (value is List || value is Map) {
+        params.putIfAbsent(key, () => jsonEncode(value));
+      } else
+        params.putIfAbsent(key, () => value.toString());
+    }
+  });
+  return params;
 }
