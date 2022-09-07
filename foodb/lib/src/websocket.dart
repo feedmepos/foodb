@@ -41,7 +41,7 @@ class _WebSocketFoodb extends Foodb {
     final messageId = _uuid.v1();
     client.add({
       'method': method,
-      'url': uriBuilder.build(),
+      'url': uriBuilder.build().toString(),
       'messageId': messageId,
       'body': body,
     });
