@@ -322,6 +322,8 @@ class _CouchdbFoodb extends Foodb {
     required String ddoc,
     required String name,
   }) async {
+    // TODO: verify delete index api
+    // https://docs.couchdb.org/en/3.2.0/api/database/find.html?highlight=%2Fjson#delete--db-_index-designdoc-json-name
     return DeleteIndexResponse.fromJson(json.decode((await this.client.delete(
       this.getUri('$ddoc/json/$name'),
       headers: {'Content-Type': 'application/json'},
