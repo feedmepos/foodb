@@ -24,6 +24,7 @@ import 'package:foodb/src/methods/view.dart';
 import 'package:http/http.dart' as http;
 import 'package:uri/uri.dart';
 import 'package:synchronized/synchronized.dart';
+import 'package:uuid/uuid.dart';
 
 export 'package:foodb/src/replicate.dart';
 export 'package:foodb/src/selector.dart';
@@ -125,10 +126,12 @@ abstract class Foodb {
   factory Foodb.websocket({
     required String dbName,
     required Uri baseUri,
+    bool mock = false,
   }) {
     return _WebSocketFoodb(
       dbName: dbName,
       baseUri: baseUri,
+      mock: mock,
     );
   }
 

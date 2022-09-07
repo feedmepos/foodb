@@ -1,54 +1,127 @@
 part of 'package:foodb/foodb.dart';
 
+class MockableIOWebSocketChannel {
+  late final bool mock;
+
+  late StreamController mockWs;
+  late IOWebSocketChannel ws;
+
+  MockableIOWebSocketChannel({
+    required Uri url,
+    bool mock = false,
+  }) {
+    if (mock) {
+      mockWs = StreamController();
+    } else {
+      ws = IOWebSocketChannel.connect(url);
+    }
+  }
+
+  add(dynamic data) {
+    if (mock) {
+      return mockWs.sink.add(data);
+    } else {
+      return ws.sink.add(data);
+    }
+  }
+
+  listen(
+    void Function(dynamic)? onData, {
+    Function? onError,
+    void Function()? onDone,
+    bool? cancelOnError,
+  }) {
+    if (mock) {
+      mockWs.stream.listen(
+        onData,
+        onError: onError,
+        onDone: onDone,
+        cancelOnError: cancelOnError,
+      );
+    } else {
+      ws.stream.listen(
+        onData,
+        onError: onError,
+        onDone: onDone,
+        cancelOnError: cancelOnError,
+      );
+    }
+  }
+}
+
 class _WebSocketFoodb extends Foodb {
   final String dbName;
   final Uri baseUri;
-  late IOWebSocketChannel client;
+  final bool mock;
+  late MockableIOWebSocketChannel client;
   Map<String, Completer> completers = {};
-  // Map<String, dynamic> data = {};
-  _WebSocketFoodb({required this.dbName, required this.baseUri})
-      : super(dbName: dbName) {
-    client = IOWebSocketChannel.connect(Uri.parse('ws://127.0.0.1:6984'));
-    client.stream.listen((message) {
-      final messageId = message['messageId'];
-      completers[messageId]?.complete(message['data']);
-      completers.remove(messageId);
+  _WebSocketFoodb({
+    required this.dbName,
+    required this.baseUri,
+    this.mock = false,
+  }) : super(dbName: dbName) {
+    client = MockableIOWebSocketChannel(url: baseUri, mock: mock);
+    client.listen((message) {
+      _handleMessage(message);
     });
   }
 
+  _handleMessage(message) {
+    final messageId = message['messageId'];
+    completers[messageId]?.complete(message);
+    completers.remove(messageId);
+  }
+
+  Uri getUri(String path) {
+    return Uri.parse("${baseUri.toString()}/$dbName/$path");
+  }
+
+  Uuid _uuid = Uuid();
+
+  String _getUniqueId() {
+    return _uuid.v1();
+  }
+
   @override
-  Future<Doc<T>?> get<T>(
-      {required String id,
-      bool attachments = false,
-      bool attEncodingInfo = false,
-      List<String>? attsSince,
-      bool conflicts = false,
-      bool deletedConflicts = false,
-      bool latest = false,
-      bool localSeq = false,
-      bool meta = false,
-      String? rev,
-      bool revs = false,
-      bool revsInfo = false,
-      required T Function(Map<String, dynamic> json) fromJsonT}) async {
-    final messageId = 'unique_id';
-    // client.send({
-    //   'messageId': messageId,
-    //   'path': 'get',
-    //   'id': '1',
-    //   'revs': revs,
-    //   'conflicts': conflicts,
-    //   'deleted_conflicts': deletedConflicts,
-    //   'latest': latest,
-    //   'local_seq': localSeq,
-    //   'meta': meta,
-    //   'att_encoding_info': attEncodingInfo,
-    //   'attachments': attachments,
-    //   'atts_since': attsSince,
-    //   'rev': rev,
-    //   'revs_info': revsInfo
-    // });
-    return await _await(messageId);
+  Future<Doc<T>?> get<T>({
+    required String id,
+    bool attachments = false,
+    bool attEncodingInfo = false,
+    List<String>? attsSince,
+    bool conflicts = false,
+    bool deletedConflicts = false,
+    bool latest = false,
+    bool localSeq = false,
+    bool meta = false,
+    String? rev,
+    bool revs = false,
+    bool revsInfo = false,
+    required T Function(Map<String, dynamic> json) fromJsonT,
+  }) async {
+    final messageId = _getUniqueId();
+    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri(id)));
+    uriBuilder.queryParameters = convertToParams({
+      'revs': revs,
+      'conflicts': conflicts,
+      'deleted_conflicts': deletedConflicts,
+      'latest': latest,
+      'local_seq': localSeq,
+      'meta': meta,
+      'att_encoding_info': attEncodingInfo,
+      'attachments': attachments,
+      'atts_since': attsSince,
+      'rev': rev,
+      'revs_info': revsInfo
+    });
+    final uri = uriBuilder.build();
+    final message = {
+      'method': 'GET',
+      'url': uri.toString(),
+      'messageId': messageId,
+    };
+    client.add(message);
+    final result = await _await(messageId);
+    return result;
   }
 
   Future<PutResponse> put(
@@ -61,7 +134,7 @@ class _WebSocketFoodb extends Foodb {
     return await _await(messageId);
   }
 
-  _await(messageId) async {
+  _await(String messageId) async {
     final completer = Completer();
     completers[messageId] = completer;
     final result = await completer.future;
