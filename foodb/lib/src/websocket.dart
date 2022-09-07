@@ -1,27 +1,28 @@
 part of 'package:foodb/foodb.dart';
 
 class MockableIOWebSocketChannel {
-  late final bool mock;
+  final bool mock;
 
-  late StreamController mockWs;
-  late IOWebSocketChannel ws;
+  late StreamController _mockWs;
+  late IOWebSocketChannel _ws;
 
   MockableIOWebSocketChannel({
     required Uri url,
-    bool mock = false,
+    this.mock = false,
   }) {
     if (mock) {
-      mockWs = StreamController();
+      _mockWs = StreamController();
     } else {
-      ws = IOWebSocketChannel.connect(url);
+      _ws = IOWebSocketChannel.connect(url);
     }
   }
 
   add(dynamic data) {
+    final input = jsonEncode(data);
     if (mock) {
-      return mockWs.sink.add(data);
+      return _mockWs.sink.add(input);
     } else {
-      return ws.sink.add(data);
+      return _ws.sink.add(input);
     }
   }
 
@@ -31,16 +32,19 @@ class MockableIOWebSocketChannel {
     void Function()? onDone,
     bool? cancelOnError,
   }) {
+    final onDataFormat = (data) {
+      return onData?.call(jsonDecode(data));
+    };
     if (mock) {
-      mockWs.stream.listen(
-        onData,
+      _mockWs.stream.listen(
+        onDataFormat,
         onError: onError,
         onDone: onDone,
         cancelOnError: cancelOnError,
       );
     } else {
-      ws.stream.listen(
-        onData,
+      _ws.stream.listen(
+        onDataFormat,
         onError: onError,
         onDone: onDone,
         cancelOnError: cancelOnError,
@@ -121,7 +125,10 @@ class _WebSocketFoodb extends Foodb {
     };
     client.add(message);
     final result = await _await(messageId);
-    return result;
+    return result.containsKey('_id')
+        ? Doc<T>.fromJson(
+            result, (json) => fromJsonT(json as Map<String, dynamic>))
+        : null;
   }
 
   Future<PutResponse> put(

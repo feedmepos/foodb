@@ -1,12 +1,16 @@
+import 'dart:convert';
+
 import 'package:foodb/foodb.dart';
 
 class FoodbRequest {
   String method;
   Uri url;
   Map<String, dynamic>? body;
+  String messageId;
   FoodbRequest({
     required this.method,
     required this.url,
+    required this.messageId,
     this.body,
   });
 
@@ -32,12 +36,26 @@ class FoodbRequest {
     }
   }
 
-  static FoodbRequest fromWebSocketMessage(Map<String, dynamic> message) {
+  static FoodbRequest fromWebSocketMessage(String message) {
+    final json = jsonDecode(message);
     return FoodbRequest(
-      url: Uri.parse(message['url']),
-      body: message['body'],
-      method: message['method'],
+      url: Uri.parse(json['url']),
+      body: json['body'],
+      method: json['method'],
+      messageId: json['messageId'],
     );
+  }
+}
+
+bool parseBool(dynamic value, bool? fallback) {
+  if (value == 'true') {
+    return true;
+  } else if (value == 'false') {
+    return false;
+  } else if (value == null) {
+    return fallback ?? value;
+  } else {
+    return value;
   }
 }
 
@@ -45,22 +63,24 @@ abstract class FoodbServer {
   final Foodb db;
   FoodbServer(this.db);
 
+  Future<void> start();
+
   Future<Map<String, dynamic>?> _get(FoodbRequest request) async {
     Map<String, dynamic> queryParameters = request.queryParameters;
     final docId = request.url.pathSegments[1];
     final result = await db.get(
       id: docId,
-      attachments: queryParameters['attachments'] ?? false,
-      attEncodingInfo: queryParameters['attEncodingInfo'] ?? false,
+      attachments: parseBool(queryParameters['attachments'], false),
+      attEncodingInfo: parseBool(queryParameters['attEncodingInfo'], false),
       attsSince: queryParameters['attsSince'],
-      conflicts: queryParameters['conflicts'] ?? false,
-      deletedConflicts: queryParameters['deletedConflicts'] ?? false,
-      latest: queryParameters['latest'] ?? false,
-      localSeq: queryParameters['localSeq'] ?? false,
-      meta: queryParameters['meta'] ?? false,
+      conflicts: parseBool(queryParameters['conflicts'], false),
+      deletedConflicts: parseBool(queryParameters['deletedConflicts'], false),
+      latest: parseBool(queryParameters['latest'], false),
+      localSeq: parseBool(queryParameters['localSeq'], false),
+      meta: parseBool(queryParameters['meta'], false),
       rev: queryParameters['rev'],
-      revs: queryParameters['revs'] ?? false,
-      revsInfo: queryParameters['revsInfo'] ?? false,
+      revs: parseBool(queryParameters['revs'], false),
+      revsInfo: parseBool(queryParameters['revsInfo'], false),
       fromJsonT: (v) => v,
     );
     return result?.toJson((v) => v);

@@ -8,7 +8,7 @@ void main() {
       baseUri: Uri.parse('ws://127.0.0.1'),
       mock: true,
     );
-    final message = await client.get(id: 'bill_1', fromJsonT: (v) => v);
-    print(message);
+    final doc = await client.get(id: 'bill_1', fromJsonT: (v) => v);
+    print(doc);
   });
 }
