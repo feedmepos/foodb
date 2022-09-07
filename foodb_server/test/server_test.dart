@@ -1,11 +1,9 @@
 @Timeout(Duration(seconds: 1000))
 import 'dart:convert';
-import 'dart:io';
-
 import 'package:foodb/foodb.dart';
 import 'package:foodb_server/foodb_server.dart';
+import 'package:foodb_server/http_server.dart';
 import 'package:foodb_server/websocket_server.dart';
-import 'package:http/http.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -31,7 +29,7 @@ void main() {
     print(doc);
   });
 
-  test('client with server get', () async {
+  test('client with websocket server get', () async {
     final dbName = 'restaurant_61a9935e94eb2c001d618bc3';
     final docId = 'bill_2021-12-03T03:48:51.965Z_2emf';
     Foodb db = Foodb.couchdb(
@@ -45,6 +43,26 @@ void main() {
       baseUri: Uri.parse('ws://127.0.0.1:6987'),
     );
     final result = await websocketClient.get(id: docId, fromJsonT: (v) => v);
+    print(result?.toJson((value) => value));
+  });
+
+  test('client with http server get', () async {
+    final dbName = 'restaurant_61a9935e94eb2c001d618bc3';
+    final docId = 'bill_2021-12-03T03:48:51.965Z_2emf';
+
+    Foodb db = Foodb.couchdb(
+        dbName: dbName,
+        baseUri: Uri.parse('https://admin:secret@sync-dev.feedmeapi.com'));
+    final httpServer = HttpFoodbServer(db);
+
+    await httpServer.start(port: 6987);
+
+    final httpClient = Foodb.couchdb(
+      dbName: dbName,
+      baseUri: Uri.parse('http://127.0.0.1:6987'),
+    );
+
+    final result = await httpClient.get(id: docId, fromJsonT: (v) => v);
     print(result?.toJson((value) => value));
   });
 }

@@ -32,13 +32,16 @@ class HttpFoodbServer extends FoodbServer {
         .addMiddleware(getCorsMiddleware())
         .addMiddleware(logRequests())
         .addHandler(router);
-    router.all('/<.*>', (Request req) async {
-      final body = jsonDecode(await req.readAsString());
+    router.get('/<.*>', (Request req) async {
+      var bodyString = await req.readAsString();
+      bodyString = bodyString == '' ? '{}' : bodyString;
+      final body = jsonDecode(bodyString);
       final request = FoodbRequest.fromHttpRequest(request: req, body: body);
-      return await handleRequest(request);
+      final response = await handleRequest(request);
+      return Response.ok(jsonEncode(response));
     });
 
     final server = await shelf_io.serve(handler, InternetAddress.anyIPv4, port);
-    print('Serving at ws://${server.address.host}:${server.port}');
+    print('Serving at http://${server.address.host}:${server.port}');
   }
 }
