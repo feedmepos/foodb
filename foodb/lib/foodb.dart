@@ -44,11 +44,14 @@ export 'package:foodb/src/methods/revs_diff.dart';
 export 'package:foodb/src/selector.dart';
 export 'package:foodb/src/methods/server.dart';
 export 'package:foodb/src/methods/view.dart';
+import 'package:web_socket_channel/io.dart';
+import 'package:web_socket_channel/status.dart' as status;
 
 export 'foodb.dart';
 export 'foodb_worker.dart';
 
 part 'src/couchdb.dart';
+part 'src/websocket.dart';
 part 'src/key_value/key_value_changes.dart';
 part 'src/key_value/key_value_find.dart';
 part 'src/key_value/key_value_get.dart';
@@ -116,6 +119,16 @@ abstract class Foodb {
       dbName: dbName,
       baseUri: baseUri,
       clientFactory: clientFactory,
+    );
+  }
+
+  factory Foodb.websocket({
+    required String dbName,
+    required Uri baseUri,
+  }) {
+    return _WebSocketFoodb(
+      dbName: dbName,
+      baseUri: baseUri,
     );
   }
 
