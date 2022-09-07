@@ -1,16 +1,17 @@
 import 'dart:convert';
 
 import 'package:foodb/foodb.dart';
+import 'package:shelf/shelf.dart';
 
 class FoodbRequest {
   String method;
   Uri url;
   Map<String, dynamic>? body;
-  String messageId;
+  String? messageId;
   FoodbRequest({
     required this.method,
     required this.url,
-    required this.messageId,
+    this.messageId,
     this.body,
   });
 
@@ -43,6 +44,17 @@ class FoodbRequest {
       body: json['body'],
       method: json['method'],
       messageId: json['messageId'],
+    );
+  }
+
+  static FoodbRequest fromHttpRequest({
+    required Request request,
+    required Map<String, dynamic> body,
+  }) {
+    return FoodbRequest(
+      url: request.url,
+      body: body,
+      method: request.method,
     );
   }
 }
