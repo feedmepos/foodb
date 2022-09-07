@@ -33,10 +33,9 @@ class HttpFoodbServer extends FoodbServer {
         .addMiddleware(logRequests())
         .addHandler(router);
     router.mount('/', (Request req) async {
-      var bodyString = await req.readAsString();
-      bodyString = bodyString == '' ? '{}' : bodyString;
-      final body = jsonDecode(bodyString);
-      final request = FoodbRequest.fromHttpRequest(request: req, body: body);
+      final bodyString = await req.readAsString();
+      final request =
+          FoodbRequest.fromHttpRequest(request: req, body: bodyString);
       final response = await handleRequest(request);
       return Response.ok(jsonEncode(response));
     });
