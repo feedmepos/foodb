@@ -329,11 +329,15 @@ abstract class FoodbServer {
     db.changesStream(
       changesRequest,
       onComplete: (response) {
-        streamController.sink.add(jsonEncode(response.toJson()).codeUnits);
-        streamController.close();
+        if (changesRequest.feed == ChangeFeed.normal) {
+          streamController.sink.add(jsonEncode(response.toJson()).codeUnits);
+          streamController.close();
+        }
       },
       onResult: (response) {
-        streamController.sink.add(jsonEncode(response.toJson()).codeUnits);
+        if (changesRequest.feed != ChangeFeed.normal) {
+          streamController.sink.add(jsonEncode(response.toJson()).codeUnits);
+        }
       },
       onError: (error, stacktrace) {
         throw Exception(error);
