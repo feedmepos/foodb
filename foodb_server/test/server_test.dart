@@ -43,8 +43,12 @@ void main() {
       dbName: dbName,
       baseUri: Uri.parse('ws://127.0.0.1:6987'),
     );
-    final result = await websocketClient.get(id: docId, fromJsonT: (v) => v);
-    print(result?.toJson((value) => value));
+    // final result = await websocketClient.get(id: docId, fromJsonT: (v) => v);
+    // print(result?.toJson((value) => value));
+
+    // print((await websocketClient.get(id: docId, fromJsonT: (v) => v))
+    //     ?.toJson((value) => value));
+    print((await websocketClient.serverInfo()).toJson());
   });
 
   test('client with http server get', () async {
@@ -122,6 +126,41 @@ void main() {
     httpClient.changesStream(
       ChangeRequest(
           feed: ChangeFeed.longpoll,
+          since:
+              '6782-g1AAAACueJzLYWBgYMxgTmGwT84vTc5ISXKA0row2lAPTUQvJbVMr7gsWS85p7S4JLVILyc_OTEnB2gQUyJDHgvDfyDIymBOYmCQqssFirKbpKYkWiaZUG5HFgCzvDuS'),
+      onComplete: (response) {
+        print('onComplete ${response.toJson()}');
+        completer.complete();
+      },
+      onResult: (response) {
+        print('onResult ${response.toJson()}');
+      },
+      onError: (error, stacktrace) {
+        print('onComplete $error $stacktrace');
+      },
+    );
+    await completer.future;
+  });
+
+  test('client with http server changes continuous', () async {
+    final dbName = 'restaurant_61a9935e94eb2c001d618bc3';
+
+    Foodb db = Foodb.couchdb(
+        dbName: dbName,
+        baseUri: Uri.parse('https://admin:secret@sync-dev.feedmeapi.com'));
+    final httpServer = HttpFoodbServer(db);
+
+    await httpServer.start(port: 6987);
+
+    final httpClient = Foodb.couchdb(
+      dbName: dbName,
+      baseUri: Uri.parse('http://127.0.0.1:6987'),
+    );
+
+    final completer = Completer();
+    httpClient.changesStream(
+      ChangeRequest(
+          feed: ChangeFeed.continuous,
           since:
               '6782-g1AAAACueJzLYWBgYMxgTmGwT84vTc5ISXKA0row2lAPTUQvJbVMr7gsWS85p7S4JLVILyc_OTEnB2gQUyJDHgvDfyDIymBOYmCQqssFirKbpKYkWiaZUG5HFgCzvDuS'),
       onComplete: (response) {

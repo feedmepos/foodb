@@ -198,7 +198,7 @@ class _WebSocketFoodb extends Foodb {
 
   @override
   Future<GetInfoResponse> info() async {
-    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('')));
+    UriBuilder uriBuilder = UriBuilder.fromUri(this.getUri(''));
     final response = await _send(uriBuilder: uriBuilder, method: 'GET');
 
     if (response.statusCode != 200) {
@@ -210,7 +210,8 @@ class _WebSocketFoodb extends Foodb {
 
   @override
   Future<GetServerInfoResponse> serverInfo() async {
-    UriBuilder uriBuilder = UriBuilder.fromUri(this.baseUri);
+    UriBuilder uriBuilder =
+        UriBuilder.fromUri(Uri.parse("${baseUri.toString()}/"));
     final result = await _send(uriBuilder: uriBuilder, method: 'GET');
     return GetServerInfoResponse.fromJson(
         jsonDecode(utf8.decode(result.bodyBytes)));
@@ -356,7 +357,7 @@ class _WebSocketFoodb extends Foodb {
   Future<BulkDocResponse> bulkDocs(
       {required List<Doc<Map<String, dynamic>>> body,
       bool newEdits = true}) async {
-    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('')));
+    UriBuilder uriBuilder = UriBuilder.fromUri(this.getUri(''));
 
     var response = await _send(
       uriBuilder: uriBuilder,
@@ -392,14 +393,14 @@ class _WebSocketFoodb extends Foodb {
 
   @override
   Future<bool> destroy() async {
-    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('')));
+    UriBuilder uriBuilder = UriBuilder.fromUri(this.getUri(''));
     await _send(uriBuilder: uriBuilder, method: 'DELETE');
     return true;
   }
 
   @override
   Future<bool> initDb() async {
-    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('')));
+    UriBuilder uriBuilder = UriBuilder.fromUri(this.getUri(''));
 
     final response = await _send(uriBuilder: uriBuilder, method: 'HEAD');
     if (response.statusCode == 404) {

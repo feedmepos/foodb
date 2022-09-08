@@ -329,13 +329,14 @@ abstract class FoodbServer {
     db.changesStream(
       changesRequest,
       onComplete: (response) {
-        if (changesRequest.feed == ChangeFeed.normal) {
+        if (changesRequest.feed == ChangeFeed.normal ||
+            changesRequest.feed == ChangeFeed.longpoll) {
           streamController.sink.add(jsonEncode(response.toJson()).codeUnits);
           streamController.close();
         }
       },
       onResult: (response) {
-        if (changesRequest.feed != ChangeFeed.normal) {
+        if (changesRequest.feed == ChangeFeed.continuous) {
           streamController.sink.add(jsonEncode(response.toJson()).codeUnits);
         }
       },
