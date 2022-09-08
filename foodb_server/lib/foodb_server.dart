@@ -198,14 +198,14 @@ abstract class FoodbServer {
   FoodbServer(this.db);
 
   Future<void> start() async {
-    registerRoutes([
+    setRoutes([
       FoodbRoute.get(path: '/<dbId>/_changes', callback: _changesStream),
       FoodbRoute.get(path: '/<dbId>/<docId>', callback: _get),
       FoodbRoute.get(path: '/', callback: _serverInfo),
       FoodbRoute.get(path: '/<dbId>', callback: _info),
-      FoodbRoute.get(path: '/<dbId>/_all_docs', callback: _getAllDocs),
+      FoodbRoute.get(path: '/<dbId>/_all_docs', callback: _allDocs),
       FoodbRoute.get(
-          path: '/<dbId>/_design/<ddocId>/_view/<viewId>', callback: _getView),
+          path: '/<dbId>/_design/<ddocId>/_view/<viewId>', callback: _view),
       FoodbRoute.post(path: '/<dbId>/_find', callback: _find),
       FoodbRoute.post(path: '/<dbId>/_bulk_get', callback: _bulkGet),
       FoodbRoute.post(path: '/<dbId>/_revs_diff', callback: _revsDiff),
@@ -213,10 +213,10 @@ abstract class FoodbServer {
       FoodbRoute.post(
           path: '/<dbId>/_ensure_full_commit', callback: _ensureFullCommit),
       FoodbRoute.post(path: '/<dbId>/_compact', callback: _compact),
-      FoodbRoute.post(path: '/<dbId>/_all_docs', callback: _postAllDocs),
+      FoodbRoute.post(path: '/<dbId>/_all_docs', callback: _allDocs),
       FoodbRoute.post(path: '/<dbId>/_index', callback: _createIndex),
       FoodbRoute.post(
-          path: '/<dbId>/_design/<ddocId>/_view/<viewId>', callback: _postView),
+          path: '/<dbId>/_design/<ddocId>/_view/<viewId>', callback: _view),
       FoodbRoute.put(path: '/<dbId>/_revs_limit', callback: _revsLimit),
       FoodbRoute.put(path: '/<dbId>/<docId>', callback: _put),
       FoodbRoute.delete(path: '/<dbId>', callback: _destroy),
@@ -229,8 +229,8 @@ abstract class FoodbServer {
 
   List<FoodbRoute> routes = [];
 
-  void registerRoutes(List<FoodbRoute> newRoutes) {
-    routes = [...routes, ...newRoutes];
+  void setRoutes(List<FoodbRoute> newRoutes) {
+    routes = [...newRoutes];
   }
 
   Future<dynamic> handleRequest(FoodbRequest request) async {
@@ -274,19 +274,10 @@ abstract class FoodbServer {
     return result.toJson((v) => v);
   }
 
-  // db.getAllDocs
-  Future<dynamic> _getAllDocs(FoodbRequest request) async {
+  // db.allDocs
+  Future<dynamic> _allDocs(FoodbRequest request) async {
     final result = await db.allDocs(
-      GetViewRequest.fromJson({}),
-      (json) => json,
-    );
-    return result.toJson((value) => value);
-  }
-
-  // db.postAllDocs
-  Future<dynamic> _postAllDocs(FoodbRequest request) async {
-    final result = await db.allDocs(
-      GetViewRequest.fromJson(request.jsonBody!),
+      GetViewRequest.fromJson(request.jsonBody ?? {}),
       (json) => json,
     );
     return result.toJson((value) => value);
@@ -442,19 +433,8 @@ abstract class FoodbServer {
     return result.toJson();
   }
 
-  // db.getView
-  Future<dynamic> _getView(FoodbRequest request) async {
-    final result = await db.view(
-      request.pathParams?['ddocId'],
-      request.pathParams?['viewId'],
-      GetViewRequest.fromJson(request.uri.queryParameters),
-      (json) => json,
-    );
-    return result.toJson((value) => value);
-  }
-
-  // db.postView
-  Future<dynamic> _postView(FoodbRequest request) async {
+  // db.view
+  Future<dynamic> _view(FoodbRequest request) async {
     final result = await db.view(
       request.pathParams?['ddocId'],
       request.pathParams?['viewId'],
