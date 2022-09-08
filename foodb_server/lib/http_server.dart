@@ -38,7 +38,7 @@ class HttpFoodbServer extends FoodbServer {
       final request =
           FoodbRequest.fromHttpRequest(request: req, body: bodyString);
       final response = await handleRequest(request);
-      return Response.ok(jsonEncode(response));
+      return Response.ok(response);
     });
 
     final server = await shelf_io.serve(handler, InternetAddress.anyIPv4, port);

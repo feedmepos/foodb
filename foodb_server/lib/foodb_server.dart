@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:foodb/foodb.dart';
@@ -67,9 +68,27 @@ bool parseBool(dynamic value) {
   }
 }
 
+bool _isNumeric(String? str) {
+  if (str == null) {
+    return false;
+  }
+  return double.tryParse(str) != null;
+}
+
+bool _isInt(String? str) {
+  if (str == null) {
+    return false;
+  }
+  return int.tryParse(str) != null;
+}
+
 dynamic parseQueryParams(dynamic value) {
   if (value == 'true' || value == 'false') {
     return parseBool(value);
+  } else if (_isNumeric(value)) {
+    return num.parse(value);
+  } else if (_isInt(value)) {
+    return int.parse(value);
   } else {
     return value;
   }
@@ -105,7 +124,7 @@ class FoodbRequest {
     }
   }
 
-  get queryParams {
+  Map<String, dynamic> get queryParams {
     return uri.queryParameters.entries.fold<Map<String, dynamic>>({},
         (result, entry) {
       result[entry.key] = parseQueryParams(entry.value);
@@ -297,9 +316,30 @@ abstract class FoodbServer {
 
   // db.changesStream
   Future<dynamic> _changesStream(FoodbRequest request) async {
-    // TODO
-    // final result = db.changesStream(ChangeRequest());
-    // return result;
+    /**
+     * normal, onComplete
+     * long poll, onResult -> onComplete
+     * continuous, onResult -> onResult -> onResult
+     */
+    final changesRequest = ChangeRequest.fromJson({
+      ...request.queryParams,
+      'since': request.queryParams['since'].toString(),
+    });
+    final streamController = StreamController<List<int>>();
+    db.changesStream(
+      changesRequest,
+      onComplete: (response) {
+        streamController.sink.add(jsonEncode(response.toJson()).codeUnits);
+        streamController.close();
+      },
+      onResult: (response) {
+        streamController.sink.add(jsonEncode(response.toJson()).codeUnits);
+      },
+      onError: (error, stacktrace) {
+        throw Exception(error);
+      },
+    );
+    return streamController.stream;
   }
 
   // db.compact

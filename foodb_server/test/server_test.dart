@@ -1,4 +1,5 @@
 @Timeout(Duration(seconds: 1000))
+import 'dart:async';
 import 'dart:convert';
 import 'package:foodb/foodb.dart';
 import 'package:foodb_server/foodb_server.dart';
@@ -65,6 +66,41 @@ void main() {
     print((await httpClient.get(id: docId, fromJsonT: (v) => v))
         ?.toJson((value) => value));
     print((await httpClient.serverInfo()).toJson());
+  });
+
+  test('client with http server changes', () async {
+    final dbName = 'restaurant_61a9935e94eb2c001d618bc3';
+
+    Foodb db = Foodb.couchdb(
+        dbName: dbName,
+        baseUri: Uri.parse('https://admin:secret@sync-dev.feedmeapi.com'));
+    final httpServer = HttpFoodbServer(db);
+
+    await httpServer.start(port: 6987);
+
+    final httpClient = Foodb.couchdb(
+      dbName: dbName,
+      baseUri: Uri.parse('http://127.0.0.1:6987'),
+    );
+
+    final completer = Completer();
+    httpClient.changesStream(
+      ChangeRequest(
+          feed: 'normal',
+          since:
+              '6782-g1AAAACueJzLYWBgYMxgTmGwT84vTc5ISXKA0row2lAPTUQvJbVMr7gsWS85p7S4JLVILyc_OTEnB2gQUyJDHgvDfyDIymBOYmCQqssFirKbpKYkWiaZUG5HFgCzvDuS'),
+      onComplete: (response) {
+        print('onComplete ${response.toJson()}');
+        completer.complete();
+      },
+      onResult: (response) {
+        print('onResult ${response.toJson()}');
+      },
+      onError: (error, stacktrace) {
+        print('onComplete $error $stacktrace');
+      },
+    );
+    await completer.future;
   });
 
   test('test route match', () {
