@@ -5,6 +5,13 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf_router/src/router_entry.dart';
 
 class RouteMatcher {
+  static Map<String, dynamic>? getPathParams({
+    required String path,
+    required Uri uri,
+  }) {
+    return RouterEntry('', path, () {}).match(uri.path);
+  }
+
   static bool all({
     required String path,
     required String method,
@@ -50,13 +57,19 @@ class RouteMatcher {
   }
 }
 
-bool parseBool(dynamic value, bool? fallback) {
+bool parseBool(dynamic value) {
   if (value == 'true') {
     return true;
   } else if (value == 'false') {
     return false;
-  } else if (value == null) {
-    return fallback ?? value;
+  } else {
+    return value;
+  }
+}
+
+dynamic parseQueryParams(dynamic value) {
+  if (value == 'true' || value == 'false') {
+    return parseBool(value);
   } else {
     return value;
   }
@@ -67,6 +80,7 @@ class FoodbRequest {
   Uri uri;
   String? body;
   String? messageId;
+  FoodbRoute? route;
   FoodbRequest({
     required this.method,
     required this.uri,
@@ -74,8 +88,13 @@ class FoodbRequest {
     this.body,
   });
 
-  Map<String, dynamic>? getParams(String path) {
-    return RouterEntry(method, uri.path, () {}).match(path);
+  FoodbRequest setRoute(FoodbRoute newRoute) {
+    route = newRoute;
+    return this;
+  }
+
+  Map<String, dynamic>? get pathParams {
+    return RouteMatcher.getPathParams(path: route!.path, uri: uri);
   }
 
   Map<String, dynamic>? get jsonBody {
@@ -86,8 +105,12 @@ class FoodbRequest {
     }
   }
 
-  get queryParameters {
-    return uri.queryParameters;
+  get queryParams {
+    return uri.queryParameters.entries.fold<Map<String, dynamic>>({},
+        (result, entry) {
+      result[entry.key] = parseQueryParams(entry.value);
+      return result;
+    });
   }
 
   static FoodbRequest fromWebSocketMessage(String message) {
@@ -105,7 +128,7 @@ class FoodbRequest {
     required String? body,
   }) {
     return FoodbRequest(
-      uri: request.url,
+      uri: request.requestedUri,
       body: body,
       method: request.method,
     );
@@ -115,18 +138,50 @@ class FoodbRequest {
 class FoodbRoute {
   String path;
   String method;
-  Future<dynamic> Function(FoodbRequest) callback;
+  Future<dynamic> Function(FoodbRequest) _callback;
   FoodbRoute({
     required this.path,
     required this.method,
-    required this.callback,
-  });
+    required Future<dynamic> Function(FoodbRequest) callback,
+  }) : _callback = callback;
+
+  Future<dynamic> callback(FoodbRequest request) {
+    return _callback(request.setRoute(this));
+  }
 
   factory FoodbRoute.get({
     required String path,
     required Future<dynamic> Function(FoodbRequest) callback,
   }) {
     return FoodbRoute(path: path, method: 'GET', callback: callback);
+  }
+
+  factory FoodbRoute.post({
+    required String path,
+    required Future<dynamic> Function(FoodbRequest) callback,
+  }) {
+    return FoodbRoute(path: path, method: 'POST', callback: callback);
+  }
+
+  factory FoodbRoute.put({
+    required String path,
+    required Future<dynamic> Function(FoodbRequest) callback,
+  }) {
+    return FoodbRoute(path: path, method: 'PUT', callback: callback);
+  }
+
+  factory FoodbRoute.delete({
+    required String path,
+    required Future<dynamic> Function(FoodbRequest) callback,
+  }) {
+    return FoodbRoute(path: path, method: 'DELETE', callback: callback);
+  }
+
+  factory FoodbRoute.head({
+    required String path,
+    required Future<dynamic> Function(FoodbRequest) callback,
+  }) {
+    return FoodbRoute(path: path, method: 'HEAD', callback: callback);
   }
 
   bool validate(FoodbRequest request) {
@@ -142,69 +197,37 @@ abstract class FoodbServer {
   final Foodb db;
   FoodbServer(this.db);
 
-  Future<void> start();
-
-  void initRoutes() {
+  Future<void> start() async {
     registerRoutes([
       FoodbRoute.get(path: '/<dbId>/_changes', callback: _changesStream),
+      FoodbRoute.get(path: '/<dbId>/<docId>', callback: _get),
+      FoodbRoute.get(path: '/', callback: _serverInfo),
+      FoodbRoute.get(path: '/<dbId>', callback: _info),
+      FoodbRoute.get(path: '/<dbId>/_all_docs', callback: _getAllDocs),
+      FoodbRoute.get(
+          path: '/<dbId>/_design/<ddocId>/_view/<viewId>', callback: _getView),
+      FoodbRoute.post(path: '/<dbId>/_find', callback: _find),
+      FoodbRoute.post(path: '/<dbId>/_bulk_get', callback: _bulkGet),
+      FoodbRoute.post(path: '/<dbId>/_revs_diff', callback: _revsDiff),
+      FoodbRoute.post(path: '/<dbId>/_explain', callback: _explain),
+      FoodbRoute.post(
+          path: '/<dbId>/_ensure_full_commit', callback: _ensureFullCommit),
+      FoodbRoute.post(path: '/<dbId>/_compact', callback: _compact),
+      FoodbRoute.post(path: '/<dbId>/_all_docs', callback: _postAllDocs),
+      FoodbRoute.post(path: '/<dbId>/_index', callback: _createIndex),
+      FoodbRoute.post(
+          path: '/<dbId>/_design/<ddocId>/_view/<viewId>', callback: _postView),
+      FoodbRoute.put(path: '/<dbId>/_revs_limit', callback: _revsLimit),
+      FoodbRoute.put(path: '/<dbId>/<docId>', callback: _put),
+      FoodbRoute.delete(path: '/<dbId>', callback: _destroy),
+      FoodbRoute.delete(path: '/<dbId>/<docId>', callback: _delete),
+      FoodbRoute.delete(
+          path: '/<dbId>/_index/<ddocId>/json/<name>', callback: _deleteIndex),
+      FoodbRoute.head(path: '/<dbId>', callback: _initDb),
     ]);
   }
 
-  List<FoodbRoute> routes = [
-    // if (RouteMatcher.get(path: '/<dbId>/_changes', request: request)) {
-    //   // TODO: changes not implemented
-    //   return _changesStream(request);
-    // } else if (RouteMatcher.get(path: '/<dbId>/<docId>', request: request)) {
-    //   return _get(request);
-    // } else if (RouteMatcher.get(path: '', request: request)) {
-    //   return _serverInfo(request);
-    // } else if (RouteMatcher.get(path: '/<dbId>', request: request)) {
-    //   return _info(request);
-    // } else if (RouteMatcher.get(path: '/<dbId>/_all_docs', request: request)) {
-    //   return _getAllDocs(request);
-    // } else if (RouteMatcher.get(
-    //     path: '/<dbId>/_design/<ddocId>/_view/<viewId>', request: request)) {
-    //   return _getView(request);
-    // }
-    // if (RouteMatcher.post(path: '/<dbId>/_find', request: request)) {
-    //   return _find(request);
-    // } else if (RouteMatcher.post(path: '/<dbId>/_bulk_get', request: request)) {
-    //   return _bulkGet(request);
-    // } else if (RouteMatcher.post(
-    //     path: '/<dbId>/_revs_diff', request: request)) {
-    //   return _revsDiff(request);
-    // } else if (RouteMatcher.post(path: '/<dbId>/_explain', request: request)) {
-    //   return _explain(request);
-    // } else if (RouteMatcher.post(
-    //     path: '/<dbId>/_ensure_full_commit', request: request)) {
-    //   return _ensureFullCommit(request);
-    // } else if (RouteMatcher.post(path: '/<dbId>/_compact', request: request)) {
-    //   return _compact(request);
-    // } else if (RouteMatcher.post(path: '/<dbId>/_all_docs', request: request)) {
-    //   return _postAllDocs(request);
-    // } else if (RouteMatcher.post(path: '/<dbId>/_index', request: request)) {
-    //   return _createIndex(request);
-    // } else if (RouteMatcher.post(
-    //     path: '/<dbId>/_design/<ddocId>/_view/<viewId>', request: request)) {
-    //   return _postView(request);
-    // }
-    // if (RouteMatcher.put(path: '/<dbId>/_revs_limit', request: request)) {
-    //   return _revsLimit(request);
-    // } else if (RouteMatcher.put(path: '/<dbId>/<docId>', request: request)) {
-    //   return _put(request);
-    // }
-    // if (RouteMatcher.delete(path: '/<dbId>', request: request)) {
-    //   return _destroy(request);
-    // } else if (RouteMatcher.delete(path: '/<dbId>/<docId>', request: request)) {
-    //   return _delete(request);
-    // } else if (RouteMatcher.delete(
-    //     path: '/<dbId>/<ddocId>/json/<name>', request: request)) {
-    //   return _deleteIndex(request);
-    // }
-    // if (RouteMatcher.head(path: '/<dbId>', request: request)) {
-    //   return _initDb(request);
-    // }
-  ];
+  List<FoodbRoute> routes = [];
 
   void registerRoutes(List<FoodbRoute> newRoutes) {
     routes = [...routes, ...newRoutes];
@@ -215,29 +238,27 @@ abstract class FoodbServer {
       final result = route.validate(request);
       if (result) {
         return await route.callback(request);
-      } else {
-        throw Exception('unknown request');
       }
     }
+    throw Exception('unknown request');
   }
 
   // db.get
   Future<dynamic> _get(FoodbRequest request) async {
-    Map<String, dynamic> queryParameters = request.queryParameters;
-    final docId = request.uri.pathSegments[1];
+    Map<String, dynamic> queryParams = request.queryParams;
     final result = await db.get(
-      id: docId,
-      attachments: parseBool(queryParameters['attachments'], false),
-      attEncodingInfo: parseBool(queryParameters['attEncodingInfo'], false),
-      attsSince: queryParameters['attsSince'],
-      conflicts: parseBool(queryParameters['conflicts'], false),
-      deletedConflicts: parseBool(queryParameters['deletedConflicts'], false),
-      latest: parseBool(queryParameters['latest'], false),
-      localSeq: parseBool(queryParameters['localSeq'], false),
-      meta: parseBool(queryParameters['meta'], false),
-      rev: queryParameters['rev'],
-      revs: parseBool(queryParameters['revs'], false),
-      revsInfo: parseBool(queryParameters['revsInfo'], false),
+      id: request.pathParams?['docId'],
+      attachments: queryParams['attachments'] ?? false,
+      attEncodingInfo: queryParams['attEncodingInfo'] ?? false,
+      attsSince: queryParams['attsSince'],
+      conflicts: queryParams['conflicts'] ?? false,
+      deletedConflicts: queryParams['deletedConflicts'] ?? false,
+      latest: queryParams['latest'] ?? false,
+      localSeq: queryParams['localSeq'] ?? false,
+      meta: queryParams['meta'] ?? false,
+      rev: queryParams['rev'],
+      revs: queryParams['revs'] ?? false,
+      revsInfo: queryParams['revsInfo'] ?? false,
       fromJsonT: (v) => v,
     );
     return result?.toJson((v) => v);
@@ -247,7 +268,7 @@ abstract class FoodbServer {
   Future<dynamic> _bulkGet(FoodbRequest request) async {
     final result = await db.bulkGet(
       body: BulkGetRequest.fromJson(request.jsonBody ?? {}),
-      revs: parseBool(request.queryParameters['revs'], null),
+      revs: request.queryParams['revs'],
       fromJsonT: (v) => v,
     );
     return result.toJson((v) => v);
@@ -297,36 +318,33 @@ abstract class FoodbServer {
 
   // db.createIndex
   Future<dynamic> _createIndex(FoodbRequest request) async {
-    final queryParameters = request.queryParameters;
+    final queryParams = request.queryParams;
     final result = await db.createIndex(
       index: QueryViewOptionsDef.fromJson(
-        jsonDecode(queryParameters['index'] ?? '{}'),
+        jsonDecode(queryParams['index'] ?? '{}'),
       ),
-      ddoc: queryParameters['ddoc'],
-      name: queryParameters['name'],
-      type: queryParameters['type'] ?? 'json',
-      partitioned: parseBool(queryParameters['partitioned'], null),
+      ddoc: queryParams['ddoc'],
+      name: queryParams['name'],
+      type: queryParams['type'] ?? 'json',
+      partitioned: queryParams['partitioned'],
     );
     return result.toJson();
   }
 
   // db.delete
   Future<dynamic> _delete(FoodbRequest request) async {
-    final docId = request.uri.pathSegments[1];
     final result = await db.delete(
-      id: docId,
-      rev: Rev.fromString(request.queryParameters['rev']),
+      id: request.pathParams?['docId'],
+      rev: Rev.fromString(request.queryParams['rev']),
     );
     return result.toJson();
   }
 
   // db.deleteIndex
   Future<dynamic> _deleteIndex(FoodbRequest request) async {
-    final ddoc = request.uri.pathSegments[2];
-    final name = request.uri.pathSegments.last;
     final result = await db.deleteIndex(
-      ddoc: ddoc,
-      name: name,
+      ddoc: request.pathParams?['ddocId'],
+      name: request.pathParams?['name'],
     );
     return result.toJson();
   }
@@ -383,7 +401,7 @@ abstract class FoodbServer {
     final result = await db.put(
       doc: Doc.fromJson(
           request.jsonBody ?? {}, (json) => json as Map<String, dynamic>),
-      newEdits: request.queryParameters['new_edits'],
+      newEdits: request.queryParams['new_edits'],
     );
     return result.toJson();
   }
@@ -426,14 +444,10 @@ abstract class FoodbServer {
 
   // db.getView
   Future<dynamic> _getView(FoodbRequest request) async {
-    final uri = request.uri;
-    final params = request.getParams('/<dbId>/_design/<ddocId>/_view/<viewId>');
-    final ddocId = params?['ddocId'];
-    final viewId = params?['viewId'];
     final result = await db.view(
-      ddocId,
-      viewId,
-      GetViewRequest.fromJson(uri.queryParameters),
+      request.pathParams?['ddocId'],
+      request.pathParams?['viewId'],
+      GetViewRequest.fromJson(request.uri.queryParameters),
       (json) => json,
     );
     return result.toJson((value) => value);
@@ -441,14 +455,11 @@ abstract class FoodbServer {
 
   // db.postView
   Future<dynamic> _postView(FoodbRequest request) async {
-    final uri = request.uri;
-    final docId = uri.pathSegments[1];
-    final viewId = uri.pathSegments.last;
     final result = await db.view(
-      docId,
-      viewId,
+      request.pathParams?['ddocId'],
+      request.pathParams?['viewId'],
       GetViewRequest.fromJson({
-        ...request.queryParameters,
+        ...request.queryParams,
         ...(request.jsonBody ?? {}),
       }),
       (json) => json,

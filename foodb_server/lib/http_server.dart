@@ -27,6 +27,7 @@ class HttpFoodbServer extends FoodbServer {
 
   @override
   Future<void> start({int port = 6984}) async {
+    await super.start();
     final router = Router();
     final handler = Pipeline()
         .addMiddleware(getCorsMiddleware())
@@ -41,7 +42,6 @@ class HttpFoodbServer extends FoodbServer {
     });
 
     final server = await shelf_io.serve(handler, InternetAddress.anyIPv4, port);
-    initRoutes();
     print('Serving at http://${server.address.host}:${server.port}');
   }
 }

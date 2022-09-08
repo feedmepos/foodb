@@ -12,6 +12,7 @@ class WebSocketFoodbServer extends FoodbServer {
 
   @override
   Future<void> start({int port = 6984}) async {
+    await super.start();
     final handler = webSocketHandler((WebSocketChannel websocket) {
       websocket.stream.listen((message) async {
         print("echo $message");
@@ -25,7 +26,6 @@ class WebSocketFoodbServer extends FoodbServer {
     });
 
     final server = await shelf_io.serve(handler, InternetAddress.anyIPv4, port);
-    initRoutes();
     print('Serving at ws://${server.address.host}:${server.port}');
   }
 }
