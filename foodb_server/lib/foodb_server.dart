@@ -358,17 +358,6 @@ abstract class FoodbServer {
     return result.toJson();
   }
 
-  // db.fetchAllDesignDocs
-  // Future<dynamic> _fetchAllDesignDocs(FoodbRequest request) async {
-  //   final result = await db.fetchAllDesignDocs();
-  //   return result.map((doc) => doc.toJson((value) => value)).toList();
-  // }
-
-  // db.fetchDesignDoc
-  // Future<dynamic> _fetchDesignDoc(FoodbRequest request) async {
-  //   return db.fetchDesignDoc(ddocName: request.jsonBody?['ddocName']);
-  // }
-
   // db.find
   Future<dynamic> _find(FoodbRequest request) async {
     final body = request.jsonBody ?? {};

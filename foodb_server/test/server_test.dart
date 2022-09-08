@@ -62,8 +62,9 @@ void main() {
       baseUri: Uri.parse('http://127.0.0.1:6987'),
     );
 
-    final result = await httpClient.get(id: docId, fromJsonT: (v) => v);
-    print(result?.toJson((value) => value));
+    print((await httpClient.get(id: docId, fromJsonT: (v) => v))
+        ?.toJson((value) => value));
+    print((await httpClient.serverInfo()).toJson());
   });
 
   test('test route match', () {
