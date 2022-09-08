@@ -41,6 +41,7 @@ class HttpFoodbServer extends FoodbServer {
     });
 
     final server = await shelf_io.serve(handler, InternetAddress.anyIPv4, port);
+    initRoutes();
     print('Serving at http://${server.address.host}:${server.port}');
   }
 }

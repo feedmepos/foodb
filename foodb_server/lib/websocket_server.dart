@@ -25,6 +25,7 @@ class WebSocketFoodbServer extends FoodbServer {
     });
 
     final server = await shelf_io.serve(handler, InternetAddress.anyIPv4, port);
+    initRoutes();
     print('Serving at ws://${server.address.host}:${server.port}');
   }
 }

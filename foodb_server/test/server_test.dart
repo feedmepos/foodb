@@ -65,4 +65,34 @@ void main() {
     final result = await httpClient.get(id: docId, fromJsonT: (v) => v);
     print(result?.toJson((value) => value));
   });
+
+  test('test route match', () {
+    final path = '/<db>/_revs_diff';
+    expect(
+      RouteMatcher.get(
+        path: path,
+        request: FoodbRequest(
+            method: 'GET',
+            uri: Uri.parse('http://localhost:3000/restaurant_1/_revs_diff')),
+      ),
+      true,
+    );
+    expect(
+      RouteMatcher.get(
+        path: path,
+        request: FoodbRequest(
+            method: 'POST',
+            uri: Uri.parse('http://localhost:3000/restaurant_1/_revs_diff')),
+      ),
+      false,
+    );
+    expect(
+      RouteMatcher.get(
+        path: path,
+        request: FoodbRequest(
+            method: 'GET', uri: Uri.parse('http://localhost:3000/_revs_diff')),
+      ),
+      false,
+    );
+  });
 }
