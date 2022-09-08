@@ -210,10 +210,10 @@ class _WebSocketFoodb extends Foodb {
 
   @override
   Future<GetServerInfoResponse> serverInfo() async {
-    // return GetServerInfoResponse.fromJson(jsonDecode(
-    //     utf8.decode((await this.client.get(this.baseUri)).bodyBytes)));
-    // ToDo
-    return GetServerInfoResponse.fromJson(Map());
+    UriBuilder uriBuilder = UriBuilder.fromUri(this.baseUri);
+    final result = await _send(uriBuilder: uriBuilder, method: 'GET');
+    return GetServerInfoResponse.fromJson(
+        jsonDecode(utf8.decode(result.bodyBytes)));
   }
 
   Future<PutResponse> put(
