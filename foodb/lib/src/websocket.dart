@@ -1,5 +1,24 @@
 part of 'package:foodb/foodb.dart';
 
+class WebSocketResponse {
+  final dynamic data;
+  final int status;
+  final String messageId;
+  WebSocketResponse({
+    required this.data,
+    required this.status,
+    required this.messageId,
+  });
+
+  static fromJson(Map<String, dynamic> json) {
+    return WebSocketResponse(
+      data: json['data'],
+      status: json['status'] ?? 500,
+      messageId: json['messageId'],
+    );
+  }
+}
+
 class _WebSocketFoodb extends Foodb {
   final String dbName;
   final Uri baseUri;
@@ -19,7 +38,7 @@ class _WebSocketFoodb extends Foodb {
 
   _handleMessage(message) {
     final messageId = message['messageId'];
-    completers[messageId]?.complete(message);
+    completers[messageId]?.complete(WebSocketResponse.fromJson(message));
     completers.remove(messageId);
   }
 
@@ -33,7 +52,7 @@ class _WebSocketFoodb extends Foodb {
 
   Uuid _uuid = Uuid();
 
-  _send({
+  Future<WebSocketResponse> _send({
     required UriBuilder uriBuilder,
     required String method,
     String? body,
@@ -68,10 +87,11 @@ class _WebSocketFoodb extends Foodb {
       method: 'POST',
       body: jsonEncode(body.toJson()),
     );
-    if (response.statusCode == 200) {
+    if (response.status == 200) {
       return BulkGetResponse<T>.fromJson(
-          jsonDecode(utf8.decode(response.bodyBytes)),
-          (json) => fromJsonT(json as Map<String, dynamic>));
+        response.data,
+        (json) => fromJsonT(json as Map<String, dynamic>),
+      );
     }
     throw AdapterException(error: "Invalid Status Code");
   }
@@ -79,9 +99,9 @@ class _WebSocketFoodb extends Foodb {
   @override
   ChangesStream changesStream(
     ChangeRequest request, {
-    Function(ChangeResponse p1)? onComplete,
-    Function(ChangeResult p1)? onResult,
-    Function(Object? p1, StackTrace? stackTrace) onError = defaultOnError,
+    Function(ChangeResponse)? onComplete,
+    Function(ChangeResult)? onResult,
+    Function(Object?, StackTrace? stackTrace) onError = defaultOnError,
   }) {
     StreamSubscription? subscription;
     var streamedResponse = ChangesStream(onCancel: () {
@@ -91,13 +111,13 @@ class _WebSocketFoodb extends Foodb {
       UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_changes')));
       uriBuilder.queryParameters = convertToParams(request.toJson());
       if (request.feed == ChangeFeed.normal) {
-        var res = await _send(uriBuilder: uriBuilder, method: 'GET');
-        var changeRes = ChangeResponse.fromJson(jsonDecode(res.body));
+        var response = await _send(uriBuilder: uriBuilder, method: 'GET');
+        var changeRes = ChangeResponse.fromJson(response.data);
         changeRes.results.forEach((element) => onResult?.call(element));
         onComplete?.call(changeRes);
       } else {
         var res = await _send(uriBuilder: uriBuilder, method: 'GET');
-        var streamedRes = res.stream.transform(utf8.decoder);
+        var streamedRes = (res as dynamic).stream.transform(utf8.decoder);
         String cache = "";
         List<ChangeResult> _results = [];
         subscription = streamedRes.listen((event) {
@@ -150,14 +170,8 @@ class _WebSocketFoodb extends Foodb {
   Future<EnsureFullCommitResponse> ensureFullCommit() async {
     UriBuilder uriBuilder =
         UriBuilder.fromUri((this.getUri('_ensure_full_commit')));
-    final result = await _send(uriBuilder: uriBuilder, method: 'POST');
-    return EnsureFullCommitResponse.fromJson(
-      jsonDecode(
-        utf8.decode(
-          result.bodyBytes,
-        ),
-      ),
-    );
+    final response = await _send(uriBuilder: uriBuilder, method: 'POST');
+    return EnsureFullCommitResponse.fromJson(response.data);
   }
 
   @override
@@ -189,10 +203,10 @@ class _WebSocketFoodb extends Foodb {
       'rev': rev,
       'revs_info': revsInfo
     });
-    final result = await _send(uriBuilder: uriBuilder, method: 'GET');
-    return result.containsKey('_id')
+    final response = await _send(uriBuilder: uriBuilder, method: 'GET');
+    return response.data.containsKey('_id')
         ? Doc<T>.fromJson(
-            result, (json) => fromJsonT(json as Map<String, dynamic>))
+            response.data, (json) => fromJsonT(json as Map<String, dynamic>))
         : null;
   }
 
@@ -201,20 +215,18 @@ class _WebSocketFoodb extends Foodb {
     UriBuilder uriBuilder = UriBuilder.fromUri(this.getUri(''));
     final response = await _send(uriBuilder: uriBuilder, method: 'GET');
 
-    if (response.statusCode != 200) {
+    if (response.status != 200) {
       throw AdapterException(error: 'database not found');
     }
-    return GetInfoResponse.fromJson(
-        jsonDecode(utf8.decode(response.bodyBytes)));
+    return GetInfoResponse.fromJson(response.data);
   }
 
   @override
   Future<GetServerInfoResponse> serverInfo() async {
     UriBuilder uriBuilder =
         UriBuilder.fromUri(Uri.parse("${baseUri.toString()}/"));
-    final result = await _send(uriBuilder: uriBuilder, method: 'GET');
-    return GetServerInfoResponse.fromJson(
-        jsonDecode(utf8.decode(result.bodyBytes)));
+    final response = await _send(uriBuilder: uriBuilder, method: 'GET');
+    return GetServerInfoResponse.fromJson(response.data);
   }
 
   Future<PutResponse> put(
@@ -235,25 +247,26 @@ class _WebSocketFoodb extends Foodb {
         newBody['_revisions'] = doc.revisions!.toJson();
       }
     }
-    final responseBody = await _send(
+    final response = await _send(
         uriBuilder: uriBuilder, method: 'PUT', body: jsonEncode(newBody));
+    final data = response.data;
 
-    if (responseBody['error'] != null) {
-      throw AdapterException(
-          error: responseBody['error'], reason: responseBody['reason']);
+    if (data['error'] != null) {
+      throw AdapterException(error: data['error'], reason: data['reason']);
     }
-    return PutResponse.fromJson(responseBody);
+    return PutResponse.fromJson(data);
   }
 
   @override
   Future<DeleteResponse> delete({required String id, required Rev rev}) async {
     UriBuilder uriBuilder = new UriBuilder.fromUri(this.getUri(id));
     uriBuilder.queryParameters = convertToParams({'rev': rev.toString()});
-    final result = await _send(uriBuilder: uriBuilder, method: 'DELETE');
-    if (result['error'] != null) {
-      throw AdapterException(error: result['error'], reason: result['reason']);
+    final response = await _send(uriBuilder: uriBuilder, method: 'DELETE');
+    final data = response.data;
+    if (data['error'] != null) {
+      throw AdapterException(error: data['error'], reason: data['reason']);
     }
-    return DeleteResponse.fromJson(result);
+    return DeleteResponse.fromJson(data);
   }
 
   @override
@@ -267,12 +280,12 @@ class _WebSocketFoodb extends Foodb {
       body: jsonEncode(body.map((key, value) =>
           MapEntry(key, value.map((e) => e.toString()).toList()))),
     );
-    Map<String, dynamic> decoded = jsonDecode(utf8.decode(response.bodyBytes));
+    final data = response.data;
 
-    if (decoded.isEmpty) {
+    if (data.isEmpty) {
       return {};
     }
-    return decoded.map<String, RevsDiff>((k, v) {
+    return data.map<String, RevsDiff>((k, v) {
       return MapEntry<String, RevsDiff>(k, RevsDiff.fromJson(v));
     });
   }
@@ -297,14 +310,14 @@ class _WebSocketFoodb extends Foodb {
       body['name'] = name;
     }
     UriBuilder uriBuilder = UriBuilder.fromUri(this.getUri('_index'));
-    final result = await _send(
+    final response = await _send(
       uriBuilder: uriBuilder,
       method: 'POST',
       body: jsonEncode(body),
     );
-    var response = (jsonDecode(utf8.decode(result.bodyBytes)));
+    final data = response.data;
 
-    return IndexResponse.fromJson(response);
+    return IndexResponse.fromJson(data);
   }
 
   @override
@@ -314,14 +327,17 @@ class _WebSocketFoodb extends Foodb {
     body.removeWhere((key, value) => value == null);
     UriBuilder uriBuilder = new UriBuilder.fromUri(this.getUri('_find'));
 
-    var response = await _send(
+    final response = await _send(
       uriBuilder: uriBuilder,
       method: 'POST',
       body: jsonEncode(body),
     );
+    final data = response.data;
 
     return FindResponse.fromJson(
-        jsonDecode(response), (e) => fromJsonT(e as Map<String, dynamic>));
+      data,
+      (e) => fromJsonT(e as Map<String, dynamic>),
+    );
   }
 
   @override
@@ -330,12 +346,13 @@ class _WebSocketFoodb extends Foodb {
     body.removeWhere((key, value) => value == null);
     UriBuilder uriBuilder = new UriBuilder.fromUri(this.getUri('_explain'));
 
-    var response = await _send(
+    final response = await _send(
       uriBuilder: uriBuilder,
       method: 'POST',
       body: jsonEncode(body),
     );
-    return ExplainResponse.fromJson(response);
+    final data = response.data;
+    return ExplainResponse.fromJson(data);
   }
 
   @override
@@ -343,7 +360,8 @@ class _WebSocketFoodb extends Foodb {
       {required String ddoc, required String name}) async {
     UriBuilder uriBuilder =
         new UriBuilder.fromUri(this.getUri('$ddoc/json/$name'));
-    return await _send(uriBuilder: uriBuilder, method: "DELETE");
+    final response = await _send(uriBuilder: uriBuilder, method: "DELETE");
+    return DeleteIndexResponse.fromJson(response.data);
   }
 
   @override
@@ -359,7 +377,7 @@ class _WebSocketFoodb extends Foodb {
       bool newEdits = true}) async {
     UriBuilder uriBuilder = UriBuilder.fromUri(this.getUri(''));
 
-    var response = await _send(
+    final response = await _send(
       uriBuilder: uriBuilder,
       method: 'POST',
       body: jsonEncode({
@@ -371,16 +389,15 @@ class _WebSocketFoodb extends Foodb {
       }),
     );
 
-    if (response.statusCode == 201) {
-      List<dynamic> responses = jsonDecode(utf8.decode(response.bodyBytes));
+    if (response.status == 201) {
       List<PutResponse> putResponses = [];
-      for (Map<String, dynamic> row in responses) {
+      for (Map<String, dynamic> row in response.data) {
         putResponses.add(PutResponse.fromJson(row));
       }
       return BulkDocResponse(putResponses: putResponses);
     } else {
       throw AdapterException(
-          error: 'Invalid status code', reason: response.statusCode.toString());
+          error: 'Invalid status code', reason: response.status.toString());
     }
   }
 
@@ -403,12 +420,14 @@ class _WebSocketFoodb extends Foodb {
     UriBuilder uriBuilder = UriBuilder.fromUri(this.getUri(''));
 
     final response = await _send(uriBuilder: uriBuilder, method: 'HEAD');
-    if (response.statusCode == 404) {
+    if (response.status == 404) {
       final response = await _send(uriBuilder: uriBuilder, method: 'PUT');
-      final body = jsonDecode(utf8.decode(response.bodyBytes));
-      if (body['error'] != null) {
+      final data = response.data;
+      if (data['error'] != null) {
         throw new AdapterException(
-            error: body['error'], reason: body['reason']);
+          error: data['error'],
+          reason: data['reason'],
+        );
       }
       return true;
     } else {
@@ -433,22 +452,20 @@ class _WebSocketFoodb extends Foodb {
       json['startkey'] = jsonEncode(json['startkey']);
     if (json.containsKey('endkey')) json['endkey'] = jsonEncode(json['endkey']);
     uriBuilder.queryParameters = convertToParams(json);
-    var result;
+    var response;
     if (getViewRequest.keys == null) {
-      result = utf8.decode(
-          (await _send(uriBuilder: uriBuilder, method: 'GET')).bodyBytes);
+      response = await _send(uriBuilder: uriBuilder, method: 'GET');
     } else {
       Map<String, dynamic> map = Map();
       map['keys'] = getViewRequest.keys;
-      result = utf8.decode((await _send(
+      response = await _send(
         uriBuilder: uriBuilder,
         body: jsonEncode(map),
         method: 'POST',
-      ))
-          .bodyBytes);
+      );
     }
     return GetViewResponse.fromJson(
-        jsonDecode(result), (json) => fromJsonT(json as Map<String, dynamic>));
+        response, (json) => fromJsonT(json as Map<String, dynamic>));
   }
 
   @override
@@ -496,6 +513,7 @@ class MockableIOWebSocketChannel {
     bool? cancelOnError,
   }) {
     final onDataFormat = (data) {
+      final v = jsonDecode(data);
       return onData?.call(jsonDecode(data));
     };
     if (mock) {

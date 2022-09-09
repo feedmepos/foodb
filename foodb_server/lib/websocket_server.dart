@@ -17,11 +17,27 @@ class WebSocketFoodbServer extends FoodbServer {
       websocket.stream.listen((message) async {
         print("echo $message");
         final request = FoodbRequest.fromWebSocketMessage(message);
-        final result = await handleRequest(request);
-        websocket.sink.add(jsonEncode({
-          ...(result ?? {}),
-          'messageId': request.messageId,
-        }));
+        var response = await handleRequest(request);
+        if (response is Stream<List<int>>) {
+          // return Response.ok(
+          //   response,
+          //   context: {"shelf.io.buffer_output": false},
+          // );
+          response.listen((event) {
+            final data = utf8.decode(event);
+            // websocket.sink.add(jsonEncode({
+            //   'data': data,
+            //   'messageId': request.messageId,
+            //   'status': 200,
+            // }));
+          });
+        } else {
+          websocket.sink.add(jsonEncode({
+            'data': (response ?? {}),
+            'messageId': request.messageId,
+            'status': 200
+          }));
+        }
       });
     });
 
