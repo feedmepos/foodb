@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:foodb_server/types.dart';
 import 'package:shelf_web_socket/shelf_web_socket.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:foodb_server/foodb_server.dart';
@@ -15,26 +16,33 @@ class WebSocketFoodbServer extends FoodbServer {
     await super.start();
     final handler = webSocketHandler((WebSocketChannel websocket) {
       websocket.stream.listen((message) async {
-        print("echo $message");
         final request = FoodbRequest.fromWebSocketMessage(message);
         var response = await handleRequest(request);
-        if (response is Stream<List<int>>) {
-          // return Response.ok(
-          //   response,
-          //   context: {"shelf.io.buffer_output": false},
-          // );
+        if (response is Stream<List<int>> && request.type == 'stream') {
           response.listen((event) {
-            final data = utf8.decode(event);
-            // websocket.sink.add(jsonEncode({
-            //   'data': data,
-            //   'messageId': request.messageId,
-            //   'status': 200,
-            // }));
+            final data = jsonDecode(utf8.decode(event));
+            websocket.sink.add(jsonEncode({
+              'data': data,
+              'messageId': request.messageId,
+              'type': request.type,
+              'status': 200,
+            }));
+          });
+        } else if (response is Stream<List<int>>) {
+          response.listen((event) {
+            final data = jsonDecode(utf8.decode(event));
+            websocket.sink.add(jsonEncode({
+              'data': data,
+              'messageId': request.messageId,
+              'type': request.type,
+              'status': 200,
+            }));
           });
         } else {
           websocket.sink.add(jsonEncode({
             'data': (response ?? {}),
             'messageId': request.messageId,
+            'type': request.type,
             'status': 200
           }));
         }

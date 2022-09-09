@@ -2,8 +2,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:foodb/foodb.dart';
-import 'package:foodb_server/foodb_server.dart';
-import 'package:foodb_server/http_server.dart';
+import 'package:foodb_server/types.dart';
 import 'package:foodb_server/websocket_server.dart';
 import 'package:test/test.dart';
 
@@ -19,12 +18,12 @@ void main() {
         dbName: 'restaurant_61a9935e94eb2c001d618bc3',
         baseUri: Uri.parse('https://admin:secret@sync-dev.feedmeapi.com'));
     final server = WebSocketFoodbServer(db);
-    await server.start();
+    await server.start(port: 6987);
     final doc = await server
         .handleRequest(FoodbRequest.fromWebSocketMessage(jsonEncode({
       'method': 'GET',
       'url':
-          'http://127.0.0.1/restaurant_61a9935e94eb2c001d618bc3/bill_2021-12-03T03:48:51.965Z_2emf',
+          'http://127.0.0.1:6987/restaurant_61a9935e94eb2c001d618bc3/bill_2021-12-03T03:48:51.965Z_2emf',
       'messageId': ''
     })));
     print(doc);

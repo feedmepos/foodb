@@ -4,17 +4,25 @@ class WebSocketResponse {
   final dynamic data;
   final int status;
   final String messageId;
+  final String? type;
+  late Stream? stream;
   WebSocketResponse({
     required this.data,
     required this.status,
     required this.messageId,
+    required this.type,
   });
 
-  static fromJson(Map<String, dynamic> json) {
+  void setStream(Stream newStream) {
+    stream = newStream;
+  }
+
+  static WebSocketResponse fromJson(Map<String, dynamic> json) {
     return WebSocketResponse(
       data: json['data'],
       status: json['status'] ?? 500,
       messageId: json['messageId'],
+      type: json['type'],
     );
   }
 }
@@ -35,10 +43,23 @@ class _WebSocketFoodb extends Foodb {
       _handleMessage(message);
     });
   }
+  Map<String, StreamController> streamControllers = {};
 
   _handleMessage(message) {
+    final response = WebSocketResponse.fromJson(message);
     final messageId = message['messageId'];
-    completers[messageId]?.complete(WebSocketResponse.fromJson(message));
+    if (response.type == 'stream') {
+      if (streamControllers[messageId] == null) {
+        final streamController = StreamController();
+        streamControllers[messageId] = streamController;
+      }
+      response.setStream(streamControllers[messageId]!.stream);
+      completers[messageId]?.complete(response);
+      print(response.messageId);
+      streamControllers[messageId]!.sink.add(jsonEncode(response.data));
+    } else {
+      completers[messageId]?.complete(response);
+    }
     completers.remove(messageId);
   }
 
@@ -55,6 +76,7 @@ class _WebSocketFoodb extends Foodb {
   Future<WebSocketResponse> _send({
     required UriBuilder uriBuilder,
     required String method,
+    bool hold = false,
     String? body,
   }) async {
     final messageId = _uuid.v1();
@@ -63,15 +85,18 @@ class _WebSocketFoodb extends Foodb {
       'url': uriBuilder.build().toString(),
       'messageId': messageId,
       'body': body,
+      'type': hold ? 'stream' : 'normal'
     });
     final completer = Completer();
     completers[messageId] = completer;
     final result = await completer.future;
-    final seconds = 10;
-    Future.delayed(Duration(seconds: seconds), () {
-      completers.remove(messageId);
-      throw Exception('timeout ${seconds}s');
-    });
+    if (!hold) {
+      final seconds = 10;
+      Future.delayed(Duration(seconds: seconds), () {
+        completers.remove(messageId);
+        throw Exception('timeout ${seconds}s');
+      });
+    }
     return result;
   }
 
@@ -116,11 +141,12 @@ class _WebSocketFoodb extends Foodb {
         changeRes.results.forEach((element) => onResult?.call(element));
         onComplete?.call(changeRes);
       } else {
-        var res = await _send(uriBuilder: uriBuilder, method: 'GET');
-        var streamedRes = (res as dynamic).stream.transform(utf8.decoder);
+        var res =
+            await _send(uriBuilder: uriBuilder, method: 'GET', hold: true);
+        var streamedRes = res.stream;
         String cache = "";
         List<ChangeResult> _results = [];
-        subscription = streamedRes.listen((event) {
+        subscription = streamedRes?.listen((event) {
           if (request.feed == ChangeFeed.continuous) {
             if (event.trim() != '') cache += event.trim();
             var items =
@@ -513,7 +539,6 @@ class MockableIOWebSocketChannel {
     bool? cancelOnError,
   }) {
     final onDataFormat = (data) {
-      final v = jsonDecode(data);
       return onData?.call(jsonDecode(data));
     };
     if (mock) {
