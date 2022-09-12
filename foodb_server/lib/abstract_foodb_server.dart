@@ -34,11 +34,18 @@ abstract class FoodbServer {
           path: '/<dbId>/_index/<ddocId>/json/<name>', callback: _deleteIndex),
       FoodbRoute.head(path: '/<dbId>', callback: _initDb),
       FoodbRoute.delete(path: '/<dbId>/<docId>', callback: _delete),
-      FoodbRoute.put(path: '/<dbId>/<docId>', callback: _put),
+      FoodbRoute.put(
+          path: '/<dbId>/<docId>', callback: (request) => _put(request)),
+      FoodbRoute.put(
+          path: '/<dbId>/_local/<docId>',
+          callback: (request) => _put(request, prefix: '_local')),
       FoodbRoute.get(path: '/<dbId>/<docId>', callback: _get),
       FoodbRoute.get(
-          path: '/<dbId>/_design/<ddocId>',
-          callback: (request) => _get(request, ddoc: true)),
+          path: '/<dbId>/_design/<docId>',
+          callback: (request) => _get(request, prefix: '_design')),
+      FoodbRoute.get(
+          path: '/<dbId>/_local/<docId>',
+          callback: (request) => _get(request, prefix: '_local')),
     ]);
   }
 
@@ -81,14 +88,14 @@ abstract class FoodbServer {
   }
 
   // db.get
-  Future<FoodbServerResponse> _get(FoodbServerRequest request,
-      {bool ddoc = false}) async {
+  Future<FoodbServerResponse> _get(
+    FoodbServerRequest request, {
+    String? prefix,
+  }) async {
     Map<String, dynamic> queryParams = request.queryParams;
-    String id;
-    if (ddoc) {
-      id = '_design/${request.pathParams?['ddocId'] ?? ''}';
-    } else {
-      id = request.pathParams?['docId'] ?? '';
+    String id = request.pathParams?['docId'] ?? '';
+    if (prefix != null) {
+      id = '$prefix/$id';
     }
     try {
       final result = await db.get(
@@ -276,10 +283,17 @@ abstract class FoodbServer {
   }
 
   // db.put
-  Future<FoodbServerResponse> _put(FoodbServerRequest request) async {
+  Future<FoodbServerResponse> _put(
+    FoodbServerRequest request, {
+    String? prefix,
+  }) async {
+    String id = request.pathParams?['docId'] ?? '';
+    if (prefix != null) {
+      id = '$prefix/$id';
+    }
     final result = await db.put(
-      doc: Doc.fromJson(
-          request.jsonBody ?? {}, (json) => json as Map<String, dynamic>),
+      doc: Doc.fromJson({"_id": id, ...request.jsonBody ?? {}},
+          (json) => json as Map<String, dynamic>),
       newEdits: request.queryParams['new_edits'],
     );
     return FoodbServerResponse(data: result.toJson());

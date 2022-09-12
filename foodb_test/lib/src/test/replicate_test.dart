@@ -6,7 +6,9 @@ import 'package:foodb_test/foodb_test.dart';
 
 void main() {
   final couchdb = CouchdbTestContext();
-  final inMemory = InMemoryTestContext();
+  // final ctx = InMemoryTestContext();
+  // final ctx = HttpServerCouchdbTestContext();
+  final ctx = WebSocketServerCouchdbTestContext();
   // group('couchdb > couchbdb', () {
   //   replicateTest().forEach((t) {
   //     t(couchdb, couchdb);
@@ -14,7 +16,7 @@ void main() {
   // });
   group('couchdb > inMemory', () {
     replicateTest().forEach((t) {
-      t(couchdb, inMemory);
+      t(couchdb, ctx);
     });
   });
   // group('inMemory > couchbdb', () {
