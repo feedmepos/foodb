@@ -46,11 +46,14 @@ class CouchdbTestContext extends FoodbTestContext {
 
 class HttpServerCouchdbTestContext extends FoodbTestContext {
   HttpFoodbServer? server;
-  Future<void> _setDb({required String prefix, required String dbName}) async {
+  Future<void> _setDb(
+      {required String prefix,
+      required String dbName,
+      required bool autoCompaction}) async {
     var inMemoryDb = Foodb.keyvalue(
       dbName: '$prefix$dbName',
       keyValueDb: KeyValueAdapter.inMemory(),
-      autoCompaction: false,
+      autoCompaction: autoCompaction,
     );
     await inMemoryDb.initDb();
     server = HttpFoodbServer(inMemoryDb);
@@ -66,7 +69,11 @@ class HttpServerCouchdbTestContext extends FoodbTestContext {
   }) async {
     if (server?.db.dbName != dbName) {
       await server?.stop();
-      await _setDb(prefix: prefix, dbName: dbName);
+      await _setDb(
+        prefix: prefix,
+        dbName: dbName,
+        autoCompaction: autoCompaction,
+      );
     }
     var db = Foodb.couchdb(
         dbName: dbName,
@@ -83,6 +90,62 @@ class HttpServerCouchdbTestContext extends FoodbTestContext {
       await db.initDb();
       addTearDown(() async {
         await db.destroy();
+        await server?.stop();
+      });
+    } else {
+      await db.initDb();
+    }
+    return db;
+  }
+}
+
+class WebSocketServerCouchdbTestContext extends FoodbTestContext {
+  WebSocketFoodbServer? server;
+  Future<void> _setDb(
+      {required String prefix,
+      required String dbName,
+      required bool autoCompaction}) async {
+    var inMemoryDb = Foodb.keyvalue(
+      dbName: '$prefix$dbName',
+      keyValueDb: KeyValueAdapter.inMemory(),
+      autoCompaction: autoCompaction,
+    );
+    await inMemoryDb.initDb();
+    server = WebSocketFoodbServer(inMemoryDb);
+    await server!.start(port: 6987);
+  }
+
+  @override
+  Future<Foodb> db(
+    String dbName, {
+    bool? persist,
+    String prefix = 'test-',
+    bool autoCompaction = false,
+  }) async {
+    if (server?.db.dbName != dbName) {
+      await server?.stop();
+      await _setDb(
+        prefix: prefix,
+        dbName: dbName,
+        autoCompaction: autoCompaction,
+      );
+    }
+    var db = Foodb.websocket(
+        dbName: dbName,
+        baseUri: Uri.parse(
+          'ws://127.0.0.1:6987',
+        ));
+    if (persist == true) {
+      try {
+        await db.info();
+        await db.destroy();
+      } catch (err) {
+        //
+      }
+      await db.initDb();
+      addTearDown(() async {
+        await db.destroy();
+        await server?.stop();
       });
     } else {
       await db.initDb();

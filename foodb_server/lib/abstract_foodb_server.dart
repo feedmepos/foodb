@@ -36,6 +36,9 @@ abstract class FoodbServer {
       FoodbRoute.delete(path: '/<dbId>/<docId>', callback: _delete),
       FoodbRoute.put(path: '/<dbId>/<docId>', callback: _put),
       FoodbRoute.get(path: '/<dbId>/<docId>', callback: _get),
+      FoodbRoute.get(
+          path: '/<dbId>/_design/<ddocId>',
+          callback: (request) => _get(request, ddoc: true)),
     ]);
   }
 
@@ -51,34 +54,71 @@ abstract class FoodbServer {
     for (final route in routes) {
       final result = route.validate(request);
       if (result) {
-        return await route.callback(request);
+        try {
+          return await route.callback(request);
+        } catch (err) {
+          if (err is AdapterException) {
+            return FoodbServerResponse(
+              status: 400,
+              data: {"error": err.error, "reason": err.reason},
+            );
+          } else {
+            return FoodbServerResponse(
+              status: 500,
+              data: {
+                "error": "internal server error",
+                "reason": err.toString()
+              },
+            );
+          }
+        }
       }
     }
-    throw Exception('unknown request');
+    return FoodbServerResponse(
+      status: 404,
+      data: {"error": "route not found", "reason": "route not found"},
+    );
   }
 
   // db.get
-  Future<FoodbServerResponse> _get(FoodbServerRequest request) async {
+  Future<FoodbServerResponse> _get(FoodbServerRequest request,
+      {bool ddoc = false}) async {
     Map<String, dynamic> queryParams = request.queryParams;
+    String id;
+    if (ddoc) {
+      id = '_design/${request.pathParams?['ddocId'] ?? ''}';
+    } else {
+      id = request.pathParams?['docId'] ?? '';
+    }
     try {
       final result = await db.get(
-        id: request.pathParams?['docId'],
+        id: id,
         attachments: queryParams['attachments'] ?? false,
-        attEncodingInfo: queryParams['attEncodingInfo'] ?? false,
-        attsSince: queryParams['attsSince'],
+        attEncodingInfo: queryParams['att_encoding_info'] ?? false,
+        attsSince: queryParams['atts_since'],
         conflicts: queryParams['conflicts'] ?? false,
-        deletedConflicts: queryParams['deletedConflicts'] ?? false,
+        deletedConflicts: queryParams['deleted_conflicts'] ?? false,
         latest: queryParams['latest'] ?? false,
-        localSeq: queryParams['localSeq'] ?? false,
+        localSeq: queryParams['local_seq'] ?? false,
         meta: queryParams['meta'] ?? false,
         rev: queryParams['rev'],
         revs: queryParams['revs'] ?? false,
-        revsInfo: queryParams['revsInfo'] ?? false,
+        revsInfo: queryParams['revs_info'] ?? false,
         fromJsonT: (v) => v,
       );
-      return FoodbServerResponse(data: result?.toJson((v) => v));
+      return FoodbServerResponse(
+        data: result != null
+            ? result.toJson((v) => v, fullMeta: true)
+            : {
+                "error": "not_found",
+                "reason": "missing",
+              },
+      );
     } catch (err) {
-      return FoodbServerResponse(data: null);
+      return FoodbServerResponse(data: {
+        "error": "not_found",
+        "reason": "missing",
+      });
     }
   }
 
@@ -168,15 +208,14 @@ abstract class FoodbServer {
 
   // db.createIndex
   Future<FoodbServerResponse> _createIndex(FoodbServerRequest request) async {
-    final queryParams = request.queryParams;
     final result = await db.createIndex(
       index: QueryViewOptionsDef.fromJson(
-        jsonDecode(queryParams['index'] ?? '{}'),
+        request.jsonBody?['index'] ?? {},
       ),
-      ddoc: queryParams['ddoc'],
-      name: queryParams['name'],
-      type: queryParams['type'] ?? 'json',
-      partitioned: queryParams['partitioned'],
+      ddoc: request.jsonBody?['ddoc'],
+      name: request.jsonBody?['name'],
+      type: request.jsonBody?['type'] ?? 'json',
+      partitioned: request.jsonBody?['partitioned'],
     );
     return FoodbServerResponse(data: result.toJson());
   }
@@ -248,13 +287,13 @@ abstract class FoodbServer {
 
   // db.revsDiff
   Future<FoodbServerResponse> _revsDiff(FoodbServerRequest request) async {
-    final body = request.jsonBody?.entries.fold<Map<String, List<Rev>>>({},
-            (result, entry) {
-          result[entry.key] =
-              entry.value.map((rev) => Rev.fromString(rev)).toList();
-          return result;
-        }) ??
-        {};
+    final body = (request.jsonBody ?? {})
+        .entries
+        .fold<Map<String, List<Rev>>>({}, (result, entry) {
+      result[entry.key] =
+          entry.value.map<Rev>((rev) => Rev.fromString(rev)).toList();
+      return result;
+    });
     final result = await db.revsDiff(body: body);
     final data = result.entries.fold<Map<String, dynamic>>({}, (value, entry) {
       if (value[entry.key] == null) {

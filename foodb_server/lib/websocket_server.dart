@@ -56,6 +56,6 @@ class WebSocketFoodbServer extends FoodbServer {
 
   @override
   Future<void> stop() async {
-    _server?.close();
+    await _server?.close();
   }
 }

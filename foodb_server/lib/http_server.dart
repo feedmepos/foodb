@@ -40,7 +40,7 @@ class HttpFoodbServer extends FoodbServer {
       final request =
           FoodbServerRequest.fromHttpRequest(request: req, body: bodyString);
       final response = await handleRequest(request);
-      if (response is Stream<List<int>>) {
+      if (response.data is Stream<List<int>>) {
         return Response(
           response.status ?? 200,
           body: response.data,
@@ -60,6 +60,6 @@ class HttpFoodbServer extends FoodbServer {
 
   @override
   Future<void> stop() async {
-    _server?.close();
+    await _server?.close();
   }
 }

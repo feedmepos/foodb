@@ -32,6 +32,7 @@ class _WebSocketFoodb extends Foodb {
   final Uri baseUri;
   final bool mock;
   late MockableIOWebSocketChannel client;
+  int timeoutSeconds = 60;
   Map<String, Completer> completers = {};
   _WebSocketFoodb({
     required this.dbName,
@@ -91,10 +92,9 @@ class _WebSocketFoodb extends Foodb {
     completers[messageId] = completer;
     final result = await completer.future;
     if (!hold) {
-      final seconds = 10;
-      Future.delayed(Duration(seconds: seconds), () {
+      Future.delayed(Duration(seconds: timeoutSeconds), () {
         completers.remove(messageId);
-        throw Exception('timeout ${seconds}s');
+        throw Exception('timeout ${timeoutSeconds}s');
       });
     }
     return result;
@@ -401,7 +401,7 @@ class _WebSocketFoodb extends Foodb {
   Future<BulkDocResponse> bulkDocs(
       {required List<Doc<Map<String, dynamic>>> body,
       bool newEdits = true}) async {
-    UriBuilder uriBuilder = UriBuilder.fromUri(this.getUri(''));
+    UriBuilder uriBuilder = UriBuilder.fromUri(this.getUri('_bulk_docs'));
 
     final response = await _send(
       uriBuilder: uriBuilder,
@@ -423,7 +423,9 @@ class _WebSocketFoodb extends Foodb {
       return BulkDocResponse(putResponses: putResponses);
     } else {
       throw AdapterException(
-          error: 'Invalid status code', reason: response.status.toString());
+        error: 'Invalid status code',
+        reason: response.status.toString(),
+      );
     }
   }
 
@@ -478,7 +480,7 @@ class _WebSocketFoodb extends Foodb {
       json['startkey'] = jsonEncode(json['startkey']);
     if (json.containsKey('endkey')) json['endkey'] = jsonEncode(json['endkey']);
     uriBuilder.queryParameters = convertToParams(json);
-    var response;
+    WebSocketResponse response;
     if (getViewRequest.keys == null) {
       response = await _send(uriBuilder: uriBuilder, method: 'GET');
     } else {
@@ -491,7 +493,7 @@ class _WebSocketFoodb extends Foodb {
       );
     }
     return GetViewResponse.fromJson(
-        response, (json) => fromJsonT(json as Map<String, dynamic>));
+        response.data, (json) => fromJsonT(json as Map<String, dynamic>));
   }
 
   @override

@@ -102,7 +102,11 @@ class FoodbServerRequest {
   Map<String, dynamic> get queryParams {
     return uri.queryParameters.entries.fold<Map<String, dynamic>>({},
         (result, entry) {
-      result[entry.key] = jsonDecode(entry.value);
+      try {
+        result[entry.key] = jsonDecode(entry.value);
+      } catch (err) {
+        result[entry.key] = entry.value;
+      }
       return result;
     });
   }
@@ -156,7 +160,7 @@ class RouteMatcher {
   }) {
     final route = RouterEntry(method, path, () {});
     var uriPath = request.uri.path;
-    if (uriPath.endsWith('/')) {
+    if (uriPath.length > 1 && uriPath.endsWith('/')) {
       uriPath = uriPath.substring(0, uriPath.length - 1);
     }
     return method == request.method && route.match(uriPath) != null;
