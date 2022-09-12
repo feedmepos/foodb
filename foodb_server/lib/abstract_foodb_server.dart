@@ -331,9 +331,11 @@ abstract class FoodbServer {
 
   // db.revsDiff
   Future<FoodbServerResponse> _revsDiff(FoodbServerRequest request) async {
-    final body = (request.jsonBody ?? {})
-        .entries
-        .fold<Map<String, List<Rev>>>({}, (result, entry) {
+    Map<String, List<String>> temp = {};
+    for (final key in Map<String, dynamic>.from(request.jsonBody).keys) {
+      temp[key] = List<String>.from(request.jsonBody[key]);
+    }
+    final body = temp.entries.fold<Map<String, List<Rev>>>({}, (result, entry) {
       result[entry.key] =
           entry.value.map<Rev>((rev) => Rev.fromString(rev)).toList();
       return result;

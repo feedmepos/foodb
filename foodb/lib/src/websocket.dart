@@ -40,18 +40,16 @@ class WebSocketResponse {
 class _WebSocketFoodb extends Foodb {
   final String dbName;
   final Uri baseUri;
-  final bool mock;
-  late MockableIOWebSocketChannel client;
+  late IOWebSocketChannel client;
   int timeoutSeconds = 60;
   Map<String, Completer> completers = {};
   _WebSocketFoodb({
     required this.dbName,
     required this.baseUri,
-    this.mock = false,
   }) : super(dbName: dbName) {
-    client = MockableIOWebSocketChannel(url: baseUri, mock: mock);
-    client.listen((message) {
-      _handleMessage(message);
+    client = IOWebSocketChannel.connect(baseUri);
+    client.stream.listen((message) {
+      _handleMessage(jsonDecode(message));
     });
   }
   Map<String, StreamController> streamControllers = {};
@@ -88,16 +86,16 @@ class _WebSocketFoodb extends Foodb {
     required UriBuilder uriBuilder,
     required String method,
     bool hold = false,
-    String? body,
+    dynamic body,
   }) async {
     final messageId = _uuid.v1();
-    client.add({
+    client.sink.add(jsonEncode({
       'method': method,
       'url': uriBuilder.build().toString(),
       'messageId': messageId,
       'body': body,
       'type': hold ? 'stream' : 'normal'
-    });
+    }));
     final completer = Completer();
     completers[messageId] = completer;
     WebSocketResponse result = await completer.future;
@@ -124,7 +122,7 @@ class _WebSocketFoodb extends Foodb {
     final response = await _send(
       uriBuilder: uriBuilder,
       method: 'POST',
-      body: jsonEncode(body.toJson()),
+      body: body.toJson(),
     );
     if (response.status == 200) {
       return BulkGetResponse<T>.fromJson(
@@ -287,8 +285,8 @@ class _WebSocketFoodb extends Foodb {
         newBody['_revisions'] = doc.revisions!.toJson();
       }
     }
-    final response = await _send(
-        uriBuilder: uriBuilder, method: 'PUT', body: jsonEncode(newBody));
+    final response =
+        await _send(uriBuilder: uriBuilder, method: 'PUT', body: newBody);
     final data = response.data;
 
     if (data['error'] != null) {
@@ -317,8 +315,8 @@ class _WebSocketFoodb extends Foodb {
     final response = await _send(
       uriBuilder: uriBuilder,
       method: 'POST',
-      body: jsonEncode(body.map((key, value) =>
-          MapEntry(key, value.map((e) => e.toString()).toList()))),
+      body: body.map((key, value) =>
+          MapEntry(key, value.map((e) => e.toString()).toList())),
     );
     final data = response.data;
 
@@ -353,7 +351,7 @@ class _WebSocketFoodb extends Foodb {
     final response = await _send(
       uriBuilder: uriBuilder,
       method: 'POST',
-      body: jsonEncode(body),
+      body: body,
     );
     final data = response.data;
 
@@ -370,7 +368,7 @@ class _WebSocketFoodb extends Foodb {
     final response = await _send(
       uriBuilder: uriBuilder,
       method: 'POST',
-      body: jsonEncode(body),
+      body: body,
     );
     final data = response.data;
 
@@ -389,7 +387,7 @@ class _WebSocketFoodb extends Foodb {
     final response = await _send(
       uriBuilder: uriBuilder,
       method: 'POST',
-      body: jsonEncode(body),
+      body: body,
     );
     final data = response.data;
     return ExplainResponse.fromJson(data);
@@ -416,17 +414,16 @@ class _WebSocketFoodb extends Foodb {
       {required List<Doc<Map<String, dynamic>>> body,
       bool newEdits = true}) async {
     UriBuilder uriBuilder = UriBuilder.fromUri(this.getUri('_bulk_docs'));
-
     final response = await _send(
       uriBuilder: uriBuilder,
       method: 'POST',
-      body: jsonEncode({
+      body: {
         'new_edits': newEdits,
         'docs': body.map((e) {
           Map<String, dynamic> map = e.toJson((value) => value);
           return map;
         }).toList()
-      }),
+      },
     );
 
     if (response.status == 201) {
@@ -438,7 +435,7 @@ class _WebSocketFoodb extends Foodb {
     } else {
       throw AdapterException(
         error: 'Invalid status code',
-        reason: response.status.toString(),
+        reason: response.data['reason'],
       );
     }
   }
@@ -480,7 +477,7 @@ class _WebSocketFoodb extends Foodb {
   @override
   Future<bool> revsLimit(int limit) async {
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_revs_limit')));
-    await _send(uriBuilder: uriBuilder, method: 'PUT', body: jsonEncode(limit));
+    await _send(uriBuilder: uriBuilder, method: 'PUT', body: limit);
     return true;
   }
 
@@ -502,7 +499,7 @@ class _WebSocketFoodb extends Foodb {
       map['keys'] = getViewRequest.keys;
       response = await _send(
         uriBuilder: uriBuilder,
-        body: jsonEncode(map),
+        body: map,
         method: 'POST',
       );
     }
@@ -519,58 +516,5 @@ class _WebSocketFoodb extends Foodb {
     UriBuilder uriBuilder =
         UriBuilder.fromUri((this.getUri('_design/$ddocId/_view/$viewId')));
     return _view(uriBuilder, getViewRequest, fromJsonT);
-  }
-}
-
-class MockableIOWebSocketChannel {
-  final bool mock;
-
-  late StreamController _mockWs;
-  late IOWebSocketChannel _ws;
-
-  MockableIOWebSocketChannel({
-    required Uri url,
-    this.mock = false,
-  }) {
-    if (mock) {
-      _mockWs = StreamController();
-    } else {
-      _ws = IOWebSocketChannel.connect(url);
-    }
-  }
-
-  add(dynamic data) {
-    final input = jsonEncode(data);
-    if (mock) {
-      return _mockWs.sink.add(input);
-    } else {
-      return _ws.sink.add(input);
-    }
-  }
-
-  listen(
-    void Function(dynamic)? onData, {
-    Function? onError,
-    void Function()? onDone,
-    bool? cancelOnError,
-  }) {
-    final onDataFormat = (data) {
-      return onData?.call(jsonDecode(data));
-    };
-    if (mock) {
-      _mockWs.stream.listen(
-        onDataFormat,
-        onError: onError,
-        onDone: onDone,
-        cancelOnError: cancelOnError,
-      );
-    } else {
-      _ws.stream.listen(
-        onDataFormat,
-        onError: onError,
-        onDone: onDone,
-        cancelOnError: cancelOnError,
-      );
-    }
   }
 }

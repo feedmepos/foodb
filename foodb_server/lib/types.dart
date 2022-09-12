@@ -80,7 +80,7 @@ extension ElementAtOrNull<T> on List<T> {
 class FoodbServerRequest {
   String method;
   Uri uri;
-  String? body;
+  dynamic body;
   String? messageId;
   FoodbRoute? route;
   String? type;
@@ -103,9 +103,13 @@ class FoodbServerRequest {
     return RouteMatcher.getPathParams(path: route!.path, uri: uri);
   }
 
-  Map<String, dynamic>? get jsonBody {
+  dynamic get jsonBody {
     try {
-      return jsonDecode(body ?? '');
+      if (body is String) {
+        return jsonDecode(body);
+      } else {
+        return body;
+      }
     } catch (err) {
       return null;
     }

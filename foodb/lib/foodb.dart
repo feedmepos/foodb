@@ -126,12 +126,10 @@ abstract class Foodb {
   factory Foodb.websocket({
     required String dbName,
     required Uri baseUri,
-    bool mock = false,
   }) {
     return _WebSocketFoodb(
       dbName: dbName,
       baseUri: baseUri,
-      mock: mock,
     );
   }
 
