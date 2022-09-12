@@ -19,32 +19,32 @@ class WebSocketFoodbServer extends FoodbServer {
       websocket.stream.listen((message) async {
         final request = FoodbRequest.fromWebSocketMessage(message);
         var response = await handleRequest(request);
-        if (response is Stream<List<int>> && request.type == 'stream') {
-          response.listen((event) {
+        if (response.data is Stream<List<int>> && request.type == 'stream') {
+          response.data.listen((event) {
             final data = jsonDecode(utf8.decode(event));
             websocket.sink.add(jsonEncode({
               'data': data,
               'messageId': request.messageId,
               'type': request.type,
-              'status': 200,
+              'status': response.status ?? 200,
             }));
           });
-        } else if (response is Stream<List<int>>) {
-          response.listen((event) {
+        } else if (response.data is Stream<List<int>>) {
+          response.data.listen((event) {
             final data = jsonDecode(utf8.decode(event));
             websocket.sink.add(jsonEncode({
               'data': data,
               'messageId': request.messageId,
               'type': request.type,
-              'status': 200,
+              'status': response.status ?? 200,
             }));
           });
         } else {
           websocket.sink.add(jsonEncode({
-            'data': (response ?? {}),
+            'data': (response.data ?? {}),
             'messageId': request.messageId,
             'type': request.type,
-            'status': 200
+            'status': response.status ?? 200
           }));
         }
       });

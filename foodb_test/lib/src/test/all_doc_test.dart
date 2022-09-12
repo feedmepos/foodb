@@ -1,3 +1,4 @@
+@Timeout(Duration(seconds: 1000))
 import 'package:foodb_test/foodb_test.dart';
 import 'package:test/test.dart';
 import 'package:foodb/foodb.dart';

@@ -3,51 +3,57 @@ import 'dart:convert';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/src/router_entry.dart';
 
+class FoodbServerResponse {
+  int? status;
+  dynamic data;
+  FoodbServerResponse({required this.data, this.status});
+}
+
 class FoodbRoute {
   String path;
   String method;
-  Future<dynamic> Function(FoodbRequest) _callback;
+  Future<FoodbServerResponse> Function(FoodbRequest) _callback;
   FoodbRoute({
     required this.path,
     required this.method,
-    required Future<dynamic> Function(FoodbRequest) callback,
+    required Future<FoodbServerResponse> Function(FoodbRequest) callback,
   }) : _callback = callback;
 
-  Future<dynamic> callback(FoodbRequest request) {
+  Future<FoodbServerResponse> callback(FoodbRequest request) {
     return _callback(request.setRoute(this));
   }
 
   factory FoodbRoute.get({
     required String path,
-    required Future<dynamic> Function(FoodbRequest) callback,
+    required Future<FoodbServerResponse> Function(FoodbRequest) callback,
   }) {
     return FoodbRoute(path: path, method: 'GET', callback: callback);
   }
 
   factory FoodbRoute.post({
     required String path,
-    required Future<dynamic> Function(FoodbRequest) callback,
+    required Future<FoodbServerResponse> Function(FoodbRequest) callback,
   }) {
     return FoodbRoute(path: path, method: 'POST', callback: callback);
   }
 
   factory FoodbRoute.put({
     required String path,
-    required Future<dynamic> Function(FoodbRequest) callback,
+    required Future<FoodbServerResponse> Function(FoodbRequest) callback,
   }) {
     return FoodbRoute(path: path, method: 'PUT', callback: callback);
   }
 
   factory FoodbRoute.delete({
     required String path,
-    required Future<dynamic> Function(FoodbRequest) callback,
+    required Future<FoodbServerResponse> Function(FoodbRequest) callback,
   }) {
     return FoodbRoute(path: path, method: 'DELETE', callback: callback);
   }
 
   factory FoodbRoute.head({
     required String path,
-    required Future<dynamic> Function(FoodbRequest) callback,
+    required Future<FoodbServerResponse> Function(FoodbRequest) callback,
   }) {
     return FoodbRoute(path: path, method: 'HEAD', callback: callback);
   }
@@ -96,7 +102,7 @@ class FoodbRequest {
   Map<String, dynamic> get queryParams {
     return uri.queryParameters.entries.fold<Map<String, dynamic>>({},
         (result, entry) {
-      result[entry.key] = parseQueryParams(entry.value);
+      result[entry.key] = jsonDecode(entry.value);
       return result;
     });
   }
@@ -189,41 +195,5 @@ class RouteMatcher {
     required FoodbRequest request,
   }) {
     return RouteMatcher.all(method: 'HEAD', path: path, request: request);
-  }
-}
-
-bool parseBool(dynamic value) {
-  if (value == 'true') {
-    return true;
-  } else if (value == 'false') {
-    return false;
-  } else {
-    return value;
-  }
-}
-
-bool _isNumeric(String? str) {
-  if (str == null) {
-    return false;
-  }
-  return double.tryParse(str) != null;
-}
-
-bool _isInt(String? str) {
-  if (str == null) {
-    return false;
-  }
-  return int.tryParse(str) != null;
-}
-
-dynamic parseQueryParams(dynamic value) {
-  if (value == 'true' || value == 'false') {
-    return parseBool(value);
-  } else if (_isNumeric(value)) {
-    return num.parse(value);
-  } else if (_isInt(value)) {
-    return int.parse(value);
-  } else {
-    return value;
   }
 }

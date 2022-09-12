@@ -41,12 +41,16 @@ class HttpFoodbServer extends FoodbServer {
           FoodbRequest.fromHttpRequest(request: req, body: bodyString);
       final response = await handleRequest(request);
       if (response is Stream<List<int>>) {
-        return Response.ok(
-          response,
+        return Response(
+          response.status ?? 200,
+          body: response.data,
           context: {"shelf.io.buffer_output": false},
         );
       } else {
-        return Response.ok(jsonEncode(response));
+        return Response(
+          response.status ?? 200,
+          body: jsonEncode(response.data),
+        );
       }
     });
 

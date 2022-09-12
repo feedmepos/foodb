@@ -18,6 +18,7 @@ abstract class FoodbServer {
           path: '/<dbId>/_design/<ddocId>/_view/<viewId>', callback: _view),
       FoodbRoute.post(path: '/<dbId>/_find', callback: _find),
       FoodbRoute.post(path: '/<dbId>/_bulk_get', callback: _bulkGet),
+      FoodbRoute.post(path: '/<dbId>/_bulk_docs', callback: _bulkDocs),
       FoodbRoute.post(path: '/<dbId>/_revs_diff', callback: _revsDiff),
       FoodbRoute.post(path: '/<dbId>/_explain', callback: _explain),
       FoodbRoute.post(
@@ -46,7 +47,7 @@ abstract class FoodbServer {
     routes = [...newRoutes];
   }
 
-  Future<dynamic> handleRequest(FoodbRequest request) async {
+  Future<FoodbServerResponse> handleRequest(FoodbRequest request) async {
     for (final route in routes) {
       final result = route.validate(request);
       if (result) {
@@ -57,48 +58,52 @@ abstract class FoodbServer {
   }
 
   // db.get
-  Future<dynamic> _get(FoodbRequest request) async {
+  Future<FoodbServerResponse> _get(FoodbRequest request) async {
     Map<String, dynamic> queryParams = request.queryParams;
-    final result = await db.get(
-      id: request.pathParams?['docId'],
-      attachments: queryParams['attachments'] ?? false,
-      attEncodingInfo: queryParams['attEncodingInfo'] ?? false,
-      attsSince: queryParams['attsSince'],
-      conflicts: queryParams['conflicts'] ?? false,
-      deletedConflicts: queryParams['deletedConflicts'] ?? false,
-      latest: queryParams['latest'] ?? false,
-      localSeq: queryParams['localSeq'] ?? false,
-      meta: queryParams['meta'] ?? false,
-      rev: queryParams['rev'],
-      revs: queryParams['revs'] ?? false,
-      revsInfo: queryParams['revsInfo'] ?? false,
-      fromJsonT: (v) => v,
-    );
-    return result?.toJson((v) => v);
+    try {
+      final result = await db.get(
+        id: request.pathParams?['docId'],
+        attachments: queryParams['attachments'] ?? false,
+        attEncodingInfo: queryParams['attEncodingInfo'] ?? false,
+        attsSince: queryParams['attsSince'],
+        conflicts: queryParams['conflicts'] ?? false,
+        deletedConflicts: queryParams['deletedConflicts'] ?? false,
+        latest: queryParams['latest'] ?? false,
+        localSeq: queryParams['localSeq'] ?? false,
+        meta: queryParams['meta'] ?? false,
+        rev: queryParams['rev'],
+        revs: queryParams['revs'] ?? false,
+        revsInfo: queryParams['revsInfo'] ?? false,
+        fromJsonT: (v) => v,
+      );
+      return FoodbServerResponse(data: result?.toJson((v) => v));
+    } catch (err) {
+      return FoodbServerResponse(data: null);
+    }
   }
 
   // db.bulkGet
-  Future<dynamic> _bulkGet(FoodbRequest request) async {
+  Future<FoodbServerResponse> _bulkGet(FoodbRequest request) async {
     final result = await db.bulkGet(
       body: BulkGetRequest.fromJson(request.jsonBody ?? {}),
       revs: request.queryParams['revs'],
       fromJsonT: (v) => v,
     );
-    return result.toJson((v) => v);
+    return FoodbServerResponse(data: result.toJson((v) => v));
   }
 
   // db.allDocs
-  Future<dynamic> _allDocs(FoodbRequest request) async {
+  Future<FoodbServerResponse> _allDocs(FoodbRequest request) async {
     final result = await db.allDocs(
       GetViewRequest.fromJson(
           {...request.queryParams, ...(request.jsonBody ?? {})}),
       (json) => json,
     );
-    return result.toJson((value) => value);
+    return FoodbServerResponse(data: result.toJson((v) => v));
   }
 
   // db.bulkDocs
-  Future<dynamic> bulkDocs(FoodbRequest request) async {
+  Future<FoodbServerResponse> _bulkDocs(FoodbRequest request) async {
     final result = await db.bulkDocs(
       body: List.from(request.jsonBody?['docs'] ?? [])
           .map((doc) => Doc<Map<String, dynamic>>.fromJson(
@@ -106,11 +111,14 @@ abstract class FoodbServer {
           .toList(),
       newEdits: request.jsonBody?['new_edits'],
     );
-    return result.toJson();
+    return FoodbServerResponse(
+      status: 201,
+      data: result.putResponses.map((v) => v.toJson()).toList(),
+    );
   }
 
   // db.changesStream
-  Future<dynamic> _changesStream(FoodbRequest request) async {
+  Future<FoodbServerResponse> _changesStream(FoodbRequest request) async {
     /**
      * normal, onComplete
      * long poll, onResult -> onComplete
@@ -150,16 +158,16 @@ abstract class FoodbServer {
         streamController.close();
       },
     );
-    return streamController.stream;
+    return FoodbServerResponse(data: streamController.stream);
   }
 
   // db.compact
-  Future<dynamic> _compact(FoodbRequest request) async {
-    return await db.compact();
+  Future<FoodbServerResponse> _compact(FoodbRequest request) async {
+    return FoodbServerResponse(data: (await db.compact()));
   }
 
   // db.createIndex
-  Future<dynamic> _createIndex(FoodbRequest request) async {
+  Future<FoodbServerResponse> _createIndex(FoodbRequest request) async {
     final queryParams = request.queryParams;
     final result = await db.createIndex(
       index: QueryViewOptionsDef.fromJson(
@@ -170,75 +178,75 @@ abstract class FoodbServer {
       type: queryParams['type'] ?? 'json',
       partitioned: queryParams['partitioned'],
     );
-    return result.toJson();
+    return FoodbServerResponse(data: result.toJson());
   }
 
   // db.delete
-  Future<dynamic> _delete(FoodbRequest request) async {
+  Future<FoodbServerResponse> _delete(FoodbRequest request) async {
     final result = await db.delete(
       id: request.pathParams?['docId'],
       rev: Rev.fromString(request.queryParams['rev']),
     );
-    return result.toJson();
+    return FoodbServerResponse(data: result.toJson());
   }
 
   // db.deleteIndex
-  Future<dynamic> _deleteIndex(FoodbRequest request) async {
+  Future<FoodbServerResponse> _deleteIndex(FoodbRequest request) async {
     final result = await db.deleteIndex(
       ddoc: request.pathParams?['ddocId'],
       name: request.pathParams?['name'],
     );
-    return result.toJson();
+    return FoodbServerResponse(data: result.toJson());
   }
 
   // db.destroy
-  Future<dynamic> _destroy(FoodbRequest request) async {
-    return db.destroy();
+  Future<FoodbServerResponse> _destroy(FoodbRequest request) async {
+    return FoodbServerResponse(data: (await db.destroy()));
   }
 
   // db.ensureFullCommit
-  Future<dynamic> _ensureFullCommit(FoodbRequest request) async {
+  Future<FoodbServerResponse> _ensureFullCommit(FoodbRequest request) async {
     final result = await db.ensureFullCommit();
-    return result.toJson();
+    return FoodbServerResponse(data: result.toJson());
   }
 
   // db.explain
-  Future<dynamic> _explain(FoodbRequest request) async {
+  Future<FoodbServerResponse> _explain(FoodbRequest request) async {
     final result =
         await db.explain(FindRequest.fromJson(request.jsonBody ?? {}));
-    return result.toJson();
+    return FoodbServerResponse(data: result.toJson());
   }
 
   // db.find
-  Future<dynamic> _find(FoodbRequest request) async {
+  Future<FoodbServerResponse> _find(FoodbRequest request) async {
     final body = request.jsonBody ?? {};
     final result = await db.find(FindRequest.fromJson(body), (v) => v);
-    return result.toJson((value) => value);
+    return FoodbServerResponse(data: result.toJson((v) => v));
   }
 
   // db.info
-  Future<dynamic> _info(FoodbRequest request) async {
+  Future<FoodbServerResponse> _info(FoodbRequest request) async {
     final result = await db.info();
-    return result.toJson();
+    return FoodbServerResponse(data: result.toJson());
   }
 
   // db.initDb
-  Future<dynamic> _initDb(FoodbRequest request) async {
-    return db.initDb();
+  Future<FoodbServerResponse> _initDb(FoodbRequest request) async {
+    return FoodbServerResponse(data: (await db.initDb()));
   }
 
   // db.put
-  Future<dynamic> _put(FoodbRequest request) async {
+  Future<FoodbServerResponse> _put(FoodbRequest request) async {
     final result = await db.put(
       doc: Doc.fromJson(
           request.jsonBody ?? {}, (json) => json as Map<String, dynamic>),
       newEdits: request.queryParams['new_edits'],
     );
-    return result.toJson();
+    return FoodbServerResponse(data: result.toJson());
   }
 
   // db.revsDiff
-  Future<dynamic> _revsDiff(FoodbRequest request) async {
+  Future<FoodbServerResponse> _revsDiff(FoodbRequest request) async {
     final body = request.jsonBody?.entries.fold<Map<String, List<Rev>>>({},
             (result, entry) {
           result[entry.key] =
@@ -247,7 +255,7 @@ abstract class FoodbServer {
         }) ??
         {};
     final result = await db.revsDiff(body: body);
-    return result.entries.fold<Map<String, dynamic>>({}, (value, entry) {
+    final data = result.entries.fold<Map<String, dynamic>>({}, (value, entry) {
       if (value[entry.key] == null) {
         value[entry.key] = {};
       }
@@ -257,24 +265,25 @@ abstract class FoodbServer {
           entry.value.possibleAncestors ?? [];
       return value;
     });
+    return FoodbServerResponse(data: data);
   }
 
   // db.revsLimit
-  Future<dynamic> _revsLimit(FoodbRequest request) async {
+  Future<FoodbServerResponse> _revsLimit(FoodbRequest request) async {
     final result = await db.revsLimit(int.parse(request.body!));
-    return {
+    return FoodbServerResponse(data: {
       "ok": result,
-    };
+    });
   }
 
   // db.serverInfo
-  Future<dynamic> _serverInfo(FoodbRequest request) async {
+  Future<FoodbServerResponse> _serverInfo(FoodbRequest request) async {
     final result = await db.serverInfo();
-    return result.toJson();
+    return FoodbServerResponse(data: result.toJson());
   }
 
   // db.view
-  Future<dynamic> _view(FoodbRequest request) async {
+  Future<FoodbServerResponse> _view(FoodbRequest request) async {
     final result = await db.view(
       request.pathParams?['ddocId'],
       request.pathParams?['viewId'],
@@ -284,6 +293,6 @@ abstract class FoodbServer {
       }),
       (json) => json,
     );
-    return result.toJson((value) => value);
+    return FoodbServerResponse(data: result.toJson((v) => v));
   }
 }
