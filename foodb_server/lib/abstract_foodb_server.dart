@@ -90,7 +90,8 @@ abstract class FoodbServer {
   // db.allDocs
   Future<dynamic> _allDocs(FoodbRequest request) async {
     final result = await db.allDocs(
-      GetViewRequest.fromJson(request.queryParams),
+      GetViewRequest.fromJson(
+          {...request.queryParams, ...(request.jsonBody ?? {})}),
       (json) => json,
     );
     return result.toJson((value) => value);
