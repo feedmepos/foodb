@@ -56,7 +56,7 @@ class HttpServerCouchdbTestContext extends FoodbTestContext {
       autoCompaction: autoCompaction,
     );
     await inMemoryDb.initDb();
-    server = HttpFoodbServer(inMemoryDb);
+    server = HttpFoodbServer(db: inMemoryDb);
     await server!.start(port: 6987);
   }
 
@@ -111,7 +111,7 @@ class WebSocketServerCouchdbTestContext extends FoodbTestContext {
       autoCompaction: autoCompaction,
     );
     await inMemoryDb.initDb();
-    server = WebSocketFoodbServer(inMemoryDb);
+    server = WebSocketFoodbServer(db: inMemoryDb);
     await server!.start(port: 6987);
   }
 

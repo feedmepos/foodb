@@ -1,5 +1,15 @@
 part of 'package:foodb/foodb.dart';
 
+class WebSocketFoodbServerException implements Exception {
+  String error;
+  String? reason;
+  WebSocketFoodbServerException({required this.error, this.reason});
+
+  @override
+  String toString() =>
+      'WebSocketFoodbServerException(error: $error, reason: $reason)';
+}
+
 class WebSocketResponse {
   final dynamic data;
   final int status;
@@ -90,12 +100,16 @@ class _WebSocketFoodb extends Foodb {
     });
     final completer = Completer();
     completers[messageId] = completer;
-    final result = await completer.future;
+    WebSocketResponse result = await completer.future;
     if (!hold) {
       Future.delayed(Duration(seconds: timeoutSeconds), () {
         completers.remove(messageId);
-        throw Exception('timeout ${timeoutSeconds}s');
+        throw WebSocketFoodbServerException(
+            error: 'timeout ${timeoutSeconds}s');
       });
+    }
+    if (result.status == 401) {
+      throw WebSocketFoodbServerException(error: result.data['error']);
     }
     return result;
   }

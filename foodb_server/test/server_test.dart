@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:foodb/foodb.dart';
+import 'package:foodb_server/abstract_foodb_server.dart';
 import 'package:foodb_server/foodb_server.dart';
 import 'package:foodb_server/types.dart';
 import 'package:test/test.dart';
@@ -16,14 +17,17 @@ void main() {
   test('get', () async {
     Foodb db = Foodb.couchdb(
         dbName: 'restaurant_61a9935e94eb2c001d618bc3',
-        baseUri: Uri.parse('https://admin:secret@sync-dev.feedmeapi.com'));
-    final server = WebSocketFoodbServer(db);
+        baseUri: Uri.parse('http://admin:ieXZW5@localhost:6984'));
+    final server = WebSocketFoodbServer(
+      db: db,
+      config: FoodbServerConfig(username: 'admin', password: 'secret'),
+    );
     await server.start(port: 6987);
     final doc = await server
         .handleRequest(FoodbServerRequest.fromWebSocketMessage(jsonEncode({
       'method': 'GET',
       'url':
-          'http://127.0.0.1:6987/restaurant_61a9935e94eb2c001d618bc3/bill_2021-12-03T03:48:51.965Z_2emf',
+          'http://127.0.0.1:6987/restaurant_61a9935e94eb2c001d618bc3/bill_2022-03-17T10:37:41.941Z_b74d',
       'messageId': ''
     })));
     print(doc);
@@ -32,14 +36,32 @@ void main() {
   testFn(Future<void> Function(Foodb) fn) async {
     var types = [
       {
-        'client': Foodb.couchdb,
-        'server': (db) => HttpFoodbServer(db),
+        'client': (String dbName) => Foodb.couchdb(
+              dbName: dbName,
+              baseUri: Uri.parse('http://admin:ieXZW5@127.0.0.1:6987'),
+            ),
+        'server': (Foodb db) => HttpFoodbServer(
+              db: db,
+              config: FoodbServerConfig(
+                username: 'admin',
+                password: 'ieXZW5',
+              ),
+            ),
         'port': 6987,
         'protocol': 'http',
       },
       {
-        'client': Foodb.websocket,
-        'server': (db) => WebSocketFoodbServer(db),
+        'client': (String dbName) => Foodb.websocket(
+              dbName: dbName,
+              baseUri: Uri.parse('ws://admin:ieXZW5@127.0.0.1:6988'),
+            ),
+        'server': (db) => WebSocketFoodbServer(
+              db: db,
+              config: FoodbServerConfig(
+                username: 'admin',
+                password: 'ieXZW5',
+              ),
+            ),
         'port': 6988,
         'protocol': 'ws'
       },
@@ -47,17 +69,16 @@ void main() {
     final dbName = 'restaurant_61a9935e94eb2c001d618bc3';
     Foodb db = Foodb.couchdb(
         dbName: dbName,
-        baseUri: Uri.parse('https://admin:secret@sync-dev.feedmeapi.com'));
+        baseUri: Uri.parse(
+          'http://admin:ieXZW5@localhost:6984',
+        ));
 
     for (final type in types) {
       final server = (type['server'] as dynamic)(db);
 
       await server.start(port: type['port']);
 
-      final client = (type['client'] as dynamic)(
-        dbName: dbName,
-        baseUri: Uri.parse('${type['protocol']}://127.0.0.1:${type['port']}'),
-      );
+      final client = (type['client'] as dynamic)(dbName);
 
       await fn(client);
     }
@@ -65,7 +86,7 @@ void main() {
 
   test('client with http server get', () async {
     await testFn((client) async {
-      final docId = 'bill_2021-12-03T03:48:51.965Z_2emf';
+      final docId = 'bill_2022-03-17T10:37:41.941Z_b74d';
       print((await client.get(id: docId, fromJsonT: (v) => v))
           ?.toJson((value) => value));
       print((await client.serverInfo()).toJson());

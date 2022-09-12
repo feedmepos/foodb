@@ -9,7 +9,10 @@ import 'package:foodb/foodb.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 class WebSocketFoodbServer extends FoodbServer {
-  WebSocketFoodbServer(Foodb db) : super(db);
+  WebSocketFoodbServer({
+    required Foodb db,
+    FoodbServerConfig? config,
+  }) : super(db: db, config: config);
   HttpServer? _server;
 
   @override

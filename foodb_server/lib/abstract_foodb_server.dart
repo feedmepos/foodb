@@ -4,9 +4,19 @@ import 'dart:convert';
 import 'package:foodb/foodb.dart';
 import 'package:foodb_server/types.dart';
 
+class FoodbServerConfig {
+  String? username;
+  String? password;
+  FoodbServerConfig({required this.username, required this.password});
+}
+
 abstract class FoodbServer {
   final Foodb db;
-  FoodbServer(this.db);
+  final FoodbServerConfig? config;
+  FoodbServer({
+    required this.db,
+    required this.config,
+  });
 
   Future<void> start() async {
     setRoutes([
@@ -57,11 +67,31 @@ abstract class FoodbServer {
     routes = [...newRoutes];
   }
 
+  bool authorize(FoodbServerRequest request) {
+    final username = config?.username;
+    final password = config?.password;
+    if (username != null || password != null) {
+      String authorization =
+          'Basic ${base64.encode(utf8.encode('$username:$password'))}';
+      if (authorization != request.authorization) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   Future<FoodbServerResponse> handleRequest(FoodbServerRequest request) async {
     for (final route in routes) {
       final result = route.validate(request);
       if (result) {
         try {
+          final valid = authorize(request);
+          if (!valid) {
+            return FoodbServerResponse(
+              status: 401,
+              data: {"error": 'unauthorized', "reason": 'unauthorized'},
+            );
+          }
           return await route.callback(request);
         } catch (err) {
           if (err is AdapterException) {

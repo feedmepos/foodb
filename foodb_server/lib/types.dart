@@ -67,6 +67,16 @@ class FoodbRoute {
   }
 }
 
+extension ElementAtOrNull<T> on List<T> {
+  T? elementAtOrNull(int index) {
+    try {
+      return this[index];
+    } catch (err) {
+      return null;
+    }
+  }
+}
+
 class FoodbServerRequest {
   String method;
   Uri uri;
@@ -74,12 +84,14 @@ class FoodbServerRequest {
   String? messageId;
   FoodbRoute? route;
   String? type;
+  String? authorization;
   FoodbServerRequest({
     required this.method,
     required this.uri,
     this.type,
     this.messageId,
     this.body,
+    this.authorization,
   });
 
   FoodbServerRequest setRoute(FoodbRoute newRoute) {
@@ -111,25 +123,21 @@ class FoodbServerRequest {
     });
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'method': method,
-      'uri': uri,
-      'body': body,
-      'messageId': messageId,
-      'route': route,
-      'type': type,
-    };
-  }
-
   static FoodbServerRequest fromWebSocketMessage(String message) {
     final json = jsonDecode(message);
+    final uri = Uri.parse(json['url']);
+    final userInfo = uri.userInfo.split(':');
+    final username = userInfo.elementAtOrNull(0);
+    final password = userInfo.elementAtOrNull(1);
     return FoodbServerRequest(
       uri: Uri.parse(json['url']),
       body: json['body'],
       method: json['method'],
       messageId: json['messageId'],
       type: json['type'],
+      authorization: (username != null || password != null)
+          ? 'Basic ${base64.encode(utf8.encode('$username:$password'))}'
+          : null,
     );
   }
 
@@ -141,6 +149,7 @@ class FoodbServerRequest {
       uri: request.requestedUri,
       body: body,
       method: request.method,
+      authorization: request.headers['authorization'],
     );
   }
 }

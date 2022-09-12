@@ -24,7 +24,10 @@ FutureOr<Response> Function(Request) Function(
 }
 
 class HttpFoodbServer extends FoodbServer {
-  HttpFoodbServer(Foodb db) : super(db);
+  HttpFoodbServer({
+    required Foodb db,
+    FoodbServerConfig? config,
+  }) : super(db: db, config: config);
   HttpServer? _server;
 
   @override
