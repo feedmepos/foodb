@@ -47,7 +47,7 @@ abstract class FoodbServer {
     routes = [...newRoutes];
   }
 
-  Future<FoodbServerResponse> handleRequest(FoodbRequest request) async {
+  Future<FoodbServerResponse> handleRequest(FoodbServerRequest request) async {
     for (final route in routes) {
       final result = route.validate(request);
       if (result) {
@@ -58,7 +58,7 @@ abstract class FoodbServer {
   }
 
   // db.get
-  Future<FoodbServerResponse> _get(FoodbRequest request) async {
+  Future<FoodbServerResponse> _get(FoodbServerRequest request) async {
     Map<String, dynamic> queryParams = request.queryParams;
     try {
       final result = await db.get(
@@ -83,7 +83,7 @@ abstract class FoodbServer {
   }
 
   // db.bulkGet
-  Future<FoodbServerResponse> _bulkGet(FoodbRequest request) async {
+  Future<FoodbServerResponse> _bulkGet(FoodbServerRequest request) async {
     final result = await db.bulkGet(
       body: BulkGetRequest.fromJson(request.jsonBody ?? {}),
       revs: request.queryParams['revs'],
@@ -93,7 +93,7 @@ abstract class FoodbServer {
   }
 
   // db.allDocs
-  Future<FoodbServerResponse> _allDocs(FoodbRequest request) async {
+  Future<FoodbServerResponse> _allDocs(FoodbServerRequest request) async {
     final result = await db.allDocs(
       GetViewRequest.fromJson(
           {...request.queryParams, ...(request.jsonBody ?? {})}),
@@ -103,7 +103,7 @@ abstract class FoodbServer {
   }
 
   // db.bulkDocs
-  Future<FoodbServerResponse> _bulkDocs(FoodbRequest request) async {
+  Future<FoodbServerResponse> _bulkDocs(FoodbServerRequest request) async {
     final result = await db.bulkDocs(
       body: List.from(request.jsonBody?['docs'] ?? [])
           .map((doc) => Doc<Map<String, dynamic>>.fromJson(
@@ -118,7 +118,7 @@ abstract class FoodbServer {
   }
 
   // db.changesStream
-  Future<FoodbServerResponse> _changesStream(FoodbRequest request) async {
+  Future<FoodbServerResponse> _changesStream(FoodbServerRequest request) async {
     /**
      * normal, onComplete
      * long poll, onResult -> onComplete
@@ -162,12 +162,12 @@ abstract class FoodbServer {
   }
 
   // db.compact
-  Future<FoodbServerResponse> _compact(FoodbRequest request) async {
+  Future<FoodbServerResponse> _compact(FoodbServerRequest request) async {
     return FoodbServerResponse(data: (await db.compact()));
   }
 
   // db.createIndex
-  Future<FoodbServerResponse> _createIndex(FoodbRequest request) async {
+  Future<FoodbServerResponse> _createIndex(FoodbServerRequest request) async {
     final queryParams = request.queryParams;
     final result = await db.createIndex(
       index: QueryViewOptionsDef.fromJson(
@@ -182,7 +182,7 @@ abstract class FoodbServer {
   }
 
   // db.delete
-  Future<FoodbServerResponse> _delete(FoodbRequest request) async {
+  Future<FoodbServerResponse> _delete(FoodbServerRequest request) async {
     final result = await db.delete(
       id: request.pathParams?['docId'],
       rev: Rev.fromString(request.queryParams['rev']),
@@ -191,7 +191,7 @@ abstract class FoodbServer {
   }
 
   // db.deleteIndex
-  Future<FoodbServerResponse> _deleteIndex(FoodbRequest request) async {
+  Future<FoodbServerResponse> _deleteIndex(FoodbServerRequest request) async {
     final result = await db.deleteIndex(
       ddoc: request.pathParams?['ddocId'],
       name: request.pathParams?['name'],
@@ -200,43 +200,44 @@ abstract class FoodbServer {
   }
 
   // db.destroy
-  Future<FoodbServerResponse> _destroy(FoodbRequest request) async {
+  Future<FoodbServerResponse> _destroy(FoodbServerRequest request) async {
     return FoodbServerResponse(data: (await db.destroy()));
   }
 
   // db.ensureFullCommit
-  Future<FoodbServerResponse> _ensureFullCommit(FoodbRequest request) async {
+  Future<FoodbServerResponse> _ensureFullCommit(
+      FoodbServerRequest request) async {
     final result = await db.ensureFullCommit();
     return FoodbServerResponse(data: result.toJson());
   }
 
   // db.explain
-  Future<FoodbServerResponse> _explain(FoodbRequest request) async {
+  Future<FoodbServerResponse> _explain(FoodbServerRequest request) async {
     final result =
         await db.explain(FindRequest.fromJson(request.jsonBody ?? {}));
     return FoodbServerResponse(data: result.toJson());
   }
 
   // db.find
-  Future<FoodbServerResponse> _find(FoodbRequest request) async {
+  Future<FoodbServerResponse> _find(FoodbServerRequest request) async {
     final body = request.jsonBody ?? {};
     final result = await db.find(FindRequest.fromJson(body), (v) => v);
     return FoodbServerResponse(data: result.toJson((v) => v));
   }
 
   // db.info
-  Future<FoodbServerResponse> _info(FoodbRequest request) async {
+  Future<FoodbServerResponse> _info(FoodbServerRequest request) async {
     final result = await db.info();
     return FoodbServerResponse(data: result.toJson());
   }
 
   // db.initDb
-  Future<FoodbServerResponse> _initDb(FoodbRequest request) async {
+  Future<FoodbServerResponse> _initDb(FoodbServerRequest request) async {
     return FoodbServerResponse(data: (await db.initDb()));
   }
 
   // db.put
-  Future<FoodbServerResponse> _put(FoodbRequest request) async {
+  Future<FoodbServerResponse> _put(FoodbServerRequest request) async {
     final result = await db.put(
       doc: Doc.fromJson(
           request.jsonBody ?? {}, (json) => json as Map<String, dynamic>),
@@ -246,7 +247,7 @@ abstract class FoodbServer {
   }
 
   // db.revsDiff
-  Future<FoodbServerResponse> _revsDiff(FoodbRequest request) async {
+  Future<FoodbServerResponse> _revsDiff(FoodbServerRequest request) async {
     final body = request.jsonBody?.entries.fold<Map<String, List<Rev>>>({},
             (result, entry) {
           result[entry.key] =
@@ -269,7 +270,7 @@ abstract class FoodbServer {
   }
 
   // db.revsLimit
-  Future<FoodbServerResponse> _revsLimit(FoodbRequest request) async {
+  Future<FoodbServerResponse> _revsLimit(FoodbServerRequest request) async {
     final result = await db.revsLimit(int.parse(request.body!));
     return FoodbServerResponse(data: {
       "ok": result,
@@ -277,13 +278,13 @@ abstract class FoodbServer {
   }
 
   // db.serverInfo
-  Future<FoodbServerResponse> _serverInfo(FoodbRequest request) async {
+  Future<FoodbServerResponse> _serverInfo(FoodbServerRequest request) async {
     final result = await db.serverInfo();
     return FoodbServerResponse(data: result.toJson());
   }
 
   // db.view
-  Future<FoodbServerResponse> _view(FoodbRequest request) async {
+  Future<FoodbServerResponse> _view(FoodbServerRequest request) async {
     final result = await db.view(
       request.pathParams?['ddocId'],
       request.pathParams?['viewId'],

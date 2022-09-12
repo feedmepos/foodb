@@ -38,7 +38,7 @@ class HttpFoodbServer extends FoodbServer {
     router.mount('/', (Request req) async {
       final bodyString = await req.readAsString();
       final request =
-          FoodbRequest.fromHttpRequest(request: req, body: bodyString);
+          FoodbServerRequest.fromHttpRequest(request: req, body: bodyString);
       final response = await handleRequest(request);
       if (response is Stream<List<int>>) {
         return Response(

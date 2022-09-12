@@ -20,7 +20,7 @@ void main() {
     final server = WebSocketFoodbServer(db);
     await server.start(port: 6987);
     final doc = await server
-        .handleRequest(FoodbRequest.fromWebSocketMessage(jsonEncode({
+        .handleRequest(FoodbServerRequest.fromWebSocketMessage(jsonEncode({
       'method': 'GET',
       'url':
           'http://127.0.0.1:6987/restaurant_61a9935e94eb2c001d618bc3/bill_2021-12-03T03:48:51.965Z_2emf',
@@ -146,7 +146,7 @@ void main() {
     expect(
       RouteMatcher.get(
         path: path,
-        request: FoodbRequest(
+        request: FoodbServerRequest(
             method: 'GET',
             uri: Uri.parse('http://localhost:3000/restaurant_1/_revs_diff')),
       ),
@@ -155,7 +155,7 @@ void main() {
     expect(
       RouteMatcher.get(
         path: path,
-        request: FoodbRequest(
+        request: FoodbServerRequest(
             method: 'POST',
             uri: Uri.parse('http://localhost:3000/restaurant_1/_revs_diff')),
       ),
@@ -164,7 +164,7 @@ void main() {
     expect(
       RouteMatcher.get(
         path: path,
-        request: FoodbRequest(
+        request: FoodbServerRequest(
             method: 'GET', uri: Uri.parse('http://localhost:3000/_revs_diff')),
       ),
       false,

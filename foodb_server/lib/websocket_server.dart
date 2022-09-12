@@ -17,7 +17,7 @@ class WebSocketFoodbServer extends FoodbServer {
     await super.start();
     final handler = webSocketHandler((WebSocketChannel websocket) {
       websocket.stream.listen((message) async {
-        final request = FoodbRequest.fromWebSocketMessage(message);
+        final request = FoodbServerRequest.fromWebSocketMessage(message);
         var response = await handleRequest(request);
         if (response.data is Stream<List<int>> && request.type == 'stream') {
           response.data.listen((event) {
