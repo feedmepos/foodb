@@ -4,12 +4,13 @@ import 'dart:io';
 import 'package:foodb_server/types.dart';
 import 'package:shelf_web_socket/shelf_web_socket.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
-import 'package:foodb_server/foodb_server.dart';
+import 'package:foodb_server/abstract_foodb_server.dart';
 import 'package:foodb/foodb.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 class WebSocketFoodbServer extends FoodbServer {
   WebSocketFoodbServer(Foodb db) : super(db);
+  HttpServer? _server;
 
   @override
   Future<void> start({int port = 6984}) async {
@@ -49,7 +50,12 @@ class WebSocketFoodbServer extends FoodbServer {
       });
     });
 
-    final server = await shelf_io.serve(handler, InternetAddress.anyIPv4, port);
-    print('Serving at ws://${server.address.host}:${server.port}');
+    _server = await shelf_io.serve(handler, InternetAddress.anyIPv4, port);
+    print('Serving at ws://${_server?.address.host}:${_server?.port}');
+  }
+
+  @override
+  Future<void> stop() async {
+    _server?.close();
   }
 }

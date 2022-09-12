@@ -149,7 +149,11 @@ class RouteMatcher {
     required FoodbRequest request,
   }) {
     final route = RouterEntry(method, path, () {});
-    return method == request.method && route.match(request.uri.path) != null;
+    var uriPath = request.uri.path;
+    if (uriPath.endsWith('/')) {
+      uriPath = uriPath.substring(0, uriPath.length - 1);
+    }
+    return method == request.method && route.match(uriPath) != null;
   }
 
   static bool get({

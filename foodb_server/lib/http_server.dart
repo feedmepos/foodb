@@ -6,7 +6,7 @@ import 'package:foodb_server/types.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
-import 'package:foodb_server/foodb_server.dart';
+import 'package:foodb_server/abstract_foodb_server.dart';
 import 'package:foodb/foodb.dart';
 
 FutureOr<Response> Function(Request) Function(
@@ -25,6 +25,7 @@ FutureOr<Response> Function(Request) Function(
 
 class HttpFoodbServer extends FoodbServer {
   HttpFoodbServer(Foodb db) : super(db);
+  HttpServer? _server;
 
   @override
   Future<void> start({int port = 6984}) async {
@@ -49,7 +50,12 @@ class HttpFoodbServer extends FoodbServer {
       }
     });
 
-    final server = await shelf_io.serve(handler, InternetAddress.anyIPv4, port);
-    print('Serving at http://${server.address.host}:${server.port}');
+    _server = await shelf_io.serve(handler, InternetAddress.anyIPv4, port);
+    print('Serving at http://${_server?.address.host}:${_server?.port}');
+  }
+
+  @override
+  Future<void> stop() async {
+    _server?.close();
   }
 }

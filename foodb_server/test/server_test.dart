@@ -2,8 +2,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:foodb/foodb.dart';
+import 'package:foodb_server/foodb_server.dart';
 import 'package:foodb_server/types.dart';
-import 'package:foodb_server/websocket_server.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -31,12 +31,12 @@ void main() {
 
   testFn(Future<void> Function(Foodb) fn) async {
     var types = [
-      // {
-      //   'client': Foodb.couchdb,
-      //   'server': (db) => HttpFoodbServer(db),
-      //   'port': 6987,
-      //   'protocol': 'http',
-      // },
+      {
+        'client': Foodb.couchdb,
+        'server': (db) => HttpFoodbServer(db),
+        'port': 6987,
+        'protocol': 'http',
+      },
       {
         'client': Foodb.websocket,
         'server': (db) => WebSocketFoodbServer(db),

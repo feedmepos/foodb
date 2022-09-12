@@ -3,6 +3,8 @@ import 'dart:math';
 
 import 'package:dotenv/dotenv.dart';
 import 'package:foodb/key_value_adapter.dart';
+import 'package:foodb_server/abstract_foodb_server.dart';
+import 'package:foodb_server/foodb_server.dart';
 import 'package:test/test.dart';
 import 'package:foodb/foodb.dart';
 
@@ -39,6 +41,53 @@ class CouchdbTestContext extends FoodbTestContext {
       String prefix = 'test-',
       bool autoCompaction = false}) async {
     return getCouchDb('$prefix$dbName', persist: persist ?? false);
+  }
+}
+
+class HttpServerCouchdbTestContext extends FoodbTestContext {
+  HttpFoodbServer? server;
+  Future<void> _setDb({required String prefix, required String dbName}) async {
+    var inMemoryDb = Foodb.keyvalue(
+      dbName: '$prefix$dbName',
+      keyValueDb: KeyValueAdapter.inMemory(),
+      autoCompaction: false,
+    );
+    await inMemoryDb.initDb();
+    server = HttpFoodbServer(inMemoryDb);
+    await server!.start(port: 6987);
+  }
+
+  @override
+  Future<Foodb> db(
+    String dbName, {
+    bool? persist,
+    String prefix = 'test-',
+    bool autoCompaction = false,
+  }) async {
+    if (server?.db.dbName != dbName) {
+      await server?.stop();
+      await _setDb(prefix: prefix, dbName: dbName);
+    }
+    var db = Foodb.couchdb(
+        dbName: dbName,
+        baseUri: Uri.parse(
+          'http://127.0.0.1:6987',
+        ));
+    if (persist == true) {
+      try {
+        await db.info();
+        await db.destroy();
+      } catch (err) {
+        //
+      }
+      await db.initDb();
+      addTearDown(() async {
+        await db.destroy();
+      });
+    } else {
+      await db.initDb();
+    }
+    return db;
   }
 }
 
