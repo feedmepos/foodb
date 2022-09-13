@@ -1,11 +1,34 @@
 @Timeout(Duration(seconds: 1000))
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:foodb/foodb.dart';
 import 'package:foodb_server/abstract_foodb_server.dart';
 import 'package:foodb_server/foodb_server.dart';
 import 'package:foodb_server/types.dart';
 import 'package:test/test.dart';
+
+import 'ssl/ssl_certs.dart';
+
+class HttpTrustSelfSignOverride extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..connectionTimeout = Duration(milliseconds: 3000)
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true;
+  }
+}
+
+SecurityContext getSecurityContext() {
+  final certChainBytes = getCertChainBytes();
+  final certKeyBytes = getCertKeyBytes();
+
+  return SecurityContext()
+    ..setTrustedCertificatesBytes(certChainBytes)
+    ..useCertificateChainBytes(certChainBytes)
+    ..usePrivateKeyBytes(certKeyBytes, password: 'dartdart');
+}
 
 void main() {
   test('url', () async {
@@ -38,39 +61,38 @@ void main() {
       {
         'client': (String dbName) => Foodb.couchdb(
               dbName: dbName,
-              baseUri: Uri.parse('http://admin:ieXZW5@127.0.0.1:6987'),
+              baseUri: Uri.parse('http://admin:machineId@127.0.0.1:6980'),
             ),
         'server': (Foodb db) => HttpFoodbServer(
               db: db,
               config: FoodbServerConfig(
-                username: 'admin',
-                password: 'ieXZW5',
-              ),
+                  username: 'admin',
+                  password: 'machineId',
+                  securityContext: getSecurityContext()),
             ),
-        'port': 6987,
-        'protocol': 'http',
+        'port': 6980,
       },
-      {
-        'client': (String dbName) => Foodb.websocket(
-              dbName: dbName,
-              baseUri: Uri.parse('ws://admin:ieXZW5@127.0.0.1:6988'),
-            ),
-        'server': (db) => WebSocketFoodbServer(
-              db: db,
-              config: FoodbServerConfig(
-                username: 'admin',
-                password: 'ieXZW5',
-              ),
-            ),
-        'port': 6988,
-        'protocol': 'ws'
-      },
+      // {
+      //   'client': (String dbName) => Foodb.websocket(
+      //         dbName: dbName,
+      //         baseUri: Uri.parse('ws://admin:machineId@127.0.0.1:6900'),
+      //       ),
+      //   'server': (db) => WebSocketFoodbServer(
+      //         db: db,
+      //         config: FoodbServerConfig(
+      //             username: 'admin',
+      //             password: 'machineId',
+      //             securityContext: getSecurityContext()),
+      //       ),
+      //   'port': 6900,
+      //   'protocol': 'ws',
+      // },
     ];
     final dbName = 'restaurant_61a9935e94eb2c001d618bc3';
     Foodb db = Foodb.couchdb(
         dbName: dbName,
         baseUri: Uri.parse(
-          'http://admin:ieXZW5@localhost:6984',
+          'http://admin:i0azNm@localhost:6984',
         ));
 
     for (final type in types) {
@@ -85,6 +107,7 @@ void main() {
   }
 
   test('client with http server get', () async {
+    HttpOverrides.global = HttpTrustSelfSignOverride();
     await testFn((client) async {
       final docId = 'bill_2022-03-17T10:37:41.941Z_b74d';
       print((await client.get(id: docId, fromJsonT: (v) => v))

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:foodb/foodb.dart';
 import 'package:foodb_server/types.dart';
@@ -7,7 +8,9 @@ import 'package:foodb_server/types.dart';
 class FoodbServerConfig {
   String? username;
   String? password;
-  FoodbServerConfig({required this.username, required this.password});
+  SecurityContext? securityContext;
+  FoodbServerConfig(
+      {required this.username, required this.password, this.securityContext});
 }
 
 abstract class FoodbServer {
