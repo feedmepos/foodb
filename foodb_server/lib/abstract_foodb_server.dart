@@ -210,12 +210,6 @@ abstract class FoodbServer {
       'since': request.queryParams['since'].toString(),
     });
     final streamController = StreamController<List<int>>();
-    Timer? timer;
-    if (changesRequest.feed == ChangeFeed.continuous) {
-      timer = Timer(Duration(milliseconds: changesRequest.heartbeat), () {
-        streamController.close();
-      });
-    }
     db.changesStream(
       changesRequest,
       onComplete: (response) {
@@ -227,10 +221,6 @@ abstract class FoodbServer {
       },
       onResult: (response) {
         if (changesRequest.feed == ChangeFeed.continuous) {
-          timer?.cancel();
-          timer = Timer(Duration(milliseconds: changesRequest.heartbeat), () {
-            streamController.close();
-          });
           streamController.sink.add(jsonEncode(response.toJson()).codeUnits);
         }
       },

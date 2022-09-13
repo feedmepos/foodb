@@ -39,20 +39,27 @@ class HttpFoodbServer extends FoodbServer {
         .addMiddleware(logRequests())
         .addHandler(router);
     router.mount('/', (Request req) async {
-      final bodyString = await req.readAsString();
-      final request =
-          FoodbServerRequest.fromHttpRequest(request: req, body: bodyString);
-      final response = await handleRequest(request);
-      if (response.data is Stream<List<int>>) {
+      try {
+        final bodyString = await req.readAsString();
+        final request =
+            FoodbServerRequest.fromHttpRequest(request: req, body: bodyString);
+        final response = await handleRequest(request);
+        if (response.data is Stream<List<int>>) {
+          return Response(
+            response.status ?? 200,
+            body: response.data,
+            context: {"shelf.io.buffer_output": false},
+          );
+        } else {
+          return Response(
+            response.status ?? 200,
+            body: jsonEncode(response.data),
+          );
+        }
+      } catch (err) {
         return Response(
-          response.status ?? 200,
-          body: response.data,
-          context: {"shelf.io.buffer_output": false},
-        );
-      } else {
-        return Response(
-          response.status ?? 200,
-          body: jsonEncode(response.data),
+          500,
+          body: jsonEncode(err.toString()),
         );
       }
     });
