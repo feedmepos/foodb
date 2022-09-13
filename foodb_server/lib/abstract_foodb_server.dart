@@ -21,6 +21,14 @@ abstract class FoodbServer {
     required this.config,
   });
 
+  int getServerPort(
+      {required int? port, required SecurityContext? securityContext}) {
+    if (port == null) {
+      return securityContext == null ? 6984 : 7984;
+    }
+    return port;
+  }
+
   Future<void> start() async {
     setRoutes([
       FoodbRoute.get(path: '/<dbId>', callback: _info),

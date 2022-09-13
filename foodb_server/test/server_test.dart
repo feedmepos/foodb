@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:dotenv/dotenv.dart';
 import 'package:foodb/foodb.dart';
 import 'package:foodb_server/abstract_foodb_server.dart';
 import 'package:foodb_server/foodb_server.dart';
@@ -57,11 +58,18 @@ void main() {
   });
 
   testFn(Future<void> Function(Foodb) fn) async {
+    load('.env');
+    final httpServerPortNo =
+        int.parse(env['DEV_HTTP_SERVER_PORT_NO'] ?? '6987');
+    final websocketServerPortNo =
+        int.parse(env['DEV_WEBSOCKET_SERVER_PORT_NO'] ?? '6988');
+
     var types = [
       {
         'client': (String dbName) => Foodb.couchdb(
               dbName: dbName,
-              baseUri: Uri.parse('http://admin:machineId@127.0.0.1:6980'),
+              baseUri: Uri.parse(
+                  'https://admin:machineId@127.0.0.1:$httpServerPortNo'),
             ),
         'server': (Foodb db) => HttpFoodbServer(
               db: db,
@@ -70,29 +78,33 @@ void main() {
                   password: 'machineId',
                   securityContext: getSecurityContext()),
             ),
-        'port': 6980,
+        'port': httpServerPortNo,
       },
-      // {
-      //   'client': (String dbName) => Foodb.websocket(
-      //         dbName: dbName,
-      //         baseUri: Uri.parse('ws://admin:machineId@127.0.0.1:6900'),
-      //       ),
-      //   'server': (db) => WebSocketFoodbServer(
-      //         db: db,
-      //         config: FoodbServerConfig(
-      //             username: 'admin',
-      //             password: 'machineId',
-      //             securityContext: getSecurityContext()),
-      //       ),
-      //   'port': 6900,
-      //   'protocol': 'ws',
-      // },
+      {
+        'client': (String dbName) => Foodb.websocket(
+              dbName: dbName,
+              baseUri: Uri.parse(
+                  'wss://admin:machineId@127.0.0.1:$websocketServerPortNo'),
+            ),
+        'server': (db) => WebSocketFoodbServer(
+              db: db,
+              config: FoodbServerConfig(
+                  username: 'admin',
+                  password: 'machineId',
+                  securityContext: getSecurityContext()),
+            ),
+        'port': websocketServerPortNo,
+      },
     ];
+
     final dbName = 'restaurant_61a9935e94eb2c001d618bc3';
+    final localCouchDbPassword = env['DEV_LOCAL_COUCH_DB_PASSWORD'] ??
+        'Enter Your Local Couch DB Password';
+
     Foodb db = Foodb.couchdb(
         dbName: dbName,
         baseUri: Uri.parse(
-          'http://admin:i0azNm@localhost:6984',
+          'http://admin:${localCouchDbPassword}@localhost:6984',
         ));
 
     for (final type in types) {
@@ -117,6 +129,7 @@ void main() {
   });
 
   test('client with http server changes normal', () async {
+    HttpOverrides.global = HttpTrustSelfSignOverride();
     await testFn((client) async {
       final completer = Completer();
       client.changesStream(

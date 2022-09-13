@@ -16,7 +16,10 @@ class WebSocketFoodbServer extends FoodbServer {
   HttpServer? _server;
 
   @override
-  Future<void> start({int port = 6984}) async {
+  Future<void> start({int? port}) async {
+    int serverPort =
+        getServerPort(port: port, securityContext: config?.securityContext);
+
     await super.start();
     final handler = webSocketHandler((WebSocketChannel websocket) {
       websocket.stream.listen((message) async {
@@ -53,9 +56,9 @@ class WebSocketFoodbServer extends FoodbServer {
       });
     });
 
-    _server = await shelf_io.serve(handler, InternetAddress.anyIPv4, port,
+    _server = await shelf_io.serve(handler, InternetAddress.anyIPv4, serverPort,
         securityContext: config?.securityContext);
-    print('Serving at ws://${_server?.address.host}:${_server?.port}');
+    print('Serving at ws://${_server?.address.host}:$serverPort');
   }
 
   @override
