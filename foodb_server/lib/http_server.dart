@@ -16,18 +16,18 @@ FutureOr<Response> Function(Request) Function(
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': '*',
   };
-  Response? _options(Request request) => (request.method == 'OPTIONS')
+  Response? options(Request request) => (request.method == 'OPTIONS')
       ? Response.ok(null, headers: corsHeaders)
       : null;
-  Response _cors(Response response) => response.change(headers: corsHeaders);
-  return createMiddleware(requestHandler: _options, responseHandler: _cors);
+  Response cors(Response response) => response.change(headers: corsHeaders);
+  return createMiddleware(requestHandler: options, responseHandler: cors);
 }
 
 class HttpFoodbServer extends FoodbServer {
   HttpFoodbServer({
-    required Foodb db,
+    required Future<Foodb> Function(String dbName) dbFactory,
     FoodbServerConfig? config,
-  }) : super(db: db, config: config);
+  }) : super(dbFactory: dbFactory, config: config);
   HttpServer? _server;
 
   @override

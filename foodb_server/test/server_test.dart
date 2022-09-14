@@ -39,11 +39,15 @@ void main() {
   });
 
   test('get', () async {
-    Foodb db = Foodb.couchdb(
-        dbName: 'restaurant_61a9935e94eb2c001d618bc3',
-        baseUri: Uri.parse('http://admin:ieXZW5@localhost:6984'));
+    Future<Foodb> dbFactory(dbName) async {
+      return Foodb.couchdb(
+        dbName: dbName,
+        baseUri: Uri.parse('http://admin:ieXZW5@localhost:6984'),
+      );
+    }
+
     final server = WebSocketFoodbServer(
-      db: db,
+      dbFactory: dbFactory,
       config: FoodbServerConfig(username: 'admin', password: 'secret'),
     );
     await server.start(port: 6987);
@@ -71,12 +75,13 @@ void main() {
               baseUri: Uri.parse(
                   'https://admin:machineId@127.0.0.1:$httpServerPortNo'),
             ),
-        'server': (Foodb db) => HttpFoodbServer(
-              db: db,
+        'server': (Future<Foodb> Function(String) dbFactory) => HttpFoodbServer(
+              dbFactory: dbFactory,
               config: FoodbServerConfig(
-                  username: 'admin',
-                  password: 'machineId',
-                  securityContext: getSecurityContext()),
+                username: 'admin',
+                password: 'machineId',
+                securityContext: getSecurityContext(),
+              ),
             ),
         'port': httpServerPortNo,
       },
@@ -86,12 +91,14 @@ void main() {
               baseUri: Uri.parse(
                   'wss://admin:machineId@127.0.0.1:$websocketServerPortNo'),
             ),
-        'server': (db) => WebSocketFoodbServer(
-              db: db,
+        'server': (Future<Foodb> Function(String) dbFactory) =>
+            WebSocketFoodbServer(
+              dbFactory: dbFactory,
               config: FoodbServerConfig(
-                  username: 'admin',
-                  password: 'machineId',
-                  securityContext: getSecurityContext()),
+                username: 'admin',
+                password: 'machineId',
+                securityContext: getSecurityContext(),
+              ),
             ),
         'port': websocketServerPortNo,
       },
@@ -101,14 +108,15 @@ void main() {
     final localCouchDbPassword = env['DEV_LOCAL_COUCH_DB_PASSWORD'] ??
         'Enter Your Local Couch DB Password';
 
-    Foodb db = Foodb.couchdb(
-        dbName: dbName,
-        baseUri: Uri.parse(
-          'http://admin:${localCouchDbPassword}@localhost:6984',
-        ));
-
     for (final type in types) {
-      final server = (type['server'] as dynamic)(db);
+      final server = (type['server'] as dynamic)((dbName) async {
+        return Foodb.couchdb(
+          dbName: dbName,
+          baseUri: Uri.parse(
+            'http://admin:${localCouchDbPassword}@localhost:6984',
+          ),
+        );
+      });
 
       await server.start(port: type['port']);
 

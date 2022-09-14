@@ -46,17 +46,19 @@ class CouchdbTestContext extends FoodbTestContext {
 
 class HttpServerCouchdbTestContext extends FoodbTestContext {
   HttpFoodbServer? server;
-  Future<void> _setDb(
-      {required String prefix,
-      required String dbName,
-      required bool autoCompaction}) async {
-    var inMemoryDb = Foodb.keyvalue(
-      dbName: '$prefix$dbName',
-      keyValueDb: KeyValueAdapter.inMemory(),
-      autoCompaction: autoCompaction,
-    );
-    await inMemoryDb.initDb();
-    server = HttpFoodbServer(db: inMemoryDb);
+  Future<void> _setServer({
+    required String prefix,
+    required bool autoCompaction,
+  }) async {
+    server = HttpFoodbServer(dbFactory: (dbName) async {
+      final db = Foodb.keyvalue(
+        dbName: '$prefix$dbName',
+        keyValueDb: KeyValueAdapter.inMemory(),
+        autoCompaction: autoCompaction,
+      );
+      await db.initDb();
+      return db;
+    });
     await server!.start(port: 6987);
   }
 
@@ -67,14 +69,11 @@ class HttpServerCouchdbTestContext extends FoodbTestContext {
     String prefix = 'test-',
     bool autoCompaction = false,
   }) async {
-    if (server?.db.dbName != dbName) {
-      await server?.stop();
-      await _setDb(
-        prefix: prefix,
-        dbName: dbName,
-        autoCompaction: autoCompaction,
-      );
-    }
+    await server?.stop();
+    await _setServer(
+      prefix: prefix,
+      autoCompaction: autoCompaction,
+    );
     var db = Foodb.couchdb(
         dbName: dbName,
         baseUri: Uri.parse(
@@ -101,17 +100,17 @@ class HttpServerCouchdbTestContext extends FoodbTestContext {
 
 class WebSocketServerCouchdbTestContext extends FoodbTestContext {
   WebSocketFoodbServer? server;
-  Future<void> _setDb(
-      {required String prefix,
-      required String dbName,
-      required bool autoCompaction}) async {
-    var inMemoryDb = Foodb.keyvalue(
-      dbName: '$prefix$dbName',
-      keyValueDb: KeyValueAdapter.inMemory(),
-      autoCompaction: autoCompaction,
-    );
-    await inMemoryDb.initDb();
-    server = WebSocketFoodbServer(db: inMemoryDb);
+  Future<void> _setServer(
+      {required String prefix, required bool autoCompaction}) async {
+    server = WebSocketFoodbServer(dbFactory: (dbName) async {
+      final db = Foodb.keyvalue(
+        dbName: '$prefix$dbName',
+        keyValueDb: KeyValueAdapter.inMemory(),
+        autoCompaction: autoCompaction,
+      );
+      await db.initDb();
+      return db;
+    });
     await server!.start(port: 6987);
   }
 
@@ -122,14 +121,11 @@ class WebSocketServerCouchdbTestContext extends FoodbTestContext {
     String prefix = 'test-',
     bool autoCompaction = false,
   }) async {
-    if (server?.db.dbName != dbName) {
-      await server?.stop();
-      await _setDb(
-        prefix: prefix,
-        dbName: dbName,
-        autoCompaction: autoCompaction,
-      );
-    }
+    await server?.stop();
+    await _setServer(
+      prefix: prefix,
+      autoCompaction: autoCompaction,
+    );
     var db = Foodb.websocket(
         dbName: dbName,
         baseUri: Uri.parse(

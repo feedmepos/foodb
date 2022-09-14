@@ -10,9 +10,9 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 class WebSocketFoodbServer extends FoodbServer {
   WebSocketFoodbServer({
-    required Foodb db,
+    required Future<Foodb> Function(String dbName) dbFactory,
     FoodbServerConfig? config,
-  }) : super(db: db, config: config);
+  }) : super(dbFactory: dbFactory, config: config);
   HttpServer? _server;
 
   @override
