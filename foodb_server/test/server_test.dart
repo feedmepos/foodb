@@ -51,7 +51,7 @@ void main() {
     final server = WebSocketFoodbServer(
       dbFactory: dbFactory,
       config: FoodbServerConfig(auths: [
-        DatabaseAuth(name: dbId, username: 'admin', password: 'secret')
+        DatabaseAuth(database: dbId, username: 'admin', password: 'secret')
       ]),
     );
     await server.start(port: 6987);
@@ -124,7 +124,7 @@ void main() {
         FoodbServerConfig(
           auths: [
             DatabaseAuth(
-              name: dbName,
+              database: dbName,
               username: 'admin',
               password: 'machineId',
             )

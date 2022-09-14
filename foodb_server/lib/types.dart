@@ -1,7 +1,35 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/src/router_entry.dart';
+
+class DatabaseAuth {
+  String database;
+  String username;
+  String password;
+  DatabaseAuth({
+    required this.database,
+    required this.username,
+    required this.password,
+  });
+
+  String get _authorization =>
+      'Basic ${base64.encode(utf8.encode('$username:$password'))}';
+
+  bool validate(String? authorization) {
+    return _authorization == authorization;
+  }
+}
+
+class FoodbServerConfig {
+  List<DatabaseAuth> auths;
+  SecurityContext? securityContext;
+  FoodbServerConfig({
+    required this.auths,
+    this.securityContext,
+  });
+}
 
 class FoodbServerResponse {
   int? status;

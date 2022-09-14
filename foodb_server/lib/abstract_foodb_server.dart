@@ -1,37 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:foodb/foodb.dart';
 import 'package:foodb_server/types.dart';
 import 'package:collection/collection.dart';
-
-class DatabaseAuth {
-  String name;
-  String username;
-  String password;
-  DatabaseAuth({
-    required this.name,
-    required this.username,
-    required this.password,
-  });
-
-  String get _authorization =>
-      'Basic ${base64.encode(utf8.encode('$username:$password'))}';
-
-  bool validate(String? authorization) {
-    return _authorization == authorization;
-  }
-}
-
-class FoodbServerConfig {
-  List<DatabaseAuth> auths;
-  SecurityContext? securityContext;
-  FoodbServerConfig({
-    required this.auths,
-    this.securityContext,
-  });
-}
 
 abstract class FoodbServer {
   final Future<Foodb> Function(String dbName) dbFactory;
@@ -111,7 +83,8 @@ abstract class FoodbServer {
 
   bool authorize(FoodbServerRequest request) {
     final dbId = request.pathParams?['dbId'];
-    final auth = config?.auths.firstWhereOrNull((auth) => auth.name == dbId);
+    final auth =
+        config?.auths.firstWhereOrNull((auth) => auth.database == dbId);
     if (auth == null) {
       return true;
     } else {
