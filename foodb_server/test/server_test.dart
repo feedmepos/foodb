@@ -51,7 +51,7 @@ void main() {
         .handleRequest(FoodbServerRequest.fromWebSocketMessage(jsonEncode({
       'method': 'GET',
       'url':
-          'http://127.0.0.1:6987/restaurant_61a9935e94eb2c001d618bc3/bill_2022-03-17T10:37:41.941Z_b74d',
+          'http://admin:secret@127.0.0.1:6987/restaurant_61a9935e94eb2c001d618bc3/bill_2022-03-17T10:37:41.941Z_b74d',
       'messageId': ''
     })));
     print(doc);

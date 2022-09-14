@@ -17,10 +17,9 @@ class WebSocketFoodbServer extends FoodbServer {
 
   @override
   Future<void> start({int? port}) async {
-    int serverPort =
-        getServerPort(port: port, securityContext: config?.securityContext);
+    int serverPort = getServerPort(port: port);
 
-    await super.start();
+    await super.init();
     final handler = webSocketHandler((WebSocketChannel websocket) {
       websocket.stream.listen((message) async {
         final request = FoodbServerRequest.fromWebSocketMessage(message);

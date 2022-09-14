@@ -21,15 +21,16 @@ abstract class FoodbServer {
     required this.config,
   });
 
-  int getServerPort(
-      {required int? port, required SecurityContext? securityContext}) {
+  int getServerPort({required int? port}) {
     if (port == null) {
-      return securityContext == null ? 6984 : 7984;
+      return config?.securityContext == null ? 6984 : 7984;
     }
     return port;
   }
 
-  Future<void> start() async {
+  Future<void> start({int port = 6984});
+
+  Future<void> init() async {
     setRoutes([
       FoodbRoute.get(path: '/<dbId>', callback: _info),
       FoodbRoute.get(path: '/<dbId>/_changes', callback: _changesStream),
@@ -327,6 +328,7 @@ abstract class FoodbServer {
           (json) => json as Map<String, dynamic>),
       newEdits: request.queryParams['new_edits'],
     );
+    final v = await db.get(id: id, fromJsonT: (v) => v);
     return FoodbServerResponse(data: result.toJson());
   }
 

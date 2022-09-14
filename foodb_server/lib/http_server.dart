@@ -32,10 +32,9 @@ class HttpFoodbServer extends FoodbServer {
 
   @override
   Future<void> start({int port = 6984}) async {
-    int serverPort =
-        getServerPort(port: port, securityContext: config?.securityContext);
+    int serverPort = getServerPort(port: port);
 
-    await super.start();
+    await super.init();
     final router = Router();
     final handler = Pipeline()
         .addMiddleware(getCorsMiddleware())
