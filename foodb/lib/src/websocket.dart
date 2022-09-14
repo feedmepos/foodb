@@ -64,7 +64,6 @@ class _WebSocketFoodb extends Foodb {
       }
       response.setStream(streamControllers[messageId]!.stream);
       completers[messageId]?.complete(response);
-      print(response.messageId);
       streamControllers[messageId]!.sink.add(jsonEncode(response.data));
     } else {
       completers[messageId]?.complete(response);
@@ -99,13 +98,13 @@ class _WebSocketFoodb extends Foodb {
     final completer = Completer();
     completers[messageId] = completer;
     WebSocketResponse result = await completer.future;
-    if (!hold) {
-      Future.delayed(Duration(seconds: timeoutSeconds), () {
-        completers.remove(messageId);
-        throw WebSocketFoodbServerException(
-            error: 'timeout ${timeoutSeconds}s');
-      });
-    }
+    // if (!hold) {
+    //   Future.delayed(Duration(seconds: timeoutSeconds), () {
+    //     completers.remove(messageId);
+    //     throw WebSocketFoodbServerException(
+    //         error: 'timeout ${timeoutSeconds}s');
+    //   });
+    // }
     if (result.status == 401) {
       throw WebSocketFoodbServerException(error: result.data['error']);
     }
