@@ -65,7 +65,11 @@ mixin _KeyValuePut on _AbstractKeyValue {
       Rev? inputRev,
       InternalDoc? winnerBeforeUpdate,
       Revisions? revisions}) {
-    Rev newRev = Rev(index: 0, md5: '0').increase(docToEncode);
+    Rev newRev = Rev(
+            index: 0,
+            md5: crypto.md5
+                .convert([DateTime.now().millisecondsSinceEpoch]).toString())
+        .increase(docToEncode);
     if (newEdits == true) {
       if (winnerBeforeUpdate != null) {
         newRev = winnerBeforeUpdate.rev.increase(docToEncode);
