@@ -46,7 +46,10 @@ class Rev {
   Rev increase(Map<String, dynamic> json) {
     return Rev(
         index: index + 1,
-        md5: crypto.md5.convert(utf8.encode(jsonEncode(json))).toString());
+        md5: crypto.md5
+            .convert(utf8
+                .encode(index.toString() + md5.toString() + jsonEncode(json)))
+            .toString());
   }
 
   @override
