@@ -80,7 +80,7 @@ class _NumEncoder extends _Encoder<num> {
       var factor = double.parse(expFormat[0]).abs();
       if (isNegative) factor = 10 - factor;
       var factorStr =
-          factor.toStringAsFixed(20).replaceAll(RegExp('\.?0+\$'), "");
+          factor.toStringAsFixed(20).replaceAll(RegExp(r'\.?0+$'), "");
       result += SEPERATOR + factorStr;
     }
 
