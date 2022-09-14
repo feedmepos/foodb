@@ -4,13 +4,33 @@ import 'dart:io';
 
 import 'package:foodb/foodb.dart';
 import 'package:foodb_server/types.dart';
+import 'package:collection/collection.dart';
+
+class DatabaseAuth {
+  String name;
+  String username;
+  String password;
+  DatabaseAuth({
+    required this.name,
+    required this.username,
+    required this.password,
+  });
+
+  String get _authorization =>
+      'Basic ${base64.encode(utf8.encode('$username:$password'))}';
+
+  bool validate(String? authorization) {
+    return _authorization == authorization;
+  }
+}
 
 class FoodbServerConfig {
-  String? username;
-  String? password;
+  List<DatabaseAuth> auths;
   SecurityContext? securityContext;
-  FoodbServerConfig(
-      {required this.username, required this.password, this.securityContext});
+  FoodbServerConfig({
+    required this.auths,
+    this.securityContext,
+  });
 }
 
 abstract class FoodbServer {
@@ -90,31 +110,28 @@ abstract class FoodbServer {
   }
 
   bool authorize(FoodbServerRequest request) {
-    final username = config?.username;
-    final password = config?.password;
-    if (username != null || password != null) {
-      String authorization =
-          'Basic ${base64.encode(utf8.encode('$username:$password'))}';
-      if (authorization != request.authorization) {
-        return false;
-      }
+    final dbId = request.pathParams?['dbId'];
+    final auth = config?.auths.firstWhereOrNull((auth) => auth.name == dbId);
+    if (auth == null) {
+      return true;
+    } else {
+      return auth.validate(request.authorization);
     }
-    return true;
   }
 
   Future<FoodbServerResponse> handleRequest(FoodbServerRequest request) async {
     for (final route in routes) {
-      final result = route.validate(request);
-      if (result) {
+      final validatedRequest = route.validate(request);
+      if (validatedRequest != null) {
         try {
-          final valid = authorize(request);
+          final valid = authorize(validatedRequest);
           if (!valid) {
             return FoodbServerResponse(
               status: 401,
               data: {"error": 'unauthorized', "reason": 'unauthorized'},
             );
           }
-          return await route.callback(request);
+          return await route.callback(validatedRequest);
         } catch (err) {
           if (err is AdapterException) {
             return FoodbServerResponse(

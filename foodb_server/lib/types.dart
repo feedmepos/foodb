@@ -12,16 +12,12 @@ class FoodbServerResponse {
 class FoodbRoute {
   String path;
   String method;
-  Future<FoodbServerResponse> Function(FoodbServerRequest) _callback;
+  Future<FoodbServerResponse> Function(FoodbServerRequest) callback;
   FoodbRoute({
     required this.path,
     required this.method,
-    required Future<FoodbServerResponse> Function(FoodbServerRequest) callback,
-  }) : _callback = callback;
-
-  Future<FoodbServerResponse> callback(FoodbServerRequest request) {
-    return _callback(request.setRoute(this));
-  }
+    required this.callback,
+  });
 
   factory FoodbRoute.get({
     required String path,
@@ -58,12 +54,17 @@ class FoodbRoute {
     return FoodbRoute(path: path, method: 'HEAD', callback: callback);
   }
 
-  bool validate(FoodbServerRequest request) {
-    return RouteMatcher.all(
+  FoodbServerRequest? validate(FoodbServerRequest request) {
+    final result = RouteMatcher.all(
       path: path,
       method: method,
       request: request,
     );
+    if (result) {
+      return request.setRoute(this);
+    } else {
+      return null;
+    }
   }
 }
 
