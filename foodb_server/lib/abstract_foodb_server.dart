@@ -342,8 +342,8 @@ abstract class FoodbServer {
   }
 
   Future<FoodbServerResponse> _revsLimit(FoodbServerRequest request) async {
-    final result =
-        await (await _getDb(request)).revsLimit(int.parse(request.body!));
+    final result = await (await _getDb(request)).revsLimit(
+        request.body is int ? request.body : int.parse(request.body!));
     return FoodbServerResponse(data: {
       "ok": result,
     });

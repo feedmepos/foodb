@@ -41,11 +41,12 @@ class _WebSocketFoodb extends Foodb {
   final String dbName;
   final Uri baseUri;
   late IOWebSocketChannel client;
-  int timeoutSeconds = 60;
+  final int timeoutSeconds;
   Map<String, Completer> completers = {};
   _WebSocketFoodb({
     required this.dbName,
     required this.baseUri,
+    this.timeoutSeconds = 60,
   }) : super(dbName: dbName) {
     client = IOWebSocketChannel.connect(baseUri);
     client.stream.listen((message) {
@@ -97,15 +98,18 @@ class _WebSocketFoodb extends Foodb {
     }));
     final completer = Completer();
     completers[messageId] = completer;
+    Timer? timer;
+    if (!hold) {
+      timer = Timer(Duration(seconds: timeoutSeconds), () {
+        completers.remove(messageId);
+        completer.completeError(WebSocketFoodbServerException(
+          error: 'timeout ${timeoutSeconds}s',
+        ));
+      });
+    }
     WebSocketResponse result = await completer.future;
-    // if (!hold) {
-    //   Future.delayed(Duration(seconds: timeoutSeconds), () {
-    //     completers.remove(messageId);
-    //     throw WebSocketFoodbServerException(
-    //         error: 'timeout ${timeoutSeconds}s');
-    //   });
-    // }
-    if (result.status == 401) {
+    timer?.cancel();
+    if (result.status > 400) {
       throw WebSocketFoodbServerException(error: result.data['error']);
     }
     return result;

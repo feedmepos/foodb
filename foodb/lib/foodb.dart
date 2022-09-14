@@ -126,10 +126,12 @@ abstract class Foodb {
   factory Foodb.websocket({
     required String dbName,
     required Uri baseUri,
+    int timeoutSeconds = 60,
   }) {
     return _WebSocketFoodb(
       dbName: dbName,
       baseUri: baseUri,
+      timeoutSeconds: timeoutSeconds,
     );
   }
 
