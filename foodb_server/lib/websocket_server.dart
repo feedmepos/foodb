@@ -55,8 +55,12 @@ class WebSocketFoodbServer extends FoodbServer {
       });
     });
 
-    _server = await shelf_io.serve(handler, InternetAddress.anyIPv4, serverPort,
-        securityContext: config?.securityContext);
+    _server = await shelf_io.serve(
+      handler,
+      InternetAddress.anyIPv4,
+      serverPort,
+      securityContext: config?.securityContext,
+    );
     print('Serving at ws://${_server?.address.host}:$serverPort');
   }
 

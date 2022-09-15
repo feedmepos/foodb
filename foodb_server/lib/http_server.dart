@@ -31,7 +31,7 @@ class HttpFoodbServer extends FoodbServer {
   HttpServer? _server;
 
   @override
-  Future<void> start({int port = 6984}) async {
+  Future<void> start({int? port}) async {
     int serverPort = getServerPort(port: port);
 
     await super.init();
@@ -66,8 +66,12 @@ class HttpFoodbServer extends FoodbServer {
       }
     });
 
-    _server = await shelf_io.serve(handler, InternetAddress.anyIPv4, serverPort,
-        securityContext: config?.securityContext);
+    _server = await shelf_io.serve(
+      handler,
+      InternetAddress.anyIPv4,
+      serverPort,
+      securityContext: config?.securityContext,
+    );
     print('Serving at http://${_server?.address.host}:$serverPort');
   }
 

@@ -30,7 +30,7 @@ abstract class FoodbServer {
     return port;
   }
 
-  Future<void> start({int port = 6984});
+  Future<void> start({int? port});
 
   Future<void> init() async {
     setRoutes([
