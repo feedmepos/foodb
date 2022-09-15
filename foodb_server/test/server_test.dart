@@ -60,12 +60,13 @@ void main() {
       'method': 'GET',
       'url':
           'http://admin:secret@127.0.0.1:6987/$dbId/bill_2022-03-17T10:37:41.941Z_b74d',
-      'messageId': ''
+      'id': ''
     })));
     print(doc);
   });
 
   testFn(Future<void> Function(Foodb) fn) async {
+    HttpOverrides.global = HttpTrustSelfSignOverride();
     load('.env');
     final httpServerPortNo =
         int.parse(env['DEV_HTTP_SERVER_PORT_NO'] ?? '6987');
@@ -111,7 +112,7 @@ void main() {
     final localCouchDbPassword = env['DEV_LOCAL_COUCH_DB_PASSWORD'] ??
         'Enter Your Local Couch DB Password';
 
-    for (final type in types) {
+    final promises = types.map((type) async {
       final server = (type['server'] as dynamic)(
         (dbName) async {
           return Foodb.couchdb(
@@ -138,11 +139,11 @@ void main() {
       final client = (type['client'] as dynamic)(dbName);
 
       await fn(client);
-    }
+    });
+    await Future.wait(promises);
   }
 
   test('client with http server get', () async {
-    HttpOverrides.global = HttpTrustSelfSignOverride();
     await testFn((client) async {
       final docId = 'bill_2022-03-17T10:37:41.941Z_b74d';
       print((await client.get(id: docId, fromJsonT: (v) => v))
@@ -152,14 +153,13 @@ void main() {
   });
 
   test('client with http server changes normal', () async {
-    HttpOverrides.global = HttpTrustSelfSignOverride();
     await testFn((client) async {
       final completer = Completer();
       client.changesStream(
         ChangeRequest(
             feed: ChangeFeed.normal,
             since:
-                '6782-g1AAAACueJzLYWBgYMxgTmGwT84vTc5ISXKA0row2lAPTUQvJbVMr7gsWS85p7S4JLVILyc_OTEnB2gQUyJDHgvDfyDIymBOYmCQqssFirKbpKYkWiaZUG5HFgCzvDuS'),
+                '4697-g1AAAACheJzLYWBgYMpgTmEQTM4vTc5ISXLIyU9OzMnILy7JAUklMiTV____PyuDOYmBgfNjLlCM3TzRIsXSyAybHjwm5bEASYYGIPUfbiBHBsTANMtEcwMjbFqzAIFcMec'),
         onComplete: (response) {
           print('onComplete ${response.toJson()}');
           completer.complete();
@@ -182,7 +182,7 @@ void main() {
         ChangeRequest(
             feed: ChangeFeed.longpoll,
             since:
-                '6782-g1AAAACueJzLYWBgYMxgTmGwT84vTc5ISXKA0row2lAPTUQvJbVMr7gsWS85p7S4JLVILyc_OTEnB2gQUyJDHgvDfyDIymBOYmCQqssFirKbpKYkWiaZUG5HFgCzvDuS'),
+                '4700-g1AAAACheJzLYWBgYMpgTmEQTM4vTc5ISXLIyU9OzMnILy7JAUklMiTV____PyuDOYmBgfNjLlCM3TzRIsXSyAybHjwm5bEASYYGIPUfbiBHNsTANMtEcwMjbFqzAIHCMeo'),
         onComplete: (response) {
           print('onComplete ${response.toJson()}');
           completer.complete();
@@ -205,7 +205,7 @@ void main() {
         ChangeRequest(
             feed: ChangeFeed.continuous,
             since:
-                '6782-g1AAAACueJzLYWBgYMxgTmGwT84vTc5ISXKA0row2lAPTUQvJbVMr7gsWS85p7S4JLVILyc_OTEnB2gQUyJDHgvDfyDIymBOYmCQqssFirKbpKYkWiaZUG5HFgCzvDuS'),
+                '4697-g1AAAACheJzLYWBgYMpgTmEQTM4vTc5ISXLIyU9OzMnILy7JAUklMiTV____PyuDOYmBgfNjLlCM3TzRIsXSyAybHjwm5bEASYYGIPUfbiBHBsTANMtEcwMjbFqzAIFcMec'),
         onComplete: (response) {
           print('onComplete ${response.toJson()}');
           completer.complete();

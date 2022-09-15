@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -23,32 +24,23 @@ class WebSocketFoodbServer extends FoodbServer {
     final handler = webSocketHandler((WebSocketChannel websocket) {
       websocket.stream.listen((message) async {
         final request = FoodbServerRequest.fromWebSocketMessage(message);
-        var response = await handleRequest(request);
-        if (response.data is Stream<List<int>> && request.type == 'stream') {
-          response.data.listen((event) {
+        final response = await handleRequest(request);
+        final responseData = response.data;
+        if (responseData is Stream<List<int>>) {
+          responseData.listen((event) {
             final data = jsonDecode(utf8.decode(event));
             websocket.sink.add(jsonEncode({
               'data': data,
-              'messageId': request.messageId,
-              'type': request.type,
-              'status': response.status ?? 200,
-            }));
-          });
-        } else if (response.data is Stream<List<int>>) {
-          response.data.listen((event) {
-            final data = jsonDecode(utf8.decode(event));
-            websocket.sink.add(jsonEncode({
-              'data': data,
-              'messageId': request.messageId,
-              'type': request.type,
+              'requestId': request.id,
+              'hold': request.hold,
               'status': response.status ?? 200,
             }));
           });
         } else {
           websocket.sink.add(jsonEncode({
-            'data': (response.data ?? {}),
-            'messageId': request.messageId,
-            'type': request.type,
+            'data': (responseData ?? {}),
+            'requestId': request.id,
+            'hold': request.hold,
             'status': response.status ?? 200
           }));
         }

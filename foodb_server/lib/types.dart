@@ -110,15 +110,15 @@ class FoodbServerRequest {
   String method;
   Uri uri;
   dynamic body;
-  String? messageId;
+  String? id;
   FoodbRoute? route;
-  String? type;
+  bool hold;
   String? authorization;
   FoodbServerRequest({
     required this.method,
     required this.uri,
-    this.type,
-    this.messageId,
+    this.hold = false,
+    this.id,
     this.body,
     this.authorization,
   });
@@ -166,8 +166,8 @@ class FoodbServerRequest {
       uri: Uri.parse(json['url']),
       body: json['body'],
       method: json['method'],
-      messageId: json['messageId'],
-      type: json['type'],
+      id: json['id'],
+      hold: json['hold'],
       authorization: (username != null || password != null)
           ? 'Basic ${base64.encode(utf8.encode('$username:$password'))}'
           : null,

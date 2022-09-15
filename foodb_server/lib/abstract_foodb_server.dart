@@ -32,8 +32,10 @@ abstract class FoodbServer {
 
   Future<void> start({int? port});
 
+  List<FoodbRoute> routes = [];
+
   Future<void> init() async {
-    setRoutes([
+    routes = [
       FoodbRoute.get(path: '/<dbId>', callback: _info),
       FoodbRoute.get(path: '/<dbId>/_changes', callback: _changesStream),
       FoodbRoute.get(path: '/', callback: _serverInfo),
@@ -70,16 +72,10 @@ abstract class FoodbServer {
       FoodbRoute.get(
           path: '/<dbId>/_local/<docId>',
           callback: (request) => _get(request, prefix: '_local')),
-    ]);
+    ];
   }
 
   Future<void> stop();
-
-  List<FoodbRoute> routes = [];
-
-  void setRoutes(List<FoodbRoute> newRoutes) {
-    routes = [...newRoutes];
-  }
 
   bool authorize(FoodbServerRequest request) {
     final dbId = request.pathParams?['dbId'];
@@ -208,7 +204,6 @@ abstract class FoodbServer {
      * long poll, onResult -> onComplete
      * continuous, onResult -> onResult -> onResult
      */
-    // TODO: handle heartbeat?
     final changesRequest = ChangeRequest.fromJson({
       ...request.queryParams,
       'since': request.queryParams['since'].toString(),
