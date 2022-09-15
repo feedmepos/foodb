@@ -42,7 +42,7 @@ void main() {
     Future<Foodb> dbFactory(dbName) async {
       return Foodb.couchdb(
         dbName: dbName,
-        baseUri: Uri.parse('http://admin:ieXZW5@localhost:6984'),
+        baseUri: Uri.parse('http://admin:i0azNm@localhost:6984'),
       );
     }
 
@@ -63,6 +63,76 @@ void main() {
       'messageId': ''
     })));
     print(doc);
+  });
+
+  test('websocket reconnect', () async {
+    Future<Foodb> dbFactory(dbName) async {
+      return Foodb.couchdb(
+        dbName: dbName,
+        baseUri: Uri.parse('http://admin:i0azNm@localhost:6984'),
+      );
+    }
+
+    final server = WebSocketFoodbServer(
+        dbFactory: dbFactory,
+        config: FoodbServerConfig(
+          auths: [
+            DatabaseAuth(
+              database: 'test-db',
+              username: 'admin',
+              password: 'machineId',
+            )
+          ],
+        ));
+
+    await server.start(port: 6987);
+
+    final client = Foodb.websocket(
+      dbName: 'test-db',
+      baseUri: Uri.parse('ws://admin:machineId@127.0.0.1:6987'),
+    );
+    final res2 = await client.get(id: '1', fromJsonT: (v) => v);
+    print(res2);
+
+    Timer(Duration(seconds: 5), () async {
+      print('server stopped');
+      await server.stop();
+    });
+    Timer(Duration(seconds: 10), () async {
+      final res2 = await client.get(id: '1', fromJsonT: (v) => v);
+      print(res2);
+    });
+
+    Timer(Duration(seconds: 15), () async {
+      final client = Foodb.websocket(
+        dbName: 'test-db',
+        baseUri: Uri.parse('ws://admin:machineId@127.0.0.1:6987'),
+      );
+      final res2 = await client.get(id: '1', fromJsonT: (v) => v);
+      print(res2);
+    });
+
+    Timer(Duration(seconds: 18), () async {
+      await server.start(port: 6987);
+      print('##########');
+      print('server restarted');
+      final res2 = await client.serverInfo();
+      print('res2');
+      print(res2.uuid);
+      print('##########');
+    });
+
+    await Completer().future;
+
+    // final res = await client.serverInfo();
+    // print('res');
+    // print(res.uuid);
+
+    //   await server.stop();
+
+    //   final res3 = await client.serverInfo();
+    //   print('res3');
+    //   print(res3.uuid);
   });
 
   testFn(Future<void> Function(Foodb) fn) async {
