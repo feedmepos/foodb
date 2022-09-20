@@ -1,13 +1,4 @@
-import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
-
-import 'package:foodb_server/types.dart';
-import 'package:shelf_web_socket/shelf_web_socket.dart';
-import 'package:shelf/shelf_io.dart' as shelf_io;
-import 'package:foodb_server/abstract_foodb_server.dart';
-import 'package:foodb/foodb.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
+part of './abstract_foodb_server.dart';
 
 class WebSocketFoodbServer extends FoodbServer {
   WebSocketFoodbServer({

@@ -1,13 +1,4 @@
-import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
-
-import 'package:foodb_server/types.dart';
-import 'package:shelf/shelf.dart';
-import 'package:shelf_router/shelf_router.dart';
-import 'package:shelf/shelf_io.dart' as shelf_io;
-import 'package:foodb_server/abstract_foodb_server.dart';
-import 'package:foodb/foodb.dart';
+part of './abstract_foodb_server.dart';
 
 FutureOr<Response> Function(Request) Function(
     FutureOr<Response> Function(Request)) getCorsMiddleware() {

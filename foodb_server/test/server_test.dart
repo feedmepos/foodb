@@ -48,7 +48,7 @@ void main() {
 
     final dbId = 'restaurant_61a9935e94eb2c001d618bc3';
 
-    final server = WebSocketFoodbServer(
+    final server = FoodbServer.websocket(
       dbFactory: dbFactory,
       config: FoodbServerConfig(auths: [
         DatabaseAuth(database: dbId, username: 'admin', password: 'secret')
@@ -84,7 +84,7 @@ void main() {
           Future<Foodb> Function(String) dbFactory,
           FoodbServerConfig config,
         ) =>
-            HttpFoodbServer(
+            FoodbServer.http(
               dbFactory: dbFactory,
               config: config,
             ),
@@ -100,7 +100,7 @@ void main() {
           Future<Foodb> Function(String) dbFactory,
           FoodbServerConfig config,
         ) =>
-            WebSocketFoodbServer(
+            FoodbServer.websocket(
               dbFactory: dbFactory,
               config: config,
             ),

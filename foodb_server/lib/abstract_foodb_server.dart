@@ -1,9 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:foodb/foodb.dart';
 import 'package:foodb_server/types.dart';
 import 'package:collection/collection.dart';
+import 'package:shelf/shelf.dart';
+import 'package:shelf_router/shelf_router.dart';
+import 'package:shelf/shelf_io.dart' as shelf_io;
+import 'package:shelf_web_socket/shelf_web_socket.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+
+part './websocket_server.dart';
+part './http_server.dart';
 
 abstract class FoodbServer {
   final Future<Foodb> Function(String dbName) dbFactory;
@@ -13,6 +22,20 @@ abstract class FoodbServer {
     required this.dbFactory,
     required this.config,
   });
+
+  factory FoodbServer.http({
+    required Future<Foodb> Function(String dbName) dbFactory,
+    required FoodbServerConfig? config,
+  }) {
+    return HttpFoodbServer(dbFactory: dbFactory, config: config);
+  }
+
+  factory FoodbServer.websocket({
+    required Future<Foodb> Function(String dbName) dbFactory,
+    required FoodbServerConfig? config,
+  }) {
+    return WebSocketFoodbServer(dbFactory: dbFactory, config: config);
+  }
 
   Future<Foodb> _getDb(FoodbServerRequest request) async {
     final dbId = request.pathParams?['dbId'] ?? '';
