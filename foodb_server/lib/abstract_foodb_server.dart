@@ -237,13 +237,13 @@ abstract class FoodbServer {
       onComplete: (response) {
         if (changesRequest.feed == ChangeFeed.normal ||
             changesRequest.feed == ChangeFeed.longpoll) {
-          streamController.sink.add(jsonEncode(response.toJson()).codeUnits);
+          streamController.sink.add(utf8.encode(jsonEncode(response.toJson())));
           streamController.close();
         }
       },
       onResult: (response) {
         if (changesRequest.feed == ChangeFeed.continuous) {
-          streamController.sink.add(jsonEncode(response.toJson()).codeUnits);
+          streamController.sink.add(utf8.encode(jsonEncode(response.toJson())));
         }
       },
       onError: (error, stacktrace) {
