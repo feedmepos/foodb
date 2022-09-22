@@ -74,8 +74,6 @@ testFn(Future<void> Function(Foodb) fn) async {
   ];
 
   final dbName = 'restaurant_61a9935e94eb2c001d618bc3';
-  final localCouchDbPassword = env['DEV_LOCAL_COUCH_DB_PASSWORD'] ??
-      'Enter Your Local Couch DB Password';
 
   for (final type in types) {
     final server = (type['server'] as dynamic)(
@@ -379,26 +377,34 @@ void main() {
         await completer.future;
       });
     });
+
     test('continuous', () async {
       await testFn((client) async {
-        final completer = Completer();
+        final newDocIdOne = 'doc_1';
+        final newDocIdTwo = 'doc_2';
+
+        var resultFn = expectAsync1<void, ChangeResult>((v) {
+          print(v.id);
+        }, count: 2);
+
         client.changesStream(
-          ChangeRequest(
-              feed: ChangeFeed.continuous,
-              since:
-                  '6782-g1AAAACueJzLYWBgYMxgTmGwT84vTc5ISXKA0row2lAPTUQvJbVMr7gsWS85p7S4JLVILyc_OTEnB2gQUyJDHgvDfyDIymBOYmCQqssFirKbpKYkWiaZUG5HFgCzvDuS'),
+          ChangeRequest(feed: ChangeFeed.continuous, since: 'now'),
           onComplete: (response) {
             print('onComplete ${response.toJson()}');
-            completer.complete();
           },
-          onResult: (response) {
-            print('onResult ${response.toJson()}');
-          },
+          onResult: resultFn,
           onError: (error, stacktrace) {
             print('onComplete $error $stacktrace');
           },
         );
-        await completer.future;
+        await Future.delayed(Duration(seconds: 2));
+        await client.put(
+          doc: Doc(id: newDocIdOne, model: {}),
+        );
+        await Future.delayed(Duration(seconds: 4));
+        await client.put(
+          doc: Doc(id: newDocIdTwo, model: {}),
+        );
       });
     });
   });
