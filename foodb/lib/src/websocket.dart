@@ -60,8 +60,9 @@ class _WebSocketFoodb extends Foodb {
   Map<String, StreamController> streamControllers = {};
 
   Future<void> _connectWebSocket() async {
+    client = IOWebSocketChannel.connect(baseUri);
     client.stream.listen((message) {
-      _handleResponse(jsonDecode(message));
+      _handleResponse(WebSocketResponse.fromJson(jsonDecode(message)));
     })
       ..onError((v) async {
         print('websocket onError');
