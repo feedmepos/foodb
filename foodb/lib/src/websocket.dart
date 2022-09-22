@@ -42,11 +42,13 @@ class _WebSocketFoodb extends Foodb {
   final Uri baseUri;
   late IOWebSocketChannel client;
   final int timeoutSeconds;
+  final int reconnectSeconds;
   Map<String, Completer> completers = {};
   _WebSocketFoodb({
     required this.dbName,
     required this.baseUri,
     this.timeoutSeconds = 60,
+    this.reconnectSeconds = 3,
   }) : super(dbName: dbName) {
     _connectWebSocket();
   }
@@ -57,15 +59,14 @@ class _WebSocketFoodb extends Foodb {
     client.stream.listen((message) {
       _handleMessage(jsonDecode(message));
     })
+      ..onError((v) async {
+        print('websocket onError');
+      })
       ..onDone(() async {
         print('websocket onDone');
         print('reconnecting');
+        await Future.delayed(Duration(seconds: reconnectSeconds));
         await _connectWebSocket();
-      })
-      ..onError((v) async {
-        print('websocket onError');
-        print('reconnecting');
-        // await _connectWebSocket();
       });
   }
 
