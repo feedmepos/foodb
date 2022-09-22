@@ -37,11 +37,20 @@ abstract class FoodbServer {
     return WebSocketFoodbServer(dbFactory: dbFactory, config: config);
   }
 
+  final Map<String, Completer> _getDbWaiters = {};
+
   Future<Foodb> _getDb(FoodbServerRequest request) async {
     final dbId = request.pathParams?['dbId'] ?? '';
+    if (_getDbWaiters[dbId] != null) {
+      await _getDbWaiters[dbId]?.future;
+    }
     if (!dbs.containsKey(dbId)) {
+      final completer = Completer();
+      _getDbWaiters[dbId] = completer;
       final db = await dbFactory(dbId);
       dbs[dbId] = db;
+      completer.complete();
+      _getDbWaiters.remove(dbId);
     }
     return dbs[dbId]!;
   }
