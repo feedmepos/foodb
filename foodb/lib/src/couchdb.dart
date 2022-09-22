@@ -119,7 +119,7 @@ class _CouchdbFoodb extends Foodb {
       // to close subscription stream,
       // must cancel subscription first before close http client
       //
-      // closing client before cancelling subscripntion 
+      // closing client before cancelling subscripntion
       // will have unclosed subscription
       await subscription?.cancel();
       changeClient.close();
@@ -146,6 +146,7 @@ class _CouchdbFoodb extends Foodb {
               (timer) {
             if (st.elapsedMilliseconds > request.heartbeat + 5000) {
               timer.cancel();
+              st.stop();
               _timer = null;
               throw new Exception('Heartbeat timed out');
             }
@@ -156,7 +157,6 @@ class _CouchdbFoodb extends Foodb {
         subscription = res.stream.transform(utf8.decoder).listen((event) {
           if (request.feed == ChangeFeed.continuous) {
             st.reset();
-            st.start();
             if (event.trim() != '') cache += event.trim();
             var items =
                 RegExp("^{\".*},?\n?\$", multiLine: true).allMatches(cache);
