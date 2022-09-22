@@ -13,26 +13,29 @@ class WebSocketFoodbServerException implements Exception {
 class WebSocketResponse {
   final dynamic data;
   final int status;
-  final String messageId;
-  final String? type;
-  late Stream? stream;
+  final String requestId;
+  final bool hold;
+  late StreamController? _streamController;
   WebSocketResponse({
     required this.data,
     required this.status,
-    required this.messageId,
-    required this.type,
+    required this.requestId,
+    this.hold = false,
   });
 
-  void setStream(Stream newStream) {
-    stream = newStream;
+  Stream? get stream => _streamController?.stream;
+
+  StreamController getStreamController({FutureOr<void> Function()? onCancel}) {
+    _streamController = StreamController(onCancel: onCancel);
+    return _streamController!;
   }
 
   static WebSocketResponse fromJson(Map<String, dynamic> json) {
     return WebSocketResponse(
       data: json['data'],
       status: json['status'] ?? 500,
-      messageId: json['messageId'],
-      type: json['type'],
+      requestId: json['requestId'],
+      hold: json['hold'],
     );
   }
 }
@@ -44,20 +47,21 @@ class _WebSocketFoodb extends Foodb {
   final int timeoutSeconds;
   final int reconnectSeconds;
   Map<String, Completer> completers = {};
+  Map<String, StreamController> streamResponses = {};
+
   _WebSocketFoodb({
     required this.dbName,
     required this.baseUri,
-    this.timeoutSeconds = 60,
-    this.reconnectSeconds = 3,
+    required this.reconnectSeconds,
+    required this.timeoutSeconds,
   }) : super(dbName: dbName) {
     _connectWebSocket();
   }
   Map<String, StreamController> streamControllers = {};
 
   Future<void> _connectWebSocket() async {
-    client = IOWebSocketChannel.connect(baseUri);
     client.stream.listen((message) {
-      _handleMessage(jsonDecode(message));
+      _handleResponse(jsonDecode(message));
     })
       ..onError((v) async {
         print('websocket onError');
@@ -70,21 +74,20 @@ class _WebSocketFoodb extends Foodb {
       });
   }
 
-  _handleMessage(message) {
-    final response = WebSocketResponse.fromJson(message);
-    final messageId = message['messageId'];
-    if (response.type == 'stream') {
-      if (streamControllers[messageId] == null) {
-        final streamController = StreamController();
-        streamControllers[messageId] = streamController;
+  void _handleResponse(WebSocketResponse response) {
+    final requestId = response.requestId;
+    if (response.hold) {
+      if (streamResponses[requestId] == null) {
+        streamResponses[requestId] = response.getStreamController(onCancel: () {
+          streamResponses.remove(requestId);
+        });
       }
-      response.setStream(streamControllers[messageId]!.stream);
-      completers[messageId]?.complete(response);
-      streamControllers[messageId]!.sink.add(jsonEncode(response.data));
+      completers[requestId]?.complete(response);
+      streamResponses[requestId]!.sink.add(jsonEncode(response.data));
     } else {
-      completers[messageId]?.complete(response);
+      completers[requestId]?.complete(response);
     }
-    completers.remove(messageId);
+    completers.remove(requestId);
   }
 
   Uri getUri(String path) {
@@ -103,20 +106,20 @@ class _WebSocketFoodb extends Foodb {
     bool hold = false,
     dynamic body,
   }) async {
-    final messageId = _uuid.v1();
+    final requestId = _uuid.v1();
     client.sink.add(jsonEncode({
       'method': method,
       'url': uriBuilder.build().toString(),
-      'messageId': messageId,
+      'id': requestId,
       'body': body,
-      'type': hold ? 'stream' : 'normal'
+      'hold': hold
     }));
     final completer = Completer();
-    completers[messageId] = completer;
+    completers[requestId] = completer;
     Timer? timer;
     if (!hold) {
       timer = Timer(Duration(seconds: timeoutSeconds), () {
-        completers.remove(messageId);
+        completers.remove(requestId);
         completer.completeError(WebSocketFoodbServerException(
           error: 'timeout ${timeoutSeconds}s',
         ));
@@ -159,60 +162,64 @@ class _WebSocketFoodb extends Foodb {
     Function(Object?, StackTrace? stackTrace) onError = defaultOnError,
   }) {
     StreamSubscription? subscription;
-    var streamedResponse = ChangesStream(onCancel: () {
+    final streamedResponse = ChangesStream(onCancel: () {
       subscription?.cancel();
     });
     runZonedGuarded(() async {
       UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_changes')));
       uriBuilder.queryParameters = convertToParams(request.toJson());
       if (request.feed == ChangeFeed.normal) {
-        var response = await _send(uriBuilder: uriBuilder, method: 'GET');
-        var changeRes = ChangeResponse.fromJson(response.data);
+        final response = await _send(uriBuilder: uriBuilder, method: 'GET');
+        final changeRes = ChangeResponse.fromJson(response.data);
         changeRes.results.forEach((element) => onResult?.call(element));
         onComplete?.call(changeRes);
       } else {
-        var res =
+        final response =
             await _send(uriBuilder: uriBuilder, method: 'GET', hold: true);
-        var streamedRes = res.stream;
         String cache = "";
         List<ChangeResult> _results = [];
-        subscription = streamedRes?.listen((event) {
-          if (request.feed == ChangeFeed.continuous) {
-            if (event.trim() != '') cache += event.trim();
-            var items =
-                RegExp("^{\".*},?\n?\$", multiLine: true).allMatches(cache);
-            if (items.isNotEmpty) {
-              var parseSuccess = false;
-              items.forEach((i) {
-                try {
-                  var json = jsonDecode(cache.substring(i.start, i.end).trim());
-                  if (json['id'] != null) {
-                    onResult?.call(ChangeResult.fromJson(json));
-                    parseSuccess = true;
-                  }
-                } catch (err) {}
-              });
-              if (parseSuccess) {
-                cache = '';
+        subscription = response.stream?.listen(
+          (event) {
+            if (request.feed == ChangeFeed.continuous) {
+              if (event.trim() != '') cache += event.trim();
+              final items =
+                  RegExp("^{\".*},?\n?\$", multiLine: true).allMatches(cache);
+              if (items.isNotEmpty) {
+                var parseSuccess = false;
+                items.forEach((i) {
+                  try {
+                    final json =
+                        jsonDecode(cache.substring(i.start, i.end).trim());
+                    if (json['id'] != null) {
+                      onResult?.call(ChangeResult.fromJson(json));
+                      parseSuccess = true;
+                    }
+                  } catch (err) {}
+                });
+                if (parseSuccess) {
+                  cache = '';
+                }
+              }
+            } else {
+              cache += event;
+              if (event.contains('last_seq')) {
+                Map<String, dynamic> map = jsonDecode(cache);
+                ChangeResponse changeResponse =
+                    new ChangeResponse(results: _results);
+                map['results'].forEach((r) {
+                  final result = ChangeResult.fromJson(r);
+                  changeResponse.results.add(result);
+                  onResult?.call(result);
+                });
+                changeResponse.lastSeq = map['last_seq'];
+                changeResponse.pending = map['pending'];
+                onComplete?.call(changeResponse);
+                streamedResponse.cancel();
               }
             }
-          } else {
-            cache += event;
-            if (event.contains('last_seq')) {
-              Map<String, dynamic> map = jsonDecode(cache);
-              ChangeResponse changeResponse =
-                  new ChangeResponse(results: _results);
-              map['results'].forEach((r) {
-                final result = ChangeResult.fromJson(r);
-                changeResponse.results.add(result);
-                onResult?.call(result);
-              });
-              changeResponse.lastSeq = map['last_seq'];
-              changeResponse.pending = map['pending'];
-              onComplete?.call(changeResponse);
-            }
-          }
-        }, onError: onError);
+          },
+          onError: onError,
+        );
       }
     }, (e, s) {
       streamedResponse.cancel();

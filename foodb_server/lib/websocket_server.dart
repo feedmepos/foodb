@@ -1,12 +1,4 @@
-import 'dart:convert';
-import 'dart:io';
-
-import 'package:foodb_server/types.dart';
-import 'package:shelf_web_socket/shelf_web_socket.dart';
-import 'package:shelf/shelf_io.dart' as shelf_io;
-import 'package:foodb_server/abstract_foodb_server.dart';
-import 'package:foodb/foodb.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
+part of './abstract_foodb_server.dart';
 
 class WebSocketFoodbServer extends FoodbServer {
   WebSocketFoodbServer({
@@ -23,32 +15,23 @@ class WebSocketFoodbServer extends FoodbServer {
     final handler = webSocketHandler((WebSocketChannel websocket) {
       websocket.stream.listen((message) async {
         final request = FoodbServerRequest.fromWebSocketMessage(message);
-        var response = await handleRequest(request);
-        if (response.data is Stream<List<int>> && request.type == 'stream') {
-          response.data.listen((event) {
+        final response = await handleRequest(request);
+        final responseData = response.data;
+        if (responseData is Stream<List<int>>) {
+          responseData.listen((event) {
             final data = jsonDecode(utf8.decode(event));
             websocket.sink.add(jsonEncode({
               'data': data,
-              'messageId': request.messageId,
-              'type': request.type,
-              'status': response.status ?? 200,
-            }));
-          });
-        } else if (response.data is Stream<List<int>>) {
-          response.data.listen((event) {
-            final data = jsonDecode(utf8.decode(event));
-            websocket.sink.add(jsonEncode({
-              'data': data,
-              'messageId': request.messageId,
-              'type': request.type,
+              'requestId': request.id,
+              'hold': request.hold,
               'status': response.status ?? 200,
             }));
           });
         } else {
           websocket.sink.add(jsonEncode({
-            'data': (response.data ?? {}),
-            'messageId': request.messageId,
-            'type': request.type,
+            'data': (responseData ?? {}),
+            'requestId': request.id,
+            'hold': request.hold,
             'status': response.status ?? 200
           }));
         }

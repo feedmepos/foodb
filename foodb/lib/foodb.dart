@@ -127,11 +127,13 @@ abstract class Foodb {
     required String dbName,
     required Uri baseUri,
     int timeoutSeconds = 60,
+    int reconnectSeconds = 3,
   }) {
     return _WebSocketFoodb(
       dbName: dbName,
       baseUri: baseUri,
       timeoutSeconds: timeoutSeconds,
+      reconnectSeconds: reconnectSeconds,
     );
   }
 
