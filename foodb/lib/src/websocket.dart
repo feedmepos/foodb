@@ -45,21 +45,37 @@ class _WebSocketFoodb extends Foodb {
   final Uri baseUri;
   late IOWebSocketChannel client;
   final int timeoutSeconds;
+  final int reconnectSeconds;
   Map<String, Completer> completers = {};
   Map<String, StreamController> streamResponses = {};
 
   _WebSocketFoodb({
     required this.dbName,
     required this.baseUri,
-    this.timeoutSeconds = 60,
+    required this.reconnectSeconds,
+    required this.timeoutSeconds,
   }) : super(dbName: dbName) {
+    _connectWebSocket();
+  }
+  Map<String, StreamController> streamControllers = {};
+
+  Future<void> _connectWebSocket() async {
     client = IOWebSocketChannel.connect(baseUri);
-    client.stream.listen((stringResponse) {
-      handleResponse(WebSocketResponse.fromJson(jsonDecode(stringResponse)));
-    });
+    client.stream.listen((message) {
+      _handleResponse(WebSocketResponse.fromJson(jsonDecode(message)));
+    })
+      ..onError((v) async {
+        print('websocket onError');
+      })
+      ..onDone(() async {
+        print('websocket onDone');
+        print('reconnecting');
+        await Future.delayed(Duration(seconds: reconnectSeconds));
+        await _connectWebSocket();
+      });
   }
 
-  void handleResponse(WebSocketResponse response) {
+  void _handleResponse(WebSocketResponse response) {
     final requestId = response.requestId;
     if (response.hold) {
       if (streamResponses[requestId] == null) {
