@@ -2,123 +2,29 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:dotenv/dotenv.dart';
 import 'package:foodb/foodb.dart';
 import 'package:foodb/key_value_adapter.dart';
 import 'package:foodb_server/foodb_server.dart';
 import 'package:test/test.dart';
-import 'ssl/ssl_certs.dart';
-
-List<Doc<Map<String, dynamic>>> mockDocs = [
-  Doc(id: '1', model: {}),
-];
-
-class HttpTrustSelfSignOverride extends HttpOverrides {
-  @override
-  HttpClient createHttpClient(SecurityContext? context) {
-    return super.createHttpClient(context)
-      ..connectionTimeout = Duration(milliseconds: 3000)
-      ..badCertificateCallback =
-          (X509Certificate cert, String host, int port) => true;
-  }
-}
-
-SecurityContext getSecurityContext() {
-  final certChainBytes = getCertChainBytes();
-  final certKeyBytes = getCertKeyBytes();
-
-  return SecurityContext()
-    ..setTrustedCertificatesBytes(certChainBytes)
-    ..useCertificateChainBytes(certChainBytes)
-    ..usePrivateKeyBytes(certKeyBytes, password: 'dartdart');
-}
-
-testFn(Future<void> Function(Foodb) fn) async {
-  final httpServerPortNo = int.parse(env['DEV_HTTP_SERVER_PORT_NO'] ?? '6987');
-  final websocketServerPortNo =
-      int.parse(env['DEV_WEBSOCKET_SERVER_PORT_NO'] ?? '6988');
-
-  var types = [
-    {
-      'client': (String dbName) => Foodb.couchdb(
-            dbName: dbName,
-            baseUri: Uri.parse(
-                'https://admin:machineId@127.0.0.1:$httpServerPortNo'),
-          ),
-      'server': (
-        Future<Foodb> Function(String) dbFactory,
-        FoodbServerConfig config,
-      ) =>
-          HttpFoodbServer(
-            dbFactory: dbFactory,
-            config: config,
-          ),
-      'port': httpServerPortNo,
-    },
-    {
-      'client': (String dbName) => Foodb.websocket(
-            dbName: dbName,
-            baseUri: Uri.parse(
-                'wss://admin:machineId@127.0.0.1:$websocketServerPortNo'),
-          ),
-      'server': (
-        Future<Foodb> Function(String) dbFactory,
-        FoodbServerConfig config,
-      ) =>
-          WebSocketFoodbServer(
-            dbFactory: dbFactory,
-            config: config,
-          ),
-      'port': websocketServerPortNo,
-    },
-  ];
-
-  final dbName = 'restaurant_61a9935e94eb2c001d618bc3';
-
-  for (final type in types) {
-    final server = (type['server'] as dynamic)(
-      (dbName) async {
-        final db = Foodb.keyvalue(
-          dbName: dbName,
-          keyValueDb: KeyValueAdapter.inMemory(),
-        );
-        await db.bulkDocs(body: mockDocs);
-        return db;
-        // return Foodb.couchdb(
-        //   dbName: dbName,
-        //   baseUri: Uri.parse(
-        //     'http://admin:${localCouchDbPassword}@localhost:6984',
-        //   ),
-        // );
-      },
-      FoodbServerConfig(
-        auths: [
-          DatabaseAuth(
-            database: dbName,
-            username: 'admin',
-            password: 'machineId',
-          )
-        ],
-        securityContext: getSecurityContext(),
-      ),
-    );
-
-    await server.start(port: type['port']);
-
-    final client = (type['client'] as dynamic)(dbName);
-
-    await fn(client);
-  }
-}
+import 'mock_data.dart';
+import 'utility.dart';
 
 void main() {
-  load('.env');
+  HttpOverrides.global = HttpTrustSelfSignOverride();
+
+  final ctx = ServerTestContext();
 
   group('utility test |', () {
-    test('url', () async {
-      final url = Uri.parse('http://127.0.0.1/db_id/doc_id?test=1');
-      url.queryParameters['test'];
-      url.pathSegments;
+    test('parse url', () async {
+      final url = Uri.parse('http://127.0.0.1/db_id/doc_id?testA=1&testB=2');
+      final queryParamA = url.queryParameters['testA'];
+      final queryParamB = url.queryParameters['testB'];
+      final pathSegment = url.pathSegments;
+
+      expect(queryParamA, '1');
+      expect(queryParamB, '2');
+      expect(pathSegment[0], 'db_id');
+      expect(pathSegment[1], 'doc_id');
     });
     test('test route match', () {
       final path = '/<db>/_revs_diff';
@@ -151,26 +57,49 @@ void main() {
       );
     });
   });
+  group('general test |', () {
+    test('get', () async {
+      Future<Foodb> dbFactory(dbName) async {
+        final db = Foodb.keyvalue(
+          dbName: dbName,
+          keyValueDb: KeyValueAdapter.inMemory(),
+        );
+        await db.bulkDocs(body: mockDocs);
+        return db;
+      }
 
+      final server = WebSocketFoodbServer(
+        dbFactory: dbFactory,
+        config: FoodbServerConfig(auths: [
+          DatabaseAuth(
+              database: ctx.dbId,
+              username: ctx.fooDbUsername,
+              password: ctx.fooDbPassword)
+        ]),
+      );
+
+      await server.start(port: ctx.fooDbPort);
+
+      final responseOne = await server
+          .handleRequest(FoodbServerRequest.fromWebSocketMessage(jsonEncode({
+        'method': 'GET',
+        'url':
+            'http://${ctx.fooDbUsername}:${ctx.fooDbPassword}@127.0.0.1:${ctx.fooDbPort}/${ctx.dbId}/${ctx.firstAvailableDocId}',
+        'messageId': '',
+        'hold': false,
+      })));
+      expect(responseOne.data['_id'], mockDocs[0].id);
+      await server.stop();
+    });
+  });
   group('websocket reconnect |', () {
-    final localDbName =
-        env['DEV_LOCAL_COUCH_DB_NAME'] ?? 'Enter Your Local Couch DB Name Here';
-    final localCouchDbPassword = env['DEV_LOCAL_COUCH_DB_PASSWORD'] ??
-        'Enter Your Local Couch DB Password Here';
-    final localDbPort = 6984;
-    final fooDbUsername = 'admin';
-    final fooDbPassword = 'machineId';
-    final fooDbPort = 6987;
-    final availableDocId = '1';
-    final unavailableDocId = 'qwerty';
-    final timeoutSeconds = 30;
-
     Future<Foodb> dbFactory(dbName) async {
       final db = Foodb.keyvalue(
         dbName: dbName,
         keyValueDb: KeyValueAdapter.inMemory(),
       );
-      await db.put(doc: Doc(id: availableDocId, model: {}));
+      await db.bulkDocs(body: mockDocs);
+      // await db.put(doc: Doc(id: ctx.firstAvailableDocId, model: {}));
       return db;
     }
 
@@ -179,9 +108,9 @@ void main() {
         config: FoodbServerConfig(
           auths: [
             DatabaseAuth(
-              database: localDbName,
-              username: 'admin',
-              password: 'machineId',
+              database: ctx.dbId,
+              username: ctx.fooDbUsername,
+              password: ctx.fooDbPassword,
             )
           ],
         ));
@@ -189,16 +118,17 @@ void main() {
     test(
         'start server > start client > client connects server with available doc',
         () async {
-      await server.start(port: fooDbPort);
+      await server.start(port: ctx.fooDbPort);
       print('server started');
 
       final client = Foodb.websocket(
-          dbName: localDbName,
+          dbName: ctx.dbId,
           baseUri: Uri.parse(
-              'ws://$fooDbUsername:$fooDbPassword@127.0.0.1:${fooDbPort.toString()}'),
-          timeoutSeconds: timeoutSeconds);
+              'ws://${ctx.fooDbUsername}:${ctx.fooDbPassword}@127.0.0.1:${ctx.fooDbPort.toString()}'),
+          timeoutSeconds: ctx.timeoutSeconds);
 
-      final res = await client.get(id: availableDocId, fromJsonT: (v) => v);
+      final res =
+          await client.get(id: ctx.firstAvailableDocId, fromJsonT: (v) => v);
       expect(res, isNotNull);
       await server.stop();
     });
@@ -206,16 +136,17 @@ void main() {
     test(
         'start server > start client > client connects server with unavailable doc',
         () async {
-      await server.start(port: fooDbPort);
+      await server.start(port: ctx.fooDbPort);
       print('server started');
 
       final client = Foodb.websocket(
-          dbName: localDbName,
+          dbName: ctx.dbId,
           baseUri: Uri.parse(
-              'ws://$fooDbUsername:$fooDbPassword@127.0.0.1:${fooDbPort}'),
-          timeoutSeconds: timeoutSeconds);
+              'ws://${ctx.fooDbUsername}:${ctx.fooDbPassword}@127.0.0.1:${ctx.fooDbPort.toString()}'),
+          timeoutSeconds: ctx.timeoutSeconds);
 
-      final res = await client.get(id: unavailableDocId, fromJsonT: (v) => v);
+      final res =
+          await client.get(id: ctx.unavailableDocId, fromJsonT: (v) => v);
       expect(res, isNull);
       await server.stop();
     });
@@ -226,68 +157,123 @@ void main() {
       print('no server started');
 
       final client = Foodb.websocket(
-          dbName: localDbName,
+          dbName: ctx.dbId,
           baseUri: Uri.parse(
-              'ws://$fooDbUsername:$fooDbPassword@127.0.0.1:${fooDbPort}'),
-          timeoutSeconds: timeoutSeconds);
+              'ws://${ctx.fooDbUsername}:${ctx.fooDbPassword}@127.0.0.1:${ctx.fooDbPort.toString()}'),
+          timeoutSeconds: ctx.timeoutSeconds);
 
       expect(() async {
-        await client.get(id: availableDocId, fromJsonT: (v) => v);
+        try {
+          await client.get(id: ctx.firstAvailableDocId, fromJsonT: (v) => v);
+        } catch (e) {
+          print(e);
+          rethrow;
+        }
       }, throwsException);
-
-      await server.stop();
     });
 
     test(
-        'TODO: start server > start client > client connects server > stop server > client reconnects > should get nothing',
+        'start server > start client > client connects server > stop server > client reconnects > should get nothing',
         () async {
-      await server.start(port: fooDbPort);
+      await server.start(port: ctx.fooDbPort);
       print('server started');
 
       final client = Foodb.websocket(
-          dbName: localDbName,
+          dbName: ctx.dbId,
           baseUri: Uri.parse(
-              'ws://$fooDbUsername:$fooDbPassword@127.0.0.1:${fooDbPort.toString()}'),
-          timeoutSeconds: timeoutSeconds);
+              'ws://${ctx.fooDbUsername}:${ctx.fooDbPassword}@127.0.0.1:${ctx.fooDbPort.toString()}'),
+          timeoutSeconds: ctx.timeoutSeconds);
 
-      final res = await client.get(id: availableDocId, fromJsonT: (v) => v);
+      final res =
+          await client.get(id: ctx.firstAvailableDocId, fromJsonT: (v) => v);
       expect(res, isNotNull);
+
       await server.stop();
       print('server stopped');
 
-      final res2 = await client.get(id: availableDocId, fromJsonT: (v) => v);
+      expect(() async {
+        try {
+          await client.get(id: ctx.firstAvailableDocId, fromJsonT: (v) => v);
+        } catch (e) {
+          print(e);
+          rethrow;
+        }
+      }, throwsException);
 
-      // TODO: should get null
-      // expect(res2, isNull);
+      await Future.delayed(Duration(seconds: 5));
+      await server.start(port: ctx.fooDbPort);
+      await Future.delayed(Duration(seconds: 5));
+
+      final res2 = await client.get(id: '2', fromJsonT: (v) => v);
+      expect(res2?.id, '2');
       await server.stop();
     });
 
     test(
-        'start server > start client > client connects server > stop server > new client connect > timeout exception',
+        'start server > start client > client starts change stream > stop server > close change stream',
         () async {
-      await server.start(port: fooDbPort);
+      await server.start(port: ctx.fooDbPort);
       print('server started');
 
       final client = Foodb.websocket(
-          dbName: localDbName,
+          dbName: ctx.dbId,
           baseUri: Uri.parse(
-              'ws://$fooDbUsername:$fooDbPassword@127.0.0.1:${fooDbPort.toString()}'),
-          timeoutSeconds: timeoutSeconds);
+              'ws://${ctx.fooDbUsername}:${ctx.fooDbPassword}@127.0.0.1:${ctx.fooDbPort.toString()}'),
+          timeoutSeconds: ctx.timeoutSeconds);
+      final completer = Completer();
 
-      final res = await client.get(id: availableDocId, fromJsonT: (v) => v);
+      client.changesStream(
+        ChangeRequest(feed: ChangeFeed.continuous, since: 'now'),
+        onComplete: (response) {
+          print('onComplete ${response.toJson()}');
+        },
+        onResult: (response) {
+          //
+        },
+        onError: (error, stacktrace) {
+          print('onError $error $stacktrace');
+          expect(error, isNotNull);
+          completer.complete();
+        },
+      );
+
+      await Future.delayed(Duration(seconds: 5));
+      await server.stop();
+      await completer.future;
+    });
+
+    test(
+        'start server > start client > client connects server > stop server > new client connect > throw disconnect error',
+        () async {
+      await server.start(port: ctx.fooDbPort);
+      print('server started');
+
+      final client = Foodb.websocket(
+          dbName: ctx.dbId,
+          baseUri: Uri.parse(
+              'ws://${ctx.fooDbUsername}:${ctx.fooDbPassword}@127.0.0.1:${ctx.fooDbPort.toString()}'),
+          timeoutSeconds: ctx.timeoutSeconds);
+
+      final res =
+          await client.get(id: ctx.firstAvailableDocId, fromJsonT: (v) => v);
       expect(res, isNotNull);
       await server.stop();
       print('server stopped');
 
       print('connect with new client');
       final newClient = Foodb.websocket(
-          dbName: localDbName,
+          dbName: ctx.dbId,
           baseUri: Uri.parse(
-              'ws://$fooDbUsername:$fooDbPassword@127.0.0.1:${fooDbPort.toString()}'),
-          timeoutSeconds: 30);
+              'ws://${ctx.fooDbUsername}:${ctx.fooDbPassword}@127.0.0.1:${ctx.fooDbPort.toString()}'),
+          timeoutSeconds: ctx.timeoutSeconds);
 
       expect(() async {
-        await newClient.get(id: availableDocId, fromJsonT: (v) => v);
+        try {
+          await client.get(id: ctx.firstAvailableDocId, fromJsonT: (v) => v);
+        } catch (e) {
+          print(e);
+          rethrow;
+        }
       }, throwsException);
       await server.stop();
     });
@@ -296,41 +282,43 @@ void main() {
         'start server > start client > client connects server > stop server > restart server after 10s > old and new client connect',
         () async {
       await server.stop();
-      await server.start(port: fooDbPort);
+      await server.start(port: ctx.fooDbPort);
       print('server started');
 
       final client = Foodb.websocket(
-          dbName: localDbName,
+          dbName: ctx.dbId,
           baseUri: Uri.parse(
-              'ws://$fooDbUsername:$fooDbPassword@127.0.0.1:${fooDbPort.toString()}'),
-          timeoutSeconds: timeoutSeconds);
+              'ws://${ctx.fooDbUsername}:${ctx.fooDbPassword}@127.0.0.1:${ctx.fooDbPort.toString()}'),
+          timeoutSeconds: ctx.timeoutSeconds);
 
-      final res = await client.get(id: availableDocId, fromJsonT: (v) => v);
+      final res =
+          await client.get(id: ctx.firstAvailableDocId, fromJsonT: (v) => v);
       expect(res, isNotNull);
       server.stop();
       print('server stopped');
 
       await Future.delayed(Duration(seconds: 10));
-      server.start(port: fooDbPort);
+      server.start(port: ctx.fooDbPort);
       print('server restarted');
 
       print('connect with old client');
-      final res2 = await client.get(id: availableDocId, fromJsonT: (v) => v);
+      final res2 =
+          await client.get(id: ctx.firstAvailableDocId, fromJsonT: (v) => v);
       expect(res2, isNotNull);
 
       print('connect with new client');
       final newClient = Foodb.websocket(
-          dbName: localDbName,
+          dbName: ctx.dbId,
           baseUri: Uri.parse(
-              'ws://$fooDbUsername:$fooDbPassword@127.0.0.1:${fooDbPort.toString()}'),
-          timeoutSeconds: timeoutSeconds);
-      final res3 = await newClient.get(id: availableDocId, fromJsonT: (v) => v);
+              'ws://${ctx.fooDbUsername}:${ctx.fooDbPassword}@127.0.0.1:${ctx.fooDbPort.toString()}'),
+          timeoutSeconds: ctx.timeoutSeconds);
+      final res3 =
+          await newClient.get(id: ctx.firstAvailableDocId, fromJsonT: (v) => v);
       expect(res3, isNotNull);
+      await server.stop();
     });
   });
-
   group('change stream | client with http server changes | ', () {
-    HttpOverrides.global = HttpTrustSelfSignOverride();
     test('normal', () async {
       await testFn((client) async {
         final completer = Completer();
@@ -406,38 +394,6 @@ void main() {
           doc: Doc(id: newDocIdTwo, model: {}),
         );
       });
-    });
-  });
-
-  group('general test |', () {
-    test('get', () async {
-      final dbId = 'restaurant_61a9935e94eb2c001d618bc3';
-      List<Doc<Map<String, dynamic>>> mockDocs = [
-        Doc(id: '1', model: {}),
-      ];
-      Future<Foodb> dbFactory(dbName) async {
-        final db = Foodb.keyvalue(
-          dbName: dbName,
-          keyValueDb: KeyValueAdapter.inMemory(),
-        );
-        await db.bulkDocs(body: mockDocs);
-        return db;
-      }
-
-      final server = WebSocketFoodbServer(
-        dbFactory: dbFactory,
-        config: FoodbServerConfig(auths: [
-          DatabaseAuth(database: dbId, username: 'admin', password: 'secret')
-        ]),
-      );
-      await server.start(port: 6987);
-      final response = await server
-          .handleRequest(FoodbServerRequest.fromWebSocketMessage(jsonEncode({
-        'method': 'GET',
-        'url': 'http://admin:secret@127.0.0.1:6987/$dbId/1',
-        'messageId': ''
-      })));
-      expect(response.data['_id'], mockDocs[0].id);
     });
   });
 }

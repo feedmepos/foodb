@@ -6,6 +6,7 @@ class WebSocketFoodbServer extends FoodbServer {
     FoodbServerConfig? config,
   }) : super(dbFactory: dbFactory, config: config);
   HttpServer? _server;
+  List<WebSocketChannel> websockets = [];
 
   @override
   Future<void> start({int? port}) async {
@@ -14,6 +15,7 @@ class WebSocketFoodbServer extends FoodbServer {
     await super.init();
     final handler = webSocketHandler((WebSocketChannel websocket) {
       StreamSubscription<List<int>>? continuousStream;
+      websockets.add(websocket);
       websocket.stream.listen((message) async {
         final request = FoodbServerRequest.fromWebSocketMessage(message);
         final response = await handleRequest(request);
@@ -57,6 +59,9 @@ class WebSocketFoodbServer extends FoodbServer {
 
   @override
   Future<void> stop() async {
+    for (var websocket in websockets) {
+      await websocket.sink.close();
+    }
     await _server?.close();
   }
 }
