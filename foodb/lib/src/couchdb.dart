@@ -89,6 +89,8 @@ class _CouchdbFoodb extends Foodb {
     return ChangeResponse.fromJson(jsonDecode(res.body));
   }
 
+  static Timer? _timer;
+
   @override
   ChangesStream changesStream(
     ChangeRequest request, {
@@ -98,9 +100,14 @@ class _CouchdbFoodb extends Foodb {
   }) {
     var changeClient = getClient();
     StreamSubscription? subscription;
-    var streamedResponse = ChangesStream(onCancel: () {
+    var streamedResponse = ChangesStream(onCancel: () async {
+      // to close subscription stream,
+      // must cancel subscription first before close http client
+      //
+      // closing client before cancelling subscripntion
+      // will have unclosed subscription
+      await subscription?.cancel();
       changeClient.close();
-      subscription?.cancel();
     });
     runZonedGuarded(() async {
       UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_changes')));
@@ -113,11 +120,28 @@ class _CouchdbFoodb extends Foodb {
       } else {
         var res =
             await changeClient.send(http.Request('get', uriBuilder.build()));
-        var streamedRes = res.stream.transform(utf8.decoder);
         String cache = "";
         List<ChangeResult> _results = [];
-        subscription = streamedRes.listen((event) {
+
+        final st = Stopwatch();
+
+        if (request.feed == ChangeFeed.continuous) {
+          _timer?.cancel();
+          _timer = Timer.periodic(Duration(milliseconds: request.heartbeat),
+              (timer) {
+            if (st.elapsedMilliseconds > request.heartbeat + 5000) {
+              timer.cancel();
+              st.stop();
+              _timer = null;
+              throw new Exception('Heartbeat timed out');
+            }
+          });
+          st.start();
+        }
+
+        subscription = res.stream.transform(utf8.decoder).listen((event) {
           if (request.feed == ChangeFeed.continuous) {
+            st.reset();
             if (event.trim() != '') cache += event.trim();
             var items =
                 RegExp("^{\".*},?\n?\$", multiLine: true).allMatches(cache);
@@ -154,8 +178,8 @@ class _CouchdbFoodb extends Foodb {
           }
         }, onError: onError);
       }
-    }, (e, s) {
-      streamedResponse.cancel();
+    }, (e, s) async {
+      await streamedResponse.cancel();
       onError(e, s);
     });
 
