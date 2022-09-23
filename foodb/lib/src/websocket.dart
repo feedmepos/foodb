@@ -68,7 +68,13 @@ class _WebSocketFoodb extends Foodb {
         print('websocket onError');
       })
       ..onDone(() async {
-        print('websocket onDone');
+        for (final completer in completers.values) {
+          completer.completeError(WebSocketFoodbServerException(
+            error: 'disconnected',
+          ));
+        }
+        completers.clear();
+        print('websocket onDone (disconnected)');
         print('reconnecting');
         await Future.delayed(Duration(seconds: reconnectSeconds));
         await _connectWebSocket();
@@ -121,7 +127,7 @@ class _WebSocketFoodb extends Foodb {
     if (!hold) {
       timer = Timer(Duration(seconds: timeoutSeconds), () {
         completers.remove(requestId);
-        completer.completeError(WebSocketFoodbServerException(
+        completers[requestId]?.completeError(WebSocketFoodbServerException(
           error: 'timeout ${timeoutSeconds}s',
         ));
       });

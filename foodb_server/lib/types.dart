@@ -167,7 +167,7 @@ class FoodbServerRequest {
       body: json['body'],
       method: json['method'],
       id: json['id'],
-      hold: json['hold'],
+      hold: json['hold'] ?? false,
       authorization: (username != null || password != null)
           ? 'Basic ${base64.encode(utf8.encode('$username:$password'))}'
           : null,
