@@ -242,6 +242,18 @@ abstract class FoodbServer {
       'since': request.queryParams['since'].toString(),
     });
     final streamController = StreamController<List<int>>();
+
+    Timer? continuousHeartbeat;
+    if (changesRequest.feed == ChangeFeed.continuous) {
+      continuousHeartbeat ??=
+          Timer.periodic(Duration(milliseconds: changesRequest.heartbeat), (_) {
+        streamController.sink.add([10]);
+      });
+      streamController.onCancel = () {
+        continuousHeartbeat?.cancel();
+      };
+    }
+
     (await _getDb(request)).changesStream(
       changesRequest,
       onComplete: (response) {
@@ -253,16 +265,15 @@ abstract class FoodbServer {
       },
       onResult: (response) {
         if (changesRequest.feed == ChangeFeed.continuous) {
-          streamController.sink.add(utf8.encode(response.id != 'heartbeat'
-              ? jsonEncode(response.toJson())
-              : '\n'));
+          streamController.sink.add(utf8.encode(jsonEncode(response.toJson())));
         }
       },
-      onError: (error, stacktrace) {
-        streamController.close();
+      onError: (error, stacktrace) async {
+        await streamController.close();
       },
     );
-    return FoodbServerResponse(data: streamController.stream);
+
+    return FoodbServerResponse(data: streamController);
   }
 
   Future<FoodbServerResponse> _compact(FoodbServerRequest request) async {

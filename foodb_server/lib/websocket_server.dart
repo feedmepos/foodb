@@ -13,19 +13,24 @@ class WebSocketFoodbServer extends FoodbServer {
 
     await super.init();
     final handler = webSocketHandler((WebSocketChannel websocket) {
+      StreamSubscription<List<int>>? continuousStream;
       websocket.stream.listen((message) async {
         final request = FoodbServerRequest.fromWebSocketMessage(message);
         final response = await handleRequest(request);
         final responseData = response.data;
-        if (responseData is Stream<List<int>>) {
-          responseData.listen((event) {
-            final data = jsonDecode(utf8.decode(event));
+        if (responseData is StreamController<List<int>>) {
+          continuousStream = responseData.stream.listen(null);
+          continuousStream!.onData((event) {
+            final dataStr = utf8.decode(event);
             websocket.sink.add(jsonEncode({
-              'data': data,
+              'data': dataStr == '\n' ? dataStr : jsonDecode(dataStr),
               'requestId': request.id,
               'hold': request.hold,
               'status': response.status ?? 200,
             }));
+          });
+          continuousStream!.onError((e, s) {
+            print('webssocket route stream error: $e $s');
           });
         } else {
           websocket.sink.add(jsonEncode({
@@ -35,6 +40,9 @@ class WebSocketFoodbServer extends FoodbServer {
             'status': response.status ?? 200
           }));
         }
+      }, onDone: () {
+        continuousStream?.cancel();
+        print('websocket connection on done');
       });
     });
 
