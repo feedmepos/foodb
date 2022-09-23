@@ -2,7 +2,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:dotenv/dotenv.dart';
 import 'package:foodb/foodb.dart';
 import 'package:foodb/key_value_adapter.dart';
 import 'package:foodb_server/foodb_server.dart';
@@ -99,8 +98,8 @@ void main() {
         dbName: dbName,
         keyValueDb: KeyValueAdapter.inMemory(),
       );
-      // await db.bulkDocs(body: mockDocs);
-      await db.put(doc: Doc(id: ctx.firstAvailableDocId, model: {}));
+      await db.bulkDocs(body: mockDocs);
+      // await db.put(doc: Doc(id: ctx.firstAvailableDocId, model: {}));
       return db;
     }
 
@@ -164,14 +163,17 @@ void main() {
           timeoutSeconds: ctx.timeoutSeconds);
 
       expect(() async {
-        await client.get(id: ctx.firstAvailableDocId, fromJsonT: (v) => v);
+        try {
+          await client.get(id: ctx.firstAvailableDocId, fromJsonT: (v) => v);
+        } catch (e) {
+          print(e);
+          rethrow;
+        }
       }, throwsException);
-
-      await server.stop();
     });
 
     test(
-        'TODO: start server > start client > client connects server > stop server > client reconnects > should get nothing',
+        'start server > start client > client connects server > stop server > client reconnects > should get nothing',
         () async {
       await server.start(port: ctx.fooDbPort);
       print('server started');
@@ -185,19 +187,63 @@ void main() {
       final res =
           await client.get(id: ctx.firstAvailableDocId, fromJsonT: (v) => v);
       expect(res, isNotNull);
+
       await server.stop();
       print('server stopped');
 
-      final res2 =
+      expect(() async {
+        try {
           await client.get(id: ctx.firstAvailableDocId, fromJsonT: (v) => v);
+        } catch (e) {
+          print(e);
+          rethrow;
+        }
+      }, throwsException);
 
-      // TODO: should get null
-      // expect(res2, isNull);
+      await Future.delayed(Duration(seconds: 5));
+      await server.start(port: ctx.fooDbPort);
+      await Future.delayed(Duration(seconds: 5));
+
+      final res2 = await client.get(id: '2', fromJsonT: (v) => v);
+      expect(res2?.id, '2');
       await server.stop();
     });
 
     test(
-        'start server > start client > client connects server > stop server > new client connect > timeout exception',
+        'start server > start client > client starts change stream > stop server > close change stream',
+        () async {
+      await server.start(port: ctx.fooDbPort);
+      print('server started');
+
+      final client = Foodb.websocket(
+          dbName: ctx.dbId,
+          baseUri: Uri.parse(
+              'ws://${ctx.fooDbUsername}:${ctx.fooDbPassword}@127.0.0.1:${ctx.fooDbPort.toString()}'),
+          timeoutSeconds: ctx.timeoutSeconds);
+      final completer = Completer();
+
+      client.changesStream(
+        ChangeRequest(feed: ChangeFeed.continuous, since: 'now'),
+        onComplete: (response) {
+          print('onComplete ${response.toJson()}');
+        },
+        onResult: (response) {
+          //
+        },
+        onError: (error, stacktrace) {
+          print('onError $error $stacktrace');
+          expect(error, isNotNull);
+          completer.complete();
+        },
+      );
+
+      await Future.delayed(Duration(seconds: 5));
+      await server.stop();
+      await completer.future;
+    });
+
+    test(
+        'start server > start client > client connects server > stop server > new client connect > throw disconnect error',
         () async {
       await server.start(port: ctx.fooDbPort);
       print('server started');
@@ -222,7 +268,12 @@ void main() {
           timeoutSeconds: ctx.timeoutSeconds);
 
       expect(() async {
-        await newClient.get(id: ctx.firstAvailableDocId, fromJsonT: (v) => v);
+        try {
+          await client.get(id: ctx.firstAvailableDocId, fromJsonT: (v) => v);
+        } catch (e) {
+          print(e);
+          rethrow;
+        }
       }, throwsException);
       await server.stop();
     });
