@@ -163,7 +163,7 @@ class _WebSocketFoodb extends Foodb {
     Function(Object?, StackTrace? stackTrace) onError = defaultOnError,
   }) {
     StreamSubscription? subscription;
-    final streamedResponse = ChangesStream(onCancel: () {
+    final streamedResponse = ChangesStream(onCancel: () async {
       subscription?.cancel();
     });
     runZonedGuarded(() async {

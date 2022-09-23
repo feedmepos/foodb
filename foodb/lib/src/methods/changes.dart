@@ -43,8 +43,8 @@ class ChangeResult {
 }
 
 class ChangesStream {
-  Function? _onCancel;
-  ChangesStream({onCancel}) : _onCancel = onCancel;
+  Future<void> Function()? _onCancel;
+  ChangesStream({Future<void> Function()? onCancel}) : _onCancel = onCancel;
 
   Future<void> cancel() async {
     await _onCancel?.call();

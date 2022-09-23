@@ -133,7 +133,8 @@ abstract class FoodbServer {
             );
           }
           return await route.callback(validatedRequest);
-        } catch (err) {
+        } catch (err, s) {
+          print(s.toString());
           if (err is AdapterException) {
             return FoodbServerResponse(
               status: 400,
@@ -252,7 +253,9 @@ abstract class FoodbServer {
       },
       onResult: (response) {
         if (changesRequest.feed == ChangeFeed.continuous) {
-          streamController.sink.add(utf8.encode(jsonEncode(response.toJson())));
+          streamController.sink.add(utf8.encode(response.id != 'heartbeat'
+              ? jsonEncode(response.toJson())
+              : '\n'));
         }
       },
       onError: (error, stacktrace) {
