@@ -228,10 +228,12 @@ packages:
   shelf:
     dependency: "direct main"
     description:
-      name: shelf
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "1.3.2"
+      path: "pkgs/shelf"
+      ref: HEAD
+      resolved-ref: ed7725ef2229192d93ec9c73f603c9a0fad3756e
+      url: "https://github.com/feedmepos/shelf"
+    source: git
+    version: "1.4.0"
   shelf_packages_handler:
     dependency: transitive
     description:

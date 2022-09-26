@@ -34,7 +34,6 @@ mixin _KeyValueChange on _AbstractKeyValue {
     final changeStream = ChangesStream(onCancel: () async {
       await subscription?.cancel();
     });
-    Timer? _timer;
     runZonedGuarded(() async {
       // now get new changes
       var lastSeq =
@@ -88,7 +87,6 @@ mixin _KeyValueChange on _AbstractKeyValue {
         });
       }
     }, (e, s) async {
-      _timer?.cancel();
       await changeStream.cancel();
       onError(e, s);
     });

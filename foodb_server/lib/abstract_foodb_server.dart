@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:args/args.dart';
 import 'package:foodb/foodb.dart';
 import 'package:foodb_server/types.dart';
 import 'package:collection/collection.dart';
@@ -243,18 +244,21 @@ abstract class FoodbServer {
     });
     final streamController = StreamController<List<int>>();
 
+    late ChangesStream cs;
+
     Timer? continuousHeartbeat;
     if (changesRequest.feed == ChangeFeed.continuous) {
       continuousHeartbeat ??=
           Timer.periodic(Duration(milliseconds: changesRequest.heartbeat), (_) {
         streamController.sink.add([10]);
       });
-      streamController.onCancel = () {
+      streamController.onCancel = () async {
+        await cs.cancel();
         continuousHeartbeat?.cancel();
       };
     }
 
-    (await _getDb(request)).changesStream(
+    cs = (await _getDb(request)).changesStream(
       changesRequest,
       onComplete: (response) {
         if (changesRequest.feed == ChangeFeed.normal ||

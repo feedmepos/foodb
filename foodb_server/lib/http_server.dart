@@ -34,14 +34,17 @@ class HttpFoodbServer extends FoodbServer {
     router.mount('/', (Request req) async {
       try {
         final bodyString = await req.readAsString();
+
         final request =
             FoodbServerRequest.fromHttpRequest(request: req, body: bodyString);
         final response = await handleRequest(request);
         if (response.data is StreamController<List<int>>) {
+          StreamController<List<int>> sc = response.data;
           return Response(
             response.status ?? 200,
-            body: response.data.stream,
+            body: sc.stream,
             context: {"shelf.io.buffer_output": false},
+            onDone: () => sc.close(),
           );
         } else {
           return Response(
