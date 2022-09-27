@@ -20,6 +20,8 @@ dependency_overrides:
     git:
       url: https://github.com/feedmepos/shelf
       path: pkgs/shelf
+  # shelf:
+  #   path: C://Users//user//Documents//GitHub//shelf//pkgs//shelf
 
 dev_dependencies:
   http: ^0.13.0

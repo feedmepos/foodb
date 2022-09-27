@@ -43,11 +43,8 @@ class WebSocketResponse {
 class _WebSocketFoodb extends Foodb {
   final String dbName;
   final Uri baseUri;
-  late IOWebSocketChannel client;
   final int timeoutSeconds;
   final int reconnectSeconds;
-  Map<String, Completer> completers = {};
-  Map<String, StreamController> streamResponses = {};
 
   _WebSocketFoodb({
     required this.dbName,
@@ -57,44 +54,57 @@ class _WebSocketFoodb extends Foodb {
   }) : super(dbName: dbName) {
     _connectWebSocket();
   }
-  Map<String, StreamController> streamControllers = {};
+
+  IOWebSocketChannel? _client;
+  final Map<String, Completer> _completers = {};
+  final Map<String, StreamController> _streamedResponses = {};
 
   Future<void> _connectWebSocket() async {
-    client = IOWebSocketChannel.connect(baseUri);
-    client.stream.listen((message) {
+    Future<void> _cleanup() async {
+      print('cleaning up websocket');
+      for (final completer in _completers.values) {
+        completer.completeError(WebSocketFoodbServerException(
+          error: 'disconnected',
+        ));
+      }
+      _completers.clear();
+      for (final streamedResponse in _streamedResponses.values) {
+        await streamedResponse.close();
+      }
+      _streamedResponses.clear();
+      await Future.delayed(Duration(seconds: reconnectSeconds));
+    }
+
+    if (_client != null) {
+      await _cleanup();
+    }
+
+    print('connecting');
+    _client = IOWebSocketChannel.connect(baseUri);
+    _client?.stream.listen((message) {
       _handleResponse(WebSocketResponse.fromJson(jsonDecode(message)));
-    })
-      ..onError((v) async {
-        print('websocket onError');
-      })
-      ..onDone(() async {
-        for (final completer in completers.values) {
-          completer.completeError(WebSocketFoodbServerException(
-            error: 'disconnected',
-          ));
-        }
-        completers.clear();
-        print('websocket onDone (disconnected)');
-        print('reconnecting');
-        await Future.delayed(Duration(seconds: reconnectSeconds));
-        await _connectWebSocket();
-      });
+    }, onError: (e, s) {
+      print('websocket onError: $e');
+    }, onDone: () async => await _connectWebSocket());
   }
 
   void _handleResponse(WebSocketResponse response) {
     final requestId = response.requestId;
     if (response.hold) {
-      if (streamResponses[requestId] == null) {
-        streamResponses[requestId] = response.getStreamController(onCancel: () {
-          streamResponses.remove(requestId);
+      if (_streamedResponses[requestId] == null) {
+        _streamedResponses[requestId] =
+            response.getStreamController(onCancel: () {
+          _streamedResponses.remove(requestId);
         });
       }
-      completers[requestId]?.complete(response);
-      streamResponses[requestId]!.sink.add(jsonEncode(response.data));
+      _completers[requestId]?.complete(response);
+      _streamedResponses[requestId]!
+          .sink
+          .add(response.data == '' ? '' : jsonEncode(response.data));
     } else {
-      completers[requestId]?.complete(response);
+      _completers[requestId]?.complete(response);
     }
-    completers.remove(requestId);
+    _completers.remove(requestId);
   }
 
   Uri getUri(String path) {
@@ -114,7 +124,7 @@ class _WebSocketFoodb extends Foodb {
     dynamic body,
   }) async {
     final requestId = _uuid.v1();
-    client.sink.add(jsonEncode({
+    _client?.sink.add(jsonEncode({
       'method': method,
       'url': uriBuilder.build().toString(),
       'id': requestId,
@@ -122,12 +132,12 @@ class _WebSocketFoodb extends Foodb {
       'hold': hold
     }));
     final completer = Completer();
-    completers[requestId] = completer;
+    _completers[requestId] = completer;
     Timer? timer;
     if (!hold) {
       timer = Timer(Duration(seconds: timeoutSeconds), () {
-        completers.remove(requestId);
-        completers[requestId]?.completeError(WebSocketFoodbServerException(
+        _completers.remove(requestId);
+        _completers[requestId]?.completeError(WebSocketFoodbServerException(
           error: 'timeout ${timeoutSeconds}s',
         ));
       });
@@ -167,10 +177,13 @@ class _WebSocketFoodb extends Foodb {
     Function(ChangeResponse)? onComplete,
     Function(ChangeResult)? onResult,
     Function(Object?, StackTrace? stackTrace) onError = defaultOnError,
+    Function()? onHeartbeat,
   }) {
     StreamSubscription? subscription;
+    Timer? _timer;
     final streamedResponse = ChangesStream(onCancel: () async {
-      subscription?.cancel();
+      _timer?.cancel();
+      await subscription?.cancel();
     });
     runZonedGuarded(() async {
       UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_changes')));
@@ -185,10 +198,31 @@ class _WebSocketFoodb extends Foodb {
             await _send(uriBuilder: uriBuilder, method: 'GET', hold: true);
         String cache = "";
         List<ChangeResult> _results = [];
+
+        final st = Stopwatch();
+
+        if (request.feed == ChangeFeed.continuous && request.heartbeat > 0) {
+          _timer = Timer.periodic(Duration(milliseconds: request.heartbeat),
+              (timer) {
+            if (st.elapsedMilliseconds > request.heartbeat + 5000) {
+              timer.cancel();
+              st.stop();
+              _timer = null;
+              throw new Exception('Heartbeat timed out');
+            }
+          });
+          st.start();
+        }
+
         subscription = response.stream?.listen(
-          (event) {
+          (e) {
+            final event = e.trim();
             if (request.feed == ChangeFeed.continuous) {
-              if (event.trim() != '') cache += event.trim();
+              if (event == '') {
+                st.reset();
+                onHeartbeat?.call();
+              }
+              if (event != '') cache += event;
               final items =
                   RegExp("^{\".*},?\n?\$", multiLine: true).allMatches(cache);
               if (items.isNotEmpty) {
@@ -228,8 +262,9 @@ class _WebSocketFoodb extends Foodb {
           onError: onError,
         );
       }
-    }, (e, s) {
-      streamedResponse.cancel();
+    }, (e, s) async {
+      await streamedResponse.cancel();
+      await _connectWebSocket();
       onError(e, s);
     });
 

@@ -29,10 +29,13 @@ mixin _KeyValueChange on _AbstractKeyValue {
     Function(ChangeResponse)? onComplete,
     Function(ChangeResult)? onResult,
     Function(Object?, StackTrace? stackTrace) onError = defaultOnError,
+    Function()? onHeartbeat,
   }) {
+    Timer? _timer;
     StreamSubscription<MapEntry<SequenceKey, UpdateSequence>>? subscription;
     final changeStream = ChangesStream(onCancel: () async {
       await subscription?.cancel();
+      _timer?.cancel();
     });
     runZonedGuarded(() async {
       // now get new changes
@@ -71,6 +74,12 @@ mixin _KeyValueChange on _AbstractKeyValue {
             results: _results, lastSeq: encodeSeq(lastSeq), pending: pending));
       } else {
         subscription = localChangeStreamController.stream.listen(null);
+        if (request.heartbeat > 0) {
+          _timer ??= Timer.periodic(
+            Duration(milliseconds: request.heartbeat),
+            (_) => onHeartbeat?.call(),
+          );
+        }
         subscription!.onData((entry) async {
           var changeResult = await _encodeUpdateSequence(entry.key, entry.value,
               includeDocs: request.includeDocs, style: request.style);

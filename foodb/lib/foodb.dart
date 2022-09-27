@@ -218,6 +218,7 @@ abstract class Foodb {
     Function(ChangeResponse)? onComplete,
     Function(ChangeResult)? onResult,
     Function(Object?, StackTrace? stackTrace) onError,
+    Function()? onHeartbeat,
   });
 
   Future<GetViewResponse<T>> allDocs<T>(GetViewRequest allDocsRequest,

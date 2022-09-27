@@ -244,21 +244,7 @@ abstract class FoodbServer {
     });
     final streamController = StreamController<List<int>>();
 
-    late ChangesStream cs;
-
-    Timer? continuousHeartbeat;
-    if (changesRequest.feed == ChangeFeed.continuous) {
-      continuousHeartbeat ??=
-          Timer.periodic(Duration(milliseconds: changesRequest.heartbeat), (_) {
-        streamController.sink.add([10]);
-      });
-      streamController.onCancel = () async {
-        await cs.cancel();
-        continuousHeartbeat?.cancel();
-      };
-    }
-
-    cs = (await _getDb(request)).changesStream(
+    final cs = (await _getDb(request)).changesStream(
       changesRequest,
       onComplete: (response) {
         if (changesRequest.feed == ChangeFeed.normal ||
@@ -272,10 +258,15 @@ abstract class FoodbServer {
           streamController.sink.add(utf8.encode(jsonEncode(response.toJson())));
         }
       },
+      onHeartbeat: () => streamController.sink.add([10]),
       onError: (error, stacktrace) async {
         await streamController.close();
       },
     );
+
+    streamController.onCancel = () async {
+      await cs.cancel();
+    };
 
     return FoodbServerResponse(data: streamController);
   }
