@@ -1,3 +1,7 @@
+### 0.8.2
+* (fix) wrong number collate regex function
+* (fix) add timestamp on first md5 to distingush same content of first version
+
 ### 0.8.1
 * (fix) unhandle http connection closed when listen to change stream
 
