@@ -1,3 +1,6 @@
+### 0.8.1
+* (fix) unhandle http connection closed when listen to change stream
+
 ### 0.8.0
 * (fix) lock process when performing put, prevent same change seq
 
