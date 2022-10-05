@@ -427,7 +427,6 @@ class SelectorBuilder {
         return operator;
       } else if (operator == null) {
         List<Operator> subList = [];
-        print(entry.value);
         entry.value.forEach((operatorStr, arg) {
           final subOperator =
               getOperator(operatorStr, key: entry.key, expected: arg);
@@ -436,12 +435,11 @@ class SelectorBuilder {
           } else if (subOperator is CombinationOperator) {
             subList.add(DFS(key: entry.key, json: {operatorStr: arg}));
           } else if (subOperator == null) {
-            if(arg is Map<String,dynamic>){
+            if (arg is Map<String, dynamic>) {
               subList.add(_nestedOperator(
                   "${key != null ? "$key." : ""}${entry.key}.${operatorStr}",
                   arg));
-            } 
-            else {
+            } else {
               throw AdapterException(error: 'Invalid Selector Format');
             }
           }
@@ -459,7 +457,7 @@ class SelectorBuilder {
     return this.value;
   }
 
-  _nestedOperator(String nestedKey, Map<String,dynamic> value) {
+  _nestedOperator(String nestedKey, Map<String, dynamic> value) {
     List<Operator> operators = [];
     value.forEach((key, value) {
       final operator = getOperator(key, key: nestedKey, expected: value);

@@ -27,10 +27,8 @@ class HttpFoodbServer extends FoodbServer {
 
     await super.init();
     final router = Router();
-    final handler = Pipeline()
-        .addMiddleware(getCorsMiddleware())
-        .addMiddleware(logRequests())
-        .addHandler(router);
+    final handler =
+        Pipeline().addMiddleware(getCorsMiddleware()).addHandler(router);
     router.mount('/', (Request req) async {
       try {
         final bodyString = await req.readAsString();
