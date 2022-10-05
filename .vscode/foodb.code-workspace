@@ -8,6 +8,9 @@
       "path": "../foodb"
     },
     {
+      "path": "../foodb_server"
+    },
+    {
       "path": "../foodb_test"
     },
     {
@@ -27,7 +30,8 @@
       "foodb_test/": true,
       "foodb_objectbox_adapter/": true,
       "foodb_hive_adapter/": true,
-      "foodb_flutter_test/": true
+      "foodb_flutter_test/": true,
+      "foodb_server": true
     }
   }
 }
