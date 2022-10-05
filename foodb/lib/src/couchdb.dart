@@ -1,20 +1,5 @@
 part of 'package:foodb/foodb.dart';
 
-Map<String, String> convertToParams(Map<String, dynamic> objects) {
-  Map<String, String> params = new Map();
-  objects.forEach((key, value) {
-    if (value != null) {
-      if (value is String) {
-        params.putIfAbsent(key, () => value);
-      } else if (value is List || value is Map) {
-        params.putIfAbsent(key, () => jsonEncode(value));
-      } else
-        params.putIfAbsent(key, () => value.toString());
-    }
-  });
-  return params;
-}
-
 class _CouchdbFoodb extends Foodb {
   late http.Client client;
   Uri baseUri;
@@ -104,18 +89,19 @@ class _CouchdbFoodb extends Foodb {
     return ChangeResponse.fromJson(jsonDecode(res.body));
   }
 
-  static Timer? _timer;
-
   @override
   ChangesStream changesStream(
     ChangeRequest request, {
     Function(ChangeResponse)? onComplete,
     Function(ChangeResult)? onResult,
     Function(Object?, StackTrace? stackTrace) onError = defaultOnError,
+    Function()? onHeartbeat,
   }) {
     var changeClient = getClient();
     StreamSubscription? subscription;
+    Timer? _timer;
     var streamedResponse = ChangesStream(onCancel: () async {
+      _timer?.cancel();
       // to close subscription stream,
       // must cancel subscription first before close http client
       //
@@ -140,7 +126,7 @@ class _CouchdbFoodb extends Foodb {
 
         final st = Stopwatch();
 
-        if (request.feed == ChangeFeed.continuous) {
+        if (request.feed == ChangeFeed.continuous && request.heartbeat > 0) {
           _timer?.cancel();
           _timer = Timer.periodic(Duration(milliseconds: request.heartbeat),
               (timer) {
@@ -156,8 +142,12 @@ class _CouchdbFoodb extends Foodb {
 
         subscription = res.stream.transform(utf8.decoder).listen((event) {
           if (request.feed == ChangeFeed.continuous) {
-            st.reset();
-            if (event.trim() != '') cache += event.trim();
+            final trimmed = event.trim();
+            if (trimmed == '') {
+              st.reset();
+              onHeartbeat?.call();
+            }
+            if (trimmed != '') cache += trimmed;
             var items =
                 RegExp("^{\".*},?\n?\$", multiLine: true).allMatches(cache);
             if (items.isNotEmpty) {
@@ -362,7 +352,7 @@ class _CouchdbFoodb extends Foodb {
     required String name,
   }) async {
     return DeleteIndexResponse.fromJson(json.decode((await this.client.delete(
-      this.getUri('$ddoc/json/$name'),
+      this.getUri('_index/$ddoc/json/$name'),
       headers: {'Content-Type': 'application/json'},
     ))
         .body));
@@ -477,4 +467,19 @@ class _CouchdbFoodb extends Foodb {
         UriBuilder.fromUri((this.getUri('_design/$ddocId/_view/$viewId')));
     return _view(uriBuilder, getViewRequest, fromJsonT);
   }
+}
+
+Map<String, String> convertToParams(Map<String, dynamic> objects) {
+  Map<String, String> params = new Map();
+  objects.forEach((key, value) {
+    if (value != null) {
+      if (value is String) {
+        params.putIfAbsent(key, () => value);
+      } else if (value is List || value is Map) {
+        params.putIfAbsent(key, () => jsonEncode(value));
+      } else
+        params.putIfAbsent(key, () => value.toString());
+    }
+  });
+  return params;
 }

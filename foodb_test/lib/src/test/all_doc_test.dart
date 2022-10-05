@@ -1,3 +1,4 @@
+@Timeout(Duration(seconds: 1000))
 import 'package:foodb_test/foodb_test.dart';
 import 'package:test/test.dart';
 import 'package:foodb/foodb.dart';
@@ -5,6 +6,8 @@ import 'package:foodb/foodb.dart';
 void main() {
   // final ctx = CouchdbTestContext();
   final ctx = InMemoryTestContext();
+  // final ctx = HttpServerCouchdbTestContext();
+  // final ctx = WebSocketServerCouchdbTestContext();
   allDocTest().forEach((t) {
     t(ctx);
   });

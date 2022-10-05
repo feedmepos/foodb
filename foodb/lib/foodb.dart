@@ -24,6 +24,7 @@ import 'package:foodb/src/methods/view.dart';
 import 'package:http/http.dart' as http;
 import 'package:uri/uri.dart';
 import 'package:synchronized/synchronized.dart';
+import 'package:uuid/uuid.dart';
 
 export 'package:foodb/src/replicate.dart';
 export 'package:foodb/src/selector.dart';
@@ -44,11 +45,14 @@ export 'package:foodb/src/methods/revs_diff.dart';
 export 'package:foodb/src/selector.dart';
 export 'package:foodb/src/methods/server.dart';
 export 'package:foodb/src/methods/view.dart';
+import 'package:web_socket_channel/io.dart';
+import 'package:web_socket_channel/status.dart' as status;
 
 export 'foodb.dart';
 export 'foodb_worker.dart';
 
 part 'src/couchdb.dart';
+part 'src/websocket.dart';
 part 'src/key_value/key_value_changes.dart';
 part 'src/key_value/key_value_find.dart';
 part 'src/key_value/key_value_get.dart';
@@ -116,6 +120,20 @@ abstract class Foodb {
       dbName: dbName,
       baseUri: baseUri,
       clientFactory: clientFactory,
+    );
+  }
+
+  factory Foodb.websocket({
+    required String dbName,
+    required Uri baseUri,
+    int timeoutSeconds = 60,
+    int reconnectSeconds = 3,
+  }) {
+    return _WebSocketFoodb(
+      dbName: dbName,
+      baseUri: baseUri,
+      timeoutSeconds: timeoutSeconds,
+      reconnectSeconds: reconnectSeconds,
     );
   }
 
@@ -200,6 +218,7 @@ abstract class Foodb {
     Function(ChangeResponse)? onComplete,
     Function(ChangeResult)? onResult,
     Function(Object?, StackTrace? stackTrace) onError,
+    Function()? onHeartbeat,
   });
 
   Future<GetViewResponse<T>> allDocs<T>(GetViewRequest allDocsRequest,

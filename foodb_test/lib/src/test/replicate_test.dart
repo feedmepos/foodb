@@ -1,3 +1,4 @@
+@Timeout(Duration(seconds: 1000))
 import 'dart:async';
 
 import 'package:test/test.dart';
@@ -6,17 +7,19 @@ import 'package:foodb_test/foodb_test.dart';
 
 void main() {
   final couchdb = CouchdbTestContext();
-  final inMemory = InMemoryTestContext();
+  // final ctx = InMemoryTestContext();
+  final ctx = HttpServerCouchdbTestContext();
+  // final ctx = WebSocketServerCouchdbTestContext();
   // group('couchdb > couchbdb', () {
   //   replicateTest().forEach((t) {
   //     t(couchdb, couchdb);
   //   });
   // });
-  group('couchdb > inMemory', () {
-    replicateTest().forEach((t) {
-      t(couchdb, inMemory);
-    });
+  // group('couchdb > inMemory', () {
+  replicateTest().forEach((t) {
+    t(couchdb, ctx);
   });
+  // });
   // group('inMemory > couchbdb', () {
   //   replicateTest().forEach((t) {
   //     t(inMemory, couchdb);
@@ -28,9 +31,9 @@ void main() {
   //   });
   // });
 
-  replicateTest().forEach((t) {
-    t(couchdb, couchdb);
-  });
+  // replicateTest().forEach((t) {
+  //   t(couchdb, couchdb);
+  // });
 }
 
 handleTestReplicationError(p0, stackTrace) {

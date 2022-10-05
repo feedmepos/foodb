@@ -13,6 +13,8 @@ void main() async {
     // source: InMemoryTestContext(),
     // target: CouchdbTestContext(),
     target: InMemoryTestContext(),
+    // target: HttpServerCouchdbTestContext(),
+    // target: WebSocketServerCouchdbTestContext(),
     batchSize: 300,
     thousandDoc: 10,
   );

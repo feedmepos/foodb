@@ -5,6 +5,8 @@ import 'package:foodb_test/foodb_test.dart';
 void main() {
   // final ctx = CouchdbTestContext();
   final ctx = InMemoryTestContext();
+  // final ctx = HttpServerCouchdbTestContext();
+  // final ctx = WebSocketServerCouchdbTestContext();
   putTest().forEach((t) {
     t(ctx);
   });
@@ -12,6 +14,22 @@ void main() {
 
 List<Function(FoodbTestContext)> putTest() {
   return [
+    (FoodbTestContext ctx) {
+      test('subconnect doc', () async {
+        final db = await ctx.db('sub_db');
+        final get0 = await db.get(id: 'subConnectDoc', fromJsonT: (v) => v);
+        final put1 = await db.put(
+            doc: Doc(id: 'subConnectDoc', model: {'data': 'test1'}));
+        final get1 = await db.get(id: 'subConnectDoc', fromJsonT: (v) => v);
+        final delete1 = await db.delete(id: 'subConnectDoc', rev: get1!.rev!);
+        final get2 = await db.get(id: 'subConnectDoc', fromJsonT: (v) => v);
+        final doc2 = Doc(id: 'subConnectDoc', model: {'data': 'test2'});
+        final put2 = await db.put(
+            doc: Doc(id: 'subConnectDoc', model: {'data': 'test2'}));
+        final get3 = await db.get(id: 'subConnectDoc', fromJsonT: (v) => v);
+        expect(get3?.model['data'], doc2.model['data']);
+      });
+    },
     (FoodbTestContext ctx) {
       test('empty doc id should throw error', () async {
         final db = await ctx.db('empty-doc-id');

@@ -3,8 +3,10 @@ import 'package:foodb/foodb.dart';
 import 'package:foodb_test/foodb_test.dart';
 
 void main() {
-  final ctx = CouchdbTestContext();
-  // final ctx = InMemoryTestContext();
+  // final ctx = CouchdbTestContext();
+  final ctx = InMemoryTestContext();
+  // final ctx = HttpServerCouchdbTestContext();
+  // final ctx = WebSocketServerCouchdbTestContext();
   bulkDocTest().forEach((t) {
     t(ctx);
   });

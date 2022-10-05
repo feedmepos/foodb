@@ -126,7 +126,10 @@ class Doc<T> {
       localSeq: json['_local_seq'] as String?,
     );
   }
-  Map<String, dynamic> toJson(Object? Function(T value) toJsonT) {
+  Map<String, dynamic> toJson(
+    Object? Function(T value) toJsonT, {
+    fullMeta = false,
+  }) {
     Map<String, dynamic> map = toJsonT(this.model) as Map<String, dynamic>;
 
     final reservedMetaKey = [
@@ -154,6 +157,17 @@ class Doc<T> {
 
     configurableMeta.removeWhere((key, value) => value == null);
     map.addAll(configurableMeta);
+
+    if (fullMeta) {
+      map.addAll({
+        '_attachments': null,
+        '_conflicts': conflicts?.map((e) => e.toString()).toList(),
+        '_deleted_conflicts':
+            deletedConflicts?.map((e) => e.toString()).toList(),
+        '_revs_info': revsInfo?.map((e) => e.toJson()).toList(),
+        '_local_seq': localSeq
+      });
+    }
 
     return map;
   }
