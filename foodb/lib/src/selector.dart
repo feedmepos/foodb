@@ -322,15 +322,19 @@ abstract class CombinationOperator extends Operator {
 
   @override
   bool evaluate(Map<String, dynamic> value) {
-    var result = true;
+    bool? result;
     operators.forEach((o) {
       // if (o is ConditionOperator) {
       //   result = combine(result, o.evaluate(value[o.key]));
       // } else {
-      result = combine(result, o.evaluate(value));
+      if (result == null) {
+        result = o.evaluate(value);
+      } else {
+        result = combine(result!, o.evaluate(value));
+      }
       // }
     });
-    return result;
+    return result ?? true;
   }
 
   @override
