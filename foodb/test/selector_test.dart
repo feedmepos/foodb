@@ -39,6 +39,14 @@ void main() {
     or.operators.addAll([notEqual1, notEqual2]);
     expect(or.evaluate({"test": "b"}), true);
   });
+  test('or, but should not found', () {
+    final or = OrOperator();
+    final notEqual1 = EqualOperator(key: "test", expected: "a");
+    final notEqual2 = EqualOperator(key: "test", expected: "c");
+
+    or.operators.addAll([notEqual1, notEqual2]);
+    expect(or.evaluate({"test": "b"}), false);
+  });
   test('and, not equal', () {
     final and = AndOperator();
     final notEqual1 = NotEqualOperator(key: "1", expected: {
@@ -259,7 +267,7 @@ void main() {
         GreaterThanOperator(key: "no", expected: 100)
       ]);
 
-      expect(andOperator.evaluate({"name": "foo","no":101}),false);
+      expect(andOperator.evaluate({"name": "foo", "no": 101}), false);
     });
   });
 }
