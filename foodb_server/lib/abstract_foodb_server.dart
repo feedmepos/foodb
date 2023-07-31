@@ -195,7 +195,7 @@ abstract class FoodbServer {
     } catch (err) {
       return FoodbServerResponse(data: {
         "error": "not_found",
-        "reason": "missing",
+        "reason": err.toString(),
       });
     }
   }

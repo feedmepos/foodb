@@ -395,5 +395,35 @@ void main() {
         );
       });
     });
+    // need local couchdb to run test
+    // test('foodb server get success/missing/exception', () async {
+    //   FoodbServer.http(
+    //     dbFactory: (dbName) async {
+    //       return Foodb.couchdb(
+    //         dbName: 'restaurant_61a9935e94eb2c001d618bc3',
+    //         baseUri: Uri.parse('http://admin:ieXZW5@127.0.0.1:6984'),
+    //       );
+    //     },
+    //     config: null,
+    //   ).start(port: 1234);
+    //   final client = Foodb.couchdb(
+    //     dbName: 'restaurant_61a9935e94eb2c001d618bc3',
+    //     baseUri: Uri.parse('http://127.0.0.1:1234'),
+    //   );
+    //   final doc = await client.get(
+    //       id: '_local/pos-v5-to-local-test', fromJsonT: (v) => v);
+    //   expect(doc, isNot(null));
+    //   final invalidDoc =
+    //       await client.get(id: '_local/invalid-doc', fromJsonT: (v) => v);
+    //   expect(invalidDoc, null);
+    //   final invalidClient = Foodb.couchdb(
+    //     dbName: 'restaurant_61a9935e94eb2c001d618bc3',
+    //     baseUri: Uri.parse('http://127.0.0.1:1233'),
+    //   );
+    //   expect(() async {
+    //     await invalidClient.get(
+    //         id: '_local/pos-v5-to-local-test', fromJsonT: (v) => v);
+    //   }, throwsException);
+    // });
   });
 }

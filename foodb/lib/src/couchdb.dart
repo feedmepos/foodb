@@ -237,11 +237,16 @@ class _CouchdbFoodb extends Foodb {
     var response =
         utf8.decode((await this.client.get(uriBuilder.build())).bodyBytes);
     Map<String, dynamic> result = jsonDecode(response);
-
-    return result.containsKey('_id')
-        ? Doc<T>.fromJson(
-            result, (json) => fromJsonT(json as Map<String, dynamic>))
-        : null;
+    if (result.containsKey('_id')) {
+      return Doc<T>.fromJson(
+          result, (json) => fromJsonT(json as Map<String, dynamic>));
+    } else if (result.containsValue('missing')) {
+      // handle {"error":"not_found","reason":"missing"}
+      // database not found also return same error
+      return null;
+    } else {
+      throw AdapterException(error: 'couchdb error: ${response.toString()}');
+    }
   }
 
   @override
