@@ -84,6 +84,13 @@ packages:
       path: "../foodb"
       relative: true
     source: path
+    version: "0.9.0"
+  foodb_test:
+    dependency: "direct dev"
+    description:
+      path: "../foodb_test"
+      relative: true
+    source: path
     version: "0.8.0"
   frontend_server_client:
     dependency: transitive

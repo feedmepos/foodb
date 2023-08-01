@@ -24,19 +24,29 @@ mixin _KeyValueGet on _AbstractKeyValue {
     }
     var entry = await keyValueDb.get(baseKey);
     if (entry == null) {
-      return null;
+      throw AdapterException(
+        error: '{"error": "not_found", "reason": "missing"}',
+      );
     }
     var result = DocHistory.fromJson(entry.value);
     Doc<T>? doc;
-    var targetRev = rev != null ? Rev.fromString(rev) : result.winner?.rev;
-    if (targetRev != null) {
-      doc = result.toDoc(
-        targetRev,
-        fromJsonT,
-        showRevision: revs,
-        showRevInfo: rev == null && (revsInfo || meta),
-        showConflicts: rev == null && (conflicts || meta),
-        revLimit: _revLimit,
+    if (rev == null && result.winner == null) {
+      throw AdapterException(
+        error: '{"error": "not_found", "reason": "deleted"}',
+      );
+    }
+    var targetRev = rev != null ? Rev.fromString(rev) : result.winner!.rev;
+    doc = result.toDoc(
+      targetRev,
+      fromJsonT,
+      showRevision: revs,
+      showRevInfo: rev == null && (revsInfo || meta),
+      showConflicts: rev == null && (conflicts || meta),
+      revLimit: _revLimit,
+    );
+    if (doc == null) {
+      throw AdapterException(
+        error: '{"error": "not_found", "reason": "missing"}',
       );
     }
     return doc;
@@ -50,15 +60,31 @@ mixin _KeyValueGet on _AbstractKeyValue {
     List<BulkGetIdDocs<T>> results = [];
     for (final d in body.docs) {
       late BulkGetDoc<T> doc;
-      final found = await get(
-          id: d.id, rev: d.rev?.toString(), revs: revs, fromJsonT: fromJsonT);
-      if (found == null) {
+      Doc<T>? found;
+      String status = 'found';
+      try {
+        found = await get(
+            id: d.id, rev: d.rev?.toString(), revs: revs, fromJsonT: fromJsonT);
+      } catch (ex) {
+        if (ex is AdapterException) {
+          if (ex.error.contains('deleted')) {
+            status = 'deleted';
+          } else if (ex.error.contains('missing')) {
+            status = 'missing';
+          } else {
+            rethrow;
+          }
+        } else {
+          rethrow;
+        }
+      }
+      if (status != 'found') {
         doc = BulkGetDoc(
             error: BulkGetDocError(
                 id: d.id,
                 rev: d.rev?.toString() ?? 'undefined',
                 error: 'not_found',
-                reason: 'missing'));
+                reason: status));
       } else {
         doc = BulkGetDoc(doc: found);
       }

@@ -5,10 +5,8 @@ import 'package:foodb/foodb.dart';
 import 'package:foodb_test/foodb_test.dart';
 
 void main() {
-  // final ctx = CouchdbTestContext();
-  final ctx = InMemoryTestContext();
-  // final ctx = HttpServerCouchdbTestContext();
-  // final ctx = WebSocketServerCouchdbTestContext();
+  final ctx = CouchdbTestContext();
+  // final ctx = InMemoryTestContext();
   getTest().forEach((t) {
     t(ctx);
   });
@@ -25,8 +23,21 @@ List<Function(FoodbTestContext)> getTest() {
         var doc1 = await db.get(id: 'test-get', fromJsonT: (v) => {});
         expect(doc1, isNotNull);
 
-        var doc2 = await db.get(id: 'test-get-empty', fromJsonT: (v) => {});
-        expect(doc2, isNull);
+        await expectLater(
+            db.get(id: 'test-get-empty', fromJsonT: (v) => {}),
+            throwsA(predicate(
+                (e) => e is AdapterException && e.error.contains('missing'))));
+
+        await db.delete(id: doc1!.id, rev: doc1.rev!);
+
+        await expectLater(
+            db.get(id: doc1.id, fromJsonT: (v) => {}),
+            throwsA(predicate(
+                (e) => e is AdapterException && e.error.contains('deleted'))));
+
+        var oldDeletedDoc = await db.get(
+            id: doc1.id, rev: doc1.rev.toString(), fromJsonT: (v) => {});
+        expect(oldDeletedDoc, isNotNull);
       });
     },
     (FoodbTestContext ctx) {
@@ -76,6 +87,9 @@ List<Function(FoodbTestContext)> getTest() {
                 rev: Rev.fromString('1-c')),
             newEdits: false);
         await db.put(doc: Doc(id: 'test-bulkget-no-rev', model: {}));
+        var toDelete =
+            await db.put(doc: Doc(id: 'test-bulkget-deleted', model: {}));
+        await db.delete(id: toDelete.id, rev: toDelete.rev);
 
         final response = await db.bulkGet<Map<String, dynamic>>(
             body: BulkGetRequest(docs: [
@@ -91,11 +105,12 @@ List<Function(FoodbTestContext)> getTest() {
                   id: 'test-bulkget-missing-child', rev: Rev.fromString('1-c')),
               BulkGetRequestDoc(
                   id: 'test-bulkget-missing-child', rev: Rev.fromString('2-c')),
-              BulkGetRequestDoc(id: 'test-bulkget-no-rev')
+              BulkGetRequestDoc(id: 'test-bulkget-no-rev'),
+              BulkGetRequestDoc(id: 'test-bulkget-deleted')
             ]),
             fromJsonT: (json) => json,
             revs: true);
-        expect(response.results.length, 7);
+        expect(response.results.length, 8);
         expect(
             response.results.where((element) =>
                 element.docs.every((element) => element.doc != null)),
@@ -103,6 +118,10 @@ List<Function(FoodbTestContext)> getTest() {
         expect(
             response.results.where((element) =>
                 element.docs.every((element) => element.error != null)),
+            hasLength(2));
+        expect(
+            response.results.where((element) => element.docs
+                .every((element) => element.error?.reason == 'deleted')),
             hasLength(1));
       });
     },

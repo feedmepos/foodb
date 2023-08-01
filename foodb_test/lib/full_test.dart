@@ -1,10 +1,8 @@
 import 'package:foodb_test/foodb_test.dart';
 
 void main() {
-  // final db = CouchdbTestContext();
-  final db = InMemoryTestContext();
-  // final db = HttpServerCouchdbTestContext();
-  // final db = WebSocketServerCouchdbTestContext();
+  final db = CouchdbTestContext();
+  // final db = InMemoryTestContext();
   foodbFullTestSuite.forEach((testCase) {
     testCase(db);
   });

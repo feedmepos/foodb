@@ -6,8 +6,6 @@ import 'package:foodb/foodb.dart';
 void main() {
   // final ctx = CouchdbTestContext();
   final ctx = InMemoryTestContext();
-  // final ctx = HttpServerCouchdbTestContext();
-  // final ctx = WebSocketServerCouchdbTestContext();
   allDocTest().forEach((t) {
     t(ctx);
   });
