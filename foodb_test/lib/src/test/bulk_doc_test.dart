@@ -44,8 +44,11 @@ List<Function(FoodbTestContext)> bulkDocTest() {
         var doc1 = await db.get(id: 'a', fromJsonT: (value) => value);
         expect(doc1?.rev?.index, 2);
 
-        var doc2 = await db.get(id: 'b', fromJsonT: (value) => value);
-        expect(doc2, isNull);
+        var doc2 = db.get(id: 'b', fromJsonT: (value) => value);
+        await expectLater(
+            doc2,
+            throwsA(predicate(
+                (e) => e is AdapterException && e.error.contains('deleted'))));
 
         var doc3 = await db.get(id: 'c', fromJsonT: (value) => value);
         expect(doc3, isNotNull);

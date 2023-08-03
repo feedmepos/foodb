@@ -1,9 +1,10 @@
 import 'package:foodb_test/foodb_test.dart';
 
+import 'context.dart';
+
 void main() {
-  // final db = CouchdbTestContext();
-  final db = InMemoryTestContext();
+  final httpServer = HttpServerCouchdbTestContext();
   foodbFullTestSuite.forEach((testCase) {
-    testCase(db);
+    testCase(httpServer);
   });
 }

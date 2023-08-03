@@ -5,8 +5,8 @@ import 'package:foodb/foodb.dart';
 import 'package:foodb_test/foodb_test.dart';
 
 void main() {
-  final ctx = CouchdbTestContext();
-  // final ctx = InMemoryTestContext();
+  // final ctx = CouchdbTestContext();
+  final ctx = InMemoryTestContext();
   getTest().forEach((t) {
     t(ctx);
   });
@@ -114,14 +114,10 @@ List<Function(FoodbTestContext)> getTest() {
         expect(
             response.results.where((element) =>
                 element.docs.every((element) => element.doc != null)),
-            hasLength(6));
+            hasLength(7));
         expect(
-            response.results.where((element) =>
-                element.docs.every((element) => element.error != null)),
-            hasLength(2));
-        expect(
-            response.results.where((element) => element.docs
-                .every((element) => element.error?.reason == 'deleted')),
+            response.results.where((element) => element.docs.every((element) =>
+                element.error?.reason.contains('missing') ?? false)),
             hasLength(1));
       });
     },

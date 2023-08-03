@@ -60,33 +60,34 @@ mixin _KeyValueGet on _AbstractKeyValue {
     List<BulkGetIdDocs<T>> results = [];
     for (final d in body.docs) {
       late BulkGetDoc<T> doc;
-      Doc<T>? found;
-      String status = 'found';
-      try {
-        found = await get(
-            id: d.id, rev: d.rev?.toString(), revs: revs, fromJsonT: fromJsonT);
-      } catch (ex) {
-        if (ex is AdapterException) {
-          if (ex.error.contains('deleted')) {
-            status = 'deleted';
-          } else if (ex.error.contains('missing')) {
-            status = 'missing';
-          } else {
-            rethrow;
-          }
-        } else {
-          rethrow;
-        }
-      }
-      if (status != 'found') {
+      var entry = await keyValueDb.get(DocKey(key: d.id));
+      if (entry == null) {
         doc = BulkGetDoc(
             error: BulkGetDocError(
                 id: d.id,
                 rev: d.rev?.toString() ?? 'undefined',
                 error: 'not_found',
-                reason: status));
+                reason: 'missing'));
+      }
+      var result = DocHistory.fromJson(entry!.value);
+      var targetRev = d.rev ?? result.winnerWithDeleted!.rev;
+      var resultDoc = result.toDoc(
+        targetRev,
+        fromJsonT,
+        showRevision: revs,
+        showRevInfo: false,
+        showConflicts: false,
+        revLimit: _revLimit,
+      );
+      if (resultDoc != null) {
+        doc = BulkGetDoc(doc: resultDoc);
       } else {
-        doc = BulkGetDoc(doc: found);
+        doc = BulkGetDoc(
+            error: BulkGetDocError(
+                id: d.id,
+                rev: d.rev?.toString() ?? 'undefined',
+                error: 'not_found',
+                reason: 'missing'));
       }
       results.add(BulkGetIdDocs(id: d.id, docs: [doc]));
     }

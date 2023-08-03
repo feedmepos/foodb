@@ -40,9 +40,12 @@ List<Function(FoodbTestContext)> deleteTest() {
             await db.delete(id: 'a', rev: Rev.fromString('2-b'));
         expect(deleteResponse.ok, true);
 
-        var doc = await db.get<Map<String, dynamic>>(
-            id: 'a', fromJsonT: (value) => value);
-        expect(doc, isNull);
+        var doc =
+            db.get<Map<String, dynamic>>(id: 'a', fromJsonT: (value) => value);
+        await expectLater(
+            doc,
+            throwsA(predicate(
+                (e) => e is AdapterException && e.error.contains('deleted'))));
       });
     },
     (FoodbTestContext ctx) {

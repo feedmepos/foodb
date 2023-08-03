@@ -387,12 +387,12 @@ List<Function(FoodbTestContext)> findTest() {
     },
     (FoodbTestContext ctx) {
       group('explain()', () {
-        test('order of fields should not affect selection', () async {
+        test('equal operator come before regex', () async {
           final db = await ctx.db('explain');
-          var index = await db.createIndex(
+          await db.createIndex(
               name: 'id-name-index',
               index: QueryViewOptionsDef(fields: ['_id', 'name']));
-          var index2 = await db.createIndex(
+          await db.createIndex(
               name: 'name-id-index',
               index: QueryViewOptionsDef(fields: ['name', '_id']));
           var explainResponse = await db.explain(FindRequest(
@@ -403,23 +403,48 @@ List<Function(FoodbTestContext)> findTest() {
                   expected: '^user',
                 )
               ]),
-              sort: [
-                {'_id': 'asc'}
-              ]));
-          var chosen =
-              index.id.compareTo(index2.id) < 0 ? index.name : index2.name;
-          expect(explainResponse.index.name, chosen);
+              sort: []));
+          expect(explainResponse.index.name, 'name-id-index');
+        });
+        test('same operator will sort by id', () async {
+          final db = await ctx.db('explain');
+          await db.createIndex(
+              name: 'id-name-index',
+              index: QueryViewOptionsDef(fields: ['_id', 'name']));
+          await db.createIndex(
+              name: 'name-id-index',
+              index: QueryViewOptionsDef(fields: ['name', '_id']));
+          var explainResponse = await db.explain(FindRequest(
+              selector: AndOperator(operators: [
+                EqualOperator(
+                  key: '_id',
+                  expected: 'user',
+                ),
+                EqualOperator(key: 'name', expected: 'nasi'),
+              ]),
+              sort: []));
+          expect(explainResponse.index.name, 'id-name-index');
+          explainResponse = await db.explain(FindRequest(
+              selector: AndOperator(operators: [
+                EqualOperator(key: 'name', expected: 'nasi'),
+                EqualOperator(
+                  key: '_id',
+                  expected: 'user',
+                ),
+              ]),
+              sort: []));
+          expect(explainResponse.index.name, 'id-name-index');
         });
         test(
             'selected design-doc fields should less or equal to selector and ignore _id',
             () async {
           final db = await ctx.db('explain');
           await db.createIndex(
-              name: 'id-name-index',
-              index: QueryViewOptionsDef(fields: ['name', '_id']));
-          await db.createIndex(
               name: 'id-name-k-index',
               index: QueryViewOptionsDef(fields: ['no', 'name', 'k']));
+          await db.createIndex(
+              name: 'id-name-index',
+              index: QueryViewOptionsDef(fields: ['name', '_id']));
 
           var explainResponse = await db.explain(FindRequest(
               selector: AndOperator(operators: [
@@ -429,9 +454,7 @@ List<Function(FoodbTestContext)> findTest() {
                   expected: '^user',
                 )
               ]),
-              sort: [
-                {'_id': 'asc'}
-              ]));
+              sort: []));
           expect(explainResponse.index.name, 'id-name-index');
         });
         test('should return all_docs if no suitable design docs', () async {
@@ -451,10 +474,8 @@ List<Function(FoodbTestContext)> findTest() {
                   expected: '^user',
                 )
               ]),
-              sort: [
-                {'_id': 'asc'}
-              ]));
-          expect(explainResponse.index.name, 'all_docs');
+              sort: []));
+          expect(explainResponse.index.name, '_all_docs');
         });
         test('check when last generate view failed halfway', () async {
           final db = await ctx.db('generate-view-fail');

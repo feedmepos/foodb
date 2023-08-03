@@ -227,14 +227,14 @@ packages:
       path: "../foodb"
       relative: true
     source: path
-    version: "0.8.0"
+    version: "0.9.0"
   foodb_test:
     dependency: "direct dev"
     description:
       path: "../foodb_test"
       relative: true
     source: path
-    version: "0.7.6"
+    version: "0.8.0"
   frontend_server_client:
     dependency: transitive
     description:
@@ -432,12 +432,12 @@ packages:
     source: hosted
     version: "1.11.1"
   platform:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       name: platform
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "3.0.2"
+    version: "3.1.0"
   plugin_platform_interface:
     dependency: transitive
     description:
@@ -659,7 +659,7 @@ packages:
       name: web_socket_channel
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "2.1.0"
+    version: "2.4.0"
   webkit_inspection_protocol:
     dependency: transitive
     description:

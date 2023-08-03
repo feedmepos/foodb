@@ -15,12 +15,22 @@ List<Function(FoodbTestContext)> putTest() {
     (FoodbTestContext ctx) {
       test('subconnect doc', () async {
         final db = await ctx.db('sub_db');
-        final get0 = await db.get(id: 'subConnectDoc', fromJsonT: (v) => v);
+        final get0 = db.get(id: 'subConnectDoc', fromJsonT: (v) => v);
+        await expectLater(
+            get0,
+            throwsA(predicate(
+                (e) => e is AdapterException && e.error.contains('missing'))));
         final put1 = await db.put(
             doc: Doc(id: 'subConnectDoc', model: {'data': 'test1'}));
         final get1 = await db.get(id: 'subConnectDoc', fromJsonT: (v) => v);
         final delete1 = await db.delete(id: 'subConnectDoc', rev: get1!.rev!);
-        final get2 = await db.get(id: 'subConnectDoc', fromJsonT: (v) => v);
+
+        final get2 = db.get(id: 'subConnectDoc', fromJsonT: (v) => v);
+        await expectLater(
+            get2,
+            throwsA(predicate(
+                (e) => e is AdapterException && e.error.contains('deleted'))));
+
         final doc2 = Doc(id: 'subConnectDoc', model: {'data': 'test2'});
         final put2 = await db.put(
             doc: Doc(id: 'subConnectDoc', model: {'data': 'test2'}));

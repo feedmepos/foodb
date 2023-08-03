@@ -3,8 +3,8 @@ import 'package:foodb/foodb.dart';
 import 'package:foodb_test/foodb_test.dart';
 
 void main() {
-  // final ctx = CouchdbTestContext();
-  final ctx = InMemoryTestContext();
+  final ctx = CouchdbTestContext();
+  // final ctx = InMemoryTestContext();
   utilTest().forEach((t) {
     t(ctx);
   });
@@ -115,28 +115,33 @@ List<Function(FoodbTestContext)> utilTest() {
         // rev limit will not remove revinfos, just change revisions ouput, doc still exist
         await db.revsLimit(2);
         var winner = await getDoc();
-        var winnerUsingRev = await getDoc('4-b');
-        var winnerBranch = await getDoc('3-b');
-        var commonAccestor = await getDoc('2-a');
-        var conflictLeaf = await getDoc('4-a');
-        var conflictBranch = await getDoc('3-a');
         expect(winner, isNotNull);
         expect(winner!.conflicts, hasLength(1));
-        expect(winnerUsingRev, isNotNull);
-        expect(winnerBranch, isNotNull);
-        expect(commonAccestor, isNotNull);
-        expect(conflictLeaf, isNotNull);
-        expect(conflictBranch, isNotNull);
         expect(winner.revsInfo, hasLength(4));
-        expect(winnerUsingRev!.revsInfo, isNull);
-        expect(winnerBranch!.revsInfo, isNull);
-        expect(commonAccestor!.revsInfo, isNull);
-        expect(conflictLeaf!.revsInfo, isNull);
-        expect(conflictBranch!.revsInfo, isNull);
         expect(winner.revisions!.ids, hasLength(2));
+
+        var winnerUsingRev = await getDoc('4-b');
+        expect(winnerUsingRev, isNotNull);
+        expect(winnerUsingRev!.revsInfo, isNull);
+
+        var winnerBranch = await getDoc('3-b');
+        expect(winnerBranch, isNotNull);
+        expect(winnerBranch!.revsInfo, isNull);
         expect(winnerBranch.revisions!.ids, hasLength(2));
+
+        var commonAccestor = await getDoc('2-a');
+        expect(commonAccestor, isNotNull);
+        expect(commonAccestor!.revsInfo, isNull);
         expect(commonAccestor.revisions!.ids, hasLength(2));
+
+        var conflictLeaf = await getDoc('4-a');
+        expect(conflictLeaf, isNotNull);
+        expect(conflictLeaf!.revsInfo, isNull);
         expect(conflictLeaf.revisions!.ids, hasLength(2));
+
+        var conflictBranch = await getDoc('3-a');
+        expect(conflictBranch, isNotNull);
+        expect(conflictBranch!.revsInfo, isNull);
         expect(conflictBranch.revisions!.ids, hasLength(2));
 
         // compact before rev limit will not reduce revisions.ids, doc disappear
@@ -144,17 +149,30 @@ List<Function(FoodbTestContext)> utilTest() {
         await db.compact();
         await Future.delayed(Duration(seconds: 1));
         winner = await getDoc();
-        winnerBranch = await getDoc('3-b');
-        commonAccestor = await getDoc('2-a');
-        conflictLeaf = await getDoc('4-a');
-        conflictBranch = await getDoc('3-a');
         expect(winner, isNotNull);
-        expect(conflictLeaf, isNotNull);
-        expect(winnerBranch, isNull);
-        expect(commonAccestor, isNull);
-        expect(conflictBranch, isNull);
         expect(winner!.revisions!.ids, hasLength(4));
+
+        var winnerBranch2 = getDoc('3-b');
+        await expectLater(
+            winnerBranch2,
+            throwsA(predicate(
+                (e) => e is AdapterException && e.error.contains('missing'))));
+
+        var commonAccestor2 = getDoc('2-a');
+        await expectLater(
+            commonAccestor2,
+            throwsA(predicate(
+                (e) => e is AdapterException && e.error.contains('missing'))));
+
+        conflictLeaf = await getDoc('4-a');
+        expect(conflictLeaf, isNotNull);
         expect(conflictLeaf!.revisions!.ids, hasLength(4));
+
+        var conflictBranch2 = getDoc('3-a');
+        await expectLater(
+            conflictBranch2,
+            throwsA(predicate(
+                (e) => e is AdapterException && e.error.contains('missing'))));
 
         // compact after change rev limit, revisions id dissappear
         await db.revsLimit(2);
@@ -215,19 +233,35 @@ List<Function(FoodbTestContext)> utilTest() {
         await putDoc(['4-a', '3-a', '2-a', '1-a']);
         await putDoc(['3-b', '2-a', '1-a']);
         await putDoc(['4-b', '3-b', '2-a', '1-a']);
+        if (ctx is CouchdbTestContext) {
+          await db.compact();
+        }
         await Future.delayed(Duration(seconds: 1));
         var winner = await getDoc();
-        var winnerBranch = await getDoc('3-b');
-        var commonAccestor = await getDoc('2-a');
-        var conflictLeaf = await getDoc('4-a');
-        var conflictBranch = await getDoc('3-a');
         expect(winner, isNotNull);
-        expect(conflictLeaf, isNotNull);
-        expect(winnerBranch, isNull);
-        expect(commonAccestor, isNull);
-        expect(conflictBranch, isNull);
         expect(winner!.revisions!.ids, hasLength(2));
+
+        var winnerBranch = getDoc('3-b');
+        await expectLater(
+            winnerBranch,
+            throwsA(predicate(
+                (e) => e is AdapterException && e.error.contains('missing'))));
+
+        var commonAccestor = getDoc('2-a');
+        await expectLater(
+            commonAccestor,
+            throwsA(predicate(
+                (e) => e is AdapterException && e.error.contains('missing'))));
+
+        var conflictLeaf = await getDoc('4-a');
+        expect(conflictLeaf, isNotNull);
         expect(conflictLeaf!.revisions!.ids, hasLength(2));
+
+        var conflictBranch = getDoc('3-a');
+        await expectLater(
+            conflictBranch,
+            throwsA(predicate(
+                (e) => e is AdapterException && e.error.contains('missing'))));
       });
     },
   ];

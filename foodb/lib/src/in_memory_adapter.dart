@@ -30,6 +30,7 @@ class InMemoryAdapterSession extends KeyValueAdapterSession {
 }
 
 class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
+  Duration? latency;
   final Stores _stores = Stores();
 
   String Function({required String designDocId, required String viewId})
@@ -39,6 +40,13 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
 
   @override
   String type = 'in_memory';
+  InMemoryAdapter({
+    this.latency,
+  });
+
+  delay() async {
+    latency != null ? await Future.delayed(latency!) : null;
+  }
 
   @override
   Future<void> runInSession(
@@ -83,6 +91,7 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
     if (val != null) {
       return MapEntry(key, val);
     }
+
     return null;
   }
 
@@ -106,6 +115,7 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
       final lastVal = _getTable(key)[lastKey]!;
       return MapEntry(lastKey as T, lastVal);
     }
+
     return null;
   }
 
@@ -128,15 +138,15 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
     }
     for (int x = 0; x < table.length; x++) {
       var startCmp = 0;
-      if (startkey != null) {
+      if (startkey?.key != null) {
         final a = keys[x];
-        final b = startkey;
+        final b = startkey!;
         startCmp = desc ? b.compareTo(a) : a.compareTo(b);
       }
       var endCmp = -1;
-      if (endkey != null) {
+      if (endkey?.key != null) {
         final a = keys[x];
-        final b = endkey;
+        final b = endkey!;
         endCmp = desc ? b.compareTo(a) : a.compareTo(b);
       }
       if ((inclusiveStart ? startCmp >= 0 : startCmp > 0) &&
@@ -151,6 +161,7 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
       if (limit != null && result.length >= limit) break;
     }
     offSet ??= table.length;
+
     return ReadResult(records: result, offset: offSet, totalRows: table.length);
   }
 
@@ -159,6 +170,7 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
       {InMemoryAdapterSession? session}) async {
     var table = _getTable(key);
     table.update(key, (v) => value, ifAbsent: () => value);
+
     return true;
   }
 
@@ -176,6 +188,7 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
       {InMemoryAdapterSession? session}) async {
     var table = _getTable(key);
     table.remove(key);
+
     return true;
   }
 
@@ -192,6 +205,7 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
   Future<bool> clearTable(AbstractKey key,
       {InMemoryAdapterSession? session}) async {
     _stores[key]?.clear();
+
     return true;
   }
 
@@ -200,6 +214,7 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
     for (final table in _stores.values) {
       table?.clear();
     }
+
     return true;
   }
 

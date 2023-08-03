@@ -210,8 +210,8 @@ abstract class KeyValueAdapterSession {
 abstract class KeyValueAdapter<T extends KeyValueAdapterSession> {
   late String type;
 
-  static inMemory() {
-    return InMemoryAdapter();
+  static inMemory({Duration? latency}) {
+    return InMemoryAdapter(latency: latency);
   }
 
   static String defaultGetViewTableName(

@@ -183,6 +183,12 @@ class DocHistory {
     return winner?.rev;
   }
 
+  InternalDoc? get winnerWithDeleted {
+    List<InternalDoc> sortedLeaves = leafDocs.toList();
+    sortedLeaves.sort((a, b) => b.rev.compareTo(a.rev));
+    return sortedLeaves.length > 0 ? sortedLeaves.first : null;
+  }
+
   InternalDoc? get winner {
     List<InternalDoc> sortedLeaves = leafDocs.toList();
     sortedLeaves.removeWhere((element) => element.deleted == true);
@@ -290,8 +296,8 @@ class DocHistory {
     List<RevisionNode> newNodes = [];
     leafDocs.forEach((doc) {
       newDocs[doc.rev.toString()] = doc;
-      var i = 0;
       Rev? currRev = doc.rev;
+      var i = 0;
       do {
         var nodeToAdd = revisions.nodes
             .firstWhere((element) => element.rev == currRev)
@@ -300,6 +306,8 @@ class DocHistory {
         if (i >= limit) {
           nodeToAdd.prevRev = null;
         }
+        var docsToAdd = docs[currRev.toString()];
+        if (docsToAdd != null) {}
         newNodes.add(nodeToAdd);
         currRev = nodeToAdd.prevRev;
       } while (currRev != null);

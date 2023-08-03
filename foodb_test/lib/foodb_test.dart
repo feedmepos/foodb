@@ -2,30 +2,30 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:dotenv/dotenv.dart';
+import 'package:foodb/foodb.dart';
 import 'package:foodb/key_value_adapter.dart';
 import 'package:test/test.dart';
-import 'package:foodb/foodb.dart';
 
-import './src/test/find_test.dart';
 import './src/test/all_doc_Test.dart';
 import './src/test/bulk_doc_test.dart';
 import './src/test/change_stream_test.dart';
 import './src/test/delete_test.dart';
+import './src/test/find_test.dart';
 import './src/test/get_test.dart';
 import './src/test/put_test.dart';
 import './src/test/util_test.dart';
 
-export './src/test/find_benchmark_test.dart' show findBenchmarkTest;
-export './src/test/find_test.dart' show findTest;
 export './src/test/all_doc_Test.dart' show allDocTest;
 export './src/test/bulk_doc_test.dart' show bulkDocTest;
 export './src/test/change_stream_test.dart' show changeStreamTest;
 export './src/test/delete_test.dart' show deleteTest;
+export './src/test/find_benchmark_test.dart' show findBenchmarkTest;
+export './src/test/find_test.dart' show findTest;
 export './src/test/get_test.dart' show getTest;
 export './src/test/put_test.dart' show putTest;
-export './src/test/util_test.dart' show utilTest;
-export './src/test/replicate_test.dart' show replicateTest;
 export './src/test/replicate_benchmark_test.dart' show replicateBenchmarkTest;
+export './src/test/replicate_test.dart' show replicateTest;
+export './src/test/util_test.dart' show utilTest;
 
 abstract class FoodbTestContext {
   Future<Foodb> db(String dbName,
@@ -43,6 +43,10 @@ class CouchdbTestContext extends FoodbTestContext {
 }
 
 class InMemoryTestContext extends FoodbTestContext {
+  Duration? latency;
+  InMemoryTestContext({
+    this.latency,
+  });
   @override
   Future<Foodb> db(String dbName,
       {bool? persist,
@@ -50,7 +54,7 @@ class InMemoryTestContext extends FoodbTestContext {
       bool autoCompaction = false}) async {
     var inMemoryDb = Foodb.keyvalue(
         dbName: '$prefix$dbName',
-        keyValueDb: KeyValueAdapter.inMemory(),
+        keyValueDb: KeyValueAdapter.inMemory(latency: latency),
         autoCompaction: autoCompaction);
     await inMemoryDb.initDb();
     return inMemoryDb;

@@ -57,8 +57,14 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
     String ddocName =
         "_design/${ddoc ?? crypto.md5.convert(utf8.encode(timeStamp)).toString()}";
 
-    Doc<DesignDoc>? doc = await get(
-        id: ddocName, fromJsonT: (value) => DesignDoc.fromJson(value));
+    Doc<DesignDoc>? doc;
+    try {
+      doc = await get(
+          id: ddocName, fromJsonT: (value) => DesignDoc.fromJson(value));
+    } on AdapterException catch (ex) {
+      if (!(ex.error.contains('missing') || ex.error.contains('deleted')))
+        rethrow;
+    }
 
     QueryDesignDocView queryDesignDoc = QueryDesignDocView(
         map: QueryViewMapper(
@@ -290,7 +296,7 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
       }
     }
     if (winnerViewId == null || winnerDoc == null) {
-      return MapEntry("all_docs", allDocDesignDoc);
+      return MapEntry("_all_docs", allDocDesignDoc);
     }
     return MapEntry(winnerViewId, winnerDoc);
   }
