@@ -468,6 +468,18 @@ class _CouchdbFoodb extends Foodb {
         UriBuilder.fromUri((this.getUri('_design/$ddocId/_view/$viewId')));
     return _view(uriBuilder, getViewRequest, fromJsonT);
   }
+
+  @override
+  Future<PurgeResponse> purge(Map<String, List<String>> payload) async {
+    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_purge')));
+    final result = utf8.decode((await this.client.post(
+      uriBuilder.build(),
+      body: jsonEncode(payload),
+      headers: {'Content-Type': 'application/json'},
+    ))
+        .bodyBytes);
+    return PurgeResponse.fromJson(jsonDecode(result));
+  }
 }
 
 Map<String, String> convertToParams(Map<String, dynamic> objects) {

@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:foodb/src/common.dart';
+import 'package:foodb/src/methods/purge.dart';
 import 'package:foodb/src/selector.dart';
 import 'package:foodb/src/design_doc.dart';
 import 'package:foodb/src/exception.dart';
@@ -42,11 +43,9 @@ export 'package:foodb/src/methods/index.dart';
 export 'package:foodb/src/methods/info.dart';
 export 'package:foodb/src/methods/put.dart';
 export 'package:foodb/src/methods/revs_diff.dart';
-export 'package:foodb/src/selector.dart';
 export 'package:foodb/src/methods/server.dart';
 export 'package:foodb/src/methods/view.dart';
 import 'package:web_socket_channel/io.dart';
-import 'package:web_socket_channel/status.dart' as status;
 
 export 'foodb.dart';
 export 'foodb_worker.dart';
@@ -59,6 +58,7 @@ part 'src/key_value/key_value_get.dart';
 part 'src/key_value/key_value_put.dart';
 part 'src/key_value/key_value_util.dart';
 part 'src/key_value/key_value_view.dart';
+part 'src/key_value/key_value_purge.dart';
 
 enum LOG_LEVEL { off, debug }
 
@@ -254,6 +254,8 @@ abstract class Foodb {
       String viewId,
       GetViewRequest getViewRequest,
       T Function(Map<String, dynamic> json) fromJsonT);
+
+  Future<PurgeResponse> purge(Map<String, List<String>> payload);
 }
 
 abstract class JSRuntime {
@@ -303,7 +305,8 @@ class _KeyvalueFoodb extends _AbstractKeyValue
         _KeyValueUtil,
         _KeyValuePut,
         _KeyValueChange,
-        _KeyValueView {
+        _KeyValueView,
+        _KeyValuePurge {
   _KeyvalueFoodb(
       {required dbName,
       required KeyValueAdapter keyValueDb,

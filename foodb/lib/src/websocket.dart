@@ -584,4 +584,15 @@ class _WebSocketFoodb extends Foodb {
         UriBuilder.fromUri((this.getUri('_design/$ddocId/_view/$viewId')));
     return _view(uriBuilder, getViewRequest, fromJsonT);
   }
+
+  @override
+  Future<PurgeResponse> purge(Map<String, List<String>> body) async {
+    UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_purge')));
+    final response = await _send(
+      uriBuilder: uriBuilder,
+      method: 'POST',
+      body: body,
+    );
+    return PurgeResponse.fromJson(response.data);
+  }
 }
