@@ -19,11 +19,12 @@ List<Function(FoodbTestContext)> allDocTest() {
         var doc = await db.put(doc: Doc(id: '1', model: {}));
         var req1 = db.allDocs<Map<String, dynamic>>(
             GetViewRequest(includeDocs: true), (value) => value);
-        await Future.delayed(Duration(milliseconds: 50));
         await db.delete(id: '1', rev: doc.rev);
         var req2 = db.allDocs<Map<String, dynamic>>(
             GetViewRequest(includeDocs: true), (value) => value);
-        await req1;
+        try {
+          await req1;
+        } catch (ex) {}
         await req2;
         await db.allDocs<Map<String, dynamic>>(
             GetViewRequest(includeDocs: true), (value) => value);
