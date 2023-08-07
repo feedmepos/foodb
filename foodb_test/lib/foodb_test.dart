@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:dotenv/dotenv.dart';
 import 'package:foodb/foodb.dart';
 import 'package:foodb/key_value_adapter.dart';
+import 'package:foodb_test/src/test/purge_test.dart';
 import 'package:test/test.dart';
 
 import './src/test/all_doc_Test.dart';
@@ -141,4 +142,5 @@ final List<Function(FoodbTestContext)> foodbFullTestSuite = [
   ...getTest(),
   ...putTest(),
   ...utilTest(),
+  // ...purgeTest(),
 ];
