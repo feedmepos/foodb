@@ -472,17 +472,17 @@ class _CouchdbFoodb extends Foodb {
   @override
   Future<PurgeResponse> purge(Map<String, List<String>> payload) async {
     UriBuilder uriBuilder = UriBuilder.fromUri((this.getUri('_purge')));
-    final result = utf8.decode((await this.client.post(
+    final response = await this.client.post(
       uriBuilder.build(),
       body: jsonEncode(payload),
       headers: {'Content-Type': 'application/json'},
-    ))
-        .bodyBytes);
-    final json = jsonDecode(result);
-    if (json['error'] != null) {
-      throw AdapterException(error: json['error'], reason: json['reason']);
+    );
+    if (response.statusCode >= 400) {
+      return AdapterException.fromResponse(response);
+    } else {
+      return PurgeResponse.fromJson(
+          jsonDecode(utf8.decode(response.bodyBytes)));
     }
-    return PurgeResponse.fromJson(json);
   }
 }
 
