@@ -21,7 +21,7 @@ List<Function(FoodbTestContext)> findTest() {
             name: 'index_by_name');
         var designDoc = await db.fetchDesignDoc(ddocName: 'type_user_name');
         expect(designDoc, isNotNull);
-        expect(designDoc!.model.language, 'query');
+        expect(designDoc.model.language, 'query');
         var view = designDoc.model.views['index_by_name'];
         expect(view, isNotNull);
         expect(view is QueryDesignDocView, true);

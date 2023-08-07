@@ -205,7 +205,7 @@ class _CouchdbFoodb extends Foodb {
   }
 
   @override
-  Future<Doc<T>?> get<T>(
+  Future<Doc<T>> get<T>(
       {required String id,
       bool attachments = false,
       bool attEncodingInfo = false,

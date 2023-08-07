@@ -2,7 +2,7 @@ part of '../../foodb.dart';
 
 mixin _KeyValueGet on _AbstractKeyValue {
   @override
-  Future<Doc<T>?> get<T>(
+  Future<Doc<T>> get<T>(
       {required String id,
       bool attachments = false,
       bool attEncodingInfo = false,
@@ -24,16 +24,12 @@ mixin _KeyValueGet on _AbstractKeyValue {
     }
     var entry = await keyValueDb.get(baseKey);
     if (entry == null) {
-      throw AdapterException(
-        error: '{"error": "not_found", "reason": "missing"}',
-      );
+      throw AdapterException(error: "not_found", reason: "missing");
     }
     var result = DocHistory.fromJson(entry.value);
     Doc<T>? doc;
     if (rev == null && result.winner == null) {
-      throw AdapterException(
-        error: '{"error": "not_found", "reason": "deleted"}',
-      );
+      throw AdapterException(error: "not_found", reason: "deleted");
     }
     var targetRev = rev != null ? Rev.fromString(rev) : result.winner!.rev;
     doc = result.toDoc(
@@ -45,9 +41,7 @@ mixin _KeyValueGet on _AbstractKeyValue {
       revLimit: _revLimit,
     );
     if (doc == null) {
-      throw AdapterException(
-        error: '{"error": "not_found", "reason": "missing"}',
-      );
+      throw AdapterException(error: "not_found", reason: "missing");
     }
     return doc;
   }

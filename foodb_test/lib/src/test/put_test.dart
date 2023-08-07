@@ -18,24 +18,24 @@ List<Function(FoodbTestContext)> putTest() {
         final get0 = db.get(id: 'subConnectDoc', fromJsonT: (v) => v);
         await expectLater(
             get0,
-            throwsA(predicate(
-                (e) => e is AdapterException && e.error.contains('missing'))));
+            throwsA(predicate((e) =>
+                e is AdapterException && e.reason!.contains('missing'))));
         final put1 = await db.put(
             doc: Doc(id: 'subConnectDoc', model: {'data': 'test1'}));
         final get1 = await db.get(id: 'subConnectDoc', fromJsonT: (v) => v);
-        final delete1 = await db.delete(id: 'subConnectDoc', rev: get1!.rev!);
+        final delete1 = await db.delete(id: 'subConnectDoc', rev: get1.rev!);
 
         final get2 = db.get(id: 'subConnectDoc', fromJsonT: (v) => v);
         await expectLater(
             get2,
-            throwsA(predicate(
-                (e) => e is AdapterException && e.error.contains('deleted'))));
+            throwsA(predicate((e) =>
+                e is AdapterException && e.reason!.contains('deleted'))));
 
         final doc2 = Doc(id: 'subConnectDoc', model: {'data': 'test2'});
         final put2 = await db.put(
             doc: Doc(id: 'subConnectDoc', model: {'data': 'test2'}));
         final get3 = await db.get(id: 'subConnectDoc', fromJsonT: (v) => v);
-        expect(get3?.model['data'], doc2.model['data']);
+        expect(get3.model['data'], doc2.model['data']);
       });
     },
     (FoodbTestContext ctx) {
@@ -54,7 +54,7 @@ List<Function(FoodbTestContext)> putTest() {
         await db.put(doc: Doc(id: 'a', rev: Rev.fromString('1-a'), model: {}));
 
         var doc = await db.get(id: 'a', fromJsonT: (json) => json);
-        expect(doc!.rev, isNot(Rev.fromString('1-a')));
+        expect(doc.rev, isNot(Rev.fromString('1-a')));
       });
     },
     (FoodbTestContext ctx) {
@@ -103,7 +103,7 @@ List<Function(FoodbTestContext)> putTest() {
         var doc = await db.get(
             id: id, fromJsonT: (val) => val, meta: true, revs: true);
         expect(doc, isNotNull);
-        expect(doc!.conflicts!.length, 1);
+        expect(doc.conflicts!.length, 1);
         expect(doc.revisions!.ids.length, 1);
         await db.delete(id: id, rev: Rev.fromString('2-a'));
       });
@@ -128,7 +128,7 @@ List<Function(FoodbTestContext)> putTest() {
         var doc = await db.get(
             id: id, fromJsonT: (val) => val, meta: true, revs: true);
         expect(doc, isNotNull);
-        expect(doc!.conflicts, isNull);
+        expect(doc.conflicts, isNull);
         expect(doc.revisions!.ids.length, 2);
         await db.delete(id: id, rev: Rev.fromString('2-a'));
       });
@@ -152,9 +152,9 @@ List<Function(FoodbTestContext)> putTest() {
 
         var doc = await db.get(
             id: 'a', fromJsonT: (json) => json, revs: true, conflicts: true);
-        expect(doc?.conflicts, hasLength(1));
-        expect(doc?.revisions!.start, 3);
-        expect(doc?.revisions!.ids, hasLength(1));
+        expect(doc.conflicts, hasLength(1));
+        expect(doc.revisions!.start, 3);
+        expect(doc.revisions!.ids, hasLength(1));
       });
     },
     (FoodbTestContext ctx) {
@@ -175,10 +175,10 @@ List<Function(FoodbTestContext)> putTest() {
 
         var doc = await db.get(
             id: 'a', fromJsonT: (json) => json, revs: true, conflicts: true);
-        expect(doc?.conflicts, hasLength(2));
-        expect(doc?.revisions?.ids, hasLength(1));
-        expect(doc?.revisions?.start, 3);
-        expect(doc?.revisions?.ids[0], 'a');
+        expect(doc.conflicts, hasLength(2));
+        expect(doc.revisions?.ids, hasLength(1));
+        expect(doc.revisions?.start, 3);
+        expect(doc.revisions?.ids[0], 'a');
 
         await db.put(
             doc: Doc(
@@ -189,12 +189,12 @@ List<Function(FoodbTestContext)> putTest() {
             newEdits: false);
         doc = await db.get(
             id: 'a', fromJsonT: (json) => json, revs: true, conflicts: true);
-        expect(doc?.conflicts?.length, isNull);
-        expect(doc?.revisions?.ids, hasLength(3));
-        expect(doc?.revisions?.start, 3);
-        expect(doc?.revisions?.ids[0], 'a');
-        expect(doc?.revisions?.ids[1], 'a');
-        expect(doc?.revisions?.ids[2], 'a');
+        expect(doc.conflicts?.length, isNull);
+        expect(doc.revisions?.ids, hasLength(3));
+        expect(doc.revisions?.start, 3);
+        expect(doc.revisions?.ids[0], 'a');
+        expect(doc.revisions?.ids[1], 'a');
+        expect(doc.revisions?.ids[2], 'a');
       });
     }
   ];

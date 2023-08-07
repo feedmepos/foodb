@@ -165,7 +165,7 @@ abstract class Foodb {
   Future<GetServerInfoResponse> serverInfo();
   Future<GetInfoResponse> info();
 
-  Future<Doc<T>?> get<T>(
+  Future<Doc<T>> get<T>(
       {required String id,
       bool attachments = false,
       bool attEncodingInfo = false,
@@ -180,7 +180,7 @@ abstract class Foodb {
       bool revsInfo = false,
       required T Function(Map<String, dynamic> json) fromJsonT});
 
-  Future<Doc<DesignDoc>?> fetchDesignDoc({
+  Future<Doc<DesignDoc>> fetchDesignDoc({
     required String ddocName,
   }) async {
     return get<DesignDoc>(

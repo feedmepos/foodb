@@ -38,24 +38,24 @@ List<Function(FoodbTestContext)> purgeTest() {
           meta: true,
           revsInfo: true,
         );
-        expect(doc?.conflicts, hasLength(1));
+        expect(doc.conflicts, hasLength(1));
         // delete conflicts
-        final deletes = (doc?.conflicts ?? []).map((rev) async {
-          await db.delete(id: doc!.id, rev: rev);
+        final deletes = (doc.conflicts ?? []).map((rev) async {
+          await db.delete(id: doc.id, rev: rev);
         }).toList();
         await Future.wait(deletes);
         var deletedConflictDoc = await db.get(
-          id: doc!.id,
+          id: doc.id,
           fromJsonT: (json) => json,
           revs: true,
           conflicts: true,
           meta: true,
           revsInfo: true,
         );
-        expect(deletedConflictDoc?.deletedConflicts?.length, 1);
+        expect(deletedConflictDoc.deletedConflicts?.length, 1);
         // purge conflicts
         final purgePayload = {
-          deletedConflictDoc!.id: [
+          deletedConflictDoc.id: [
             ...(deletedConflictDoc.deletedConflicts ?? <Rev>[])
                 .map((rev) => rev.toString()),
             '2-xxx', // invalid rev to be ignored without exception
@@ -76,8 +76,8 @@ List<Function(FoodbTestContext)> purgeTest() {
           revsInfo: true,
         );
         expect(purgedDoc, isNotNull);
-        expect(purgedDoc?.conflicts, isNull);
-        expect(purgedDoc?.deletedConflicts, isNull);
+        expect(purgedDoc.conflicts, isNull);
+        expect(purgedDoc.deletedConflicts, isNull);
       });
     },
   ];

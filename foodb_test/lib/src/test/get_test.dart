@@ -25,15 +25,15 @@ List<Function(FoodbTestContext)> getTest() {
 
         await expectLater(
             db.get(id: 'test-get-empty', fromJsonT: (v) => {}),
-            throwsA(predicate(
-                (e) => e is AdapterException && e.error.contains('missing'))));
+            throwsA(predicate((e) =>
+                e is AdapterException && e.reason!.contains('missing'))));
 
-        await db.delete(id: doc1!.id, rev: doc1.rev!);
+        await db.delete(id: doc1.id, rev: doc1.rev!);
 
         await expectLater(
             db.get(id: doc1.id, fromJsonT: (v) => {}),
-            throwsA(predicate(
-                (e) => e is AdapterException && e.error.contains('deleted'))));
+            throwsA(predicate((e) =>
+                e is AdapterException && e.reason!.contains('deleted'))));
 
         var oldDeletedDoc = await db.get(
             id: doc1.id, rev: doc1.rev.toString(), fromJsonT: (v) => {});
@@ -49,7 +49,7 @@ List<Function(FoodbTestContext)> getTest() {
 
         var doc1 = await db.get(id: 'test-get', fromJsonT: (v) => v);
         expect(doc1, isNotNull);
-        expect(doc1!.model['a'], '這是中文');
+        expect(doc1.model['a'], '這是中文');
       });
     },
     (FoodbTestContext ctx) {

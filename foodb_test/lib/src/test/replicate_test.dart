@@ -152,7 +152,7 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
           doc = await target.get(
               id: 'a', fromJsonT: (json) => json, rev: '2-b', revs: true);
           expect(doc, isNotNull);
-          expect(doc!.rev, Rev.fromString('2-b'));
+          expect(doc.rev, Rev.fromString('2-b'));
           expect(doc.revisions!.start, 2);
           expect(doc.revisions!.ids, hasLength(2));
           complete();

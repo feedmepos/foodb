@@ -44,8 +44,8 @@ List<Function(FoodbTestContext)> deleteTest() {
             db.get<Map<String, dynamic>>(id: 'a', fromJsonT: (value) => value);
         await expectLater(
             doc,
-            throwsA(predicate(
-                (e) => e is AdapterException && e.error.contains('deleted'))));
+            throwsA(predicate((e) =>
+                e is AdapterException && e.reason!.contains('deleted'))));
       });
     },
     (FoodbTestContext ctx) {
@@ -90,14 +90,14 @@ List<Function(FoodbTestContext)> deleteTest() {
             newEdits: false);
         var doc =
             await db.get(id: 'a', fromJsonT: (json) => json, conflicts: true);
-        expect(doc?.conflicts, hasLength(1));
-        expect(doc?.rev, Rev.fromString('2-c'));
-        expect(doc?.conflicts?[0], Rev.fromString('2-b'));
+        expect(doc.conflicts, hasLength(1));
+        expect(doc.rev, Rev.fromString('2-c'));
+        expect(doc.conflicts?[0], Rev.fromString('2-b'));
 
         await db.delete(id: 'a', rev: Rev.fromString('2-c'));
         doc = await db.get(id: 'a', fromJsonT: (json) => json, conflicts: true);
-        expect(doc?.rev, Rev.fromString('2-b'));
-        expect(doc?.conflicts, isNull);
+        expect(doc.rev, Rev.fromString('2-b'));
+        expect(doc.conflicts, isNull);
       });
     }
   ];

@@ -62,7 +62,7 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
       doc = await get(
           id: ddocName, fromJsonT: (value) => DesignDoc.fromJson(value));
     } on AdapterException catch (ex) {
-      if (!(ex.error.contains('missing') || ex.error.contains('deleted')))
+      if (!(ex.reason!.contains('missing') || ex.reason!.contains('deleted')))
         rethrow;
     }
 
@@ -110,7 +110,7 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
     final Doc<DesignDoc> designDoc;
     final MapEntry<String, AbstracDesignDocView> view;
     try {
-      designDoc = (await fetchDesignDoc(ddocName: ddoc))!;
+      designDoc = (await fetchDesignDoc(ddocName: ddoc));
       view = designDoc.model.views.entries
           .firstWhere((element) => element.key == name);
       if (view.value.runtimeType != QueryDesignDocView) {

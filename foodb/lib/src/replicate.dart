@@ -65,19 +65,24 @@ String _generateReplicationId(
 Future<Doc<ReplicationLog>> _retriveReplicationLog(
     Foodb db, replicationId) async {
   final id = "_local/$replicationId";
-  final exist = await db.get(
-      id: "_local/$replicationId",
-      fromJsonT: (json) => ReplicationLog.fromJson(json));
-  if (exist != null) {
-    return exist;
-  }
-  return Doc(
-      id: id,
-      model: ReplicationLog(
+  try {
+    return await db.get(
+        id: "_local/$replicationId",
+        fromJsonT: (json) => ReplicationLog.fromJson(json));
+  } on AdapterException catch (ex) {
+    if (ex.error.contains('not_found')) {
+      return Doc(
+        id: id,
+        model: ReplicationLog(
           history: [],
           replicationIdVersion: 1,
           sessionId: "",
-          sourceLastSeq: "0"));
+          sourceLastSeq: "0",
+        ),
+      );
+    }
+    rethrow;
+  }
 }
 
 Future<Doc<ReplicationLog>> _setReplicationCheckpoint(

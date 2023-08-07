@@ -280,7 +280,7 @@ class _WebSocketFoodb extends Foodb {
   }
 
   @override
-  Future<Doc<T>?> get<T>(
+  Future<Doc<T>> get<T>(
       {required String id,
       bool attachments = false,
       bool attEncodingInfo = false,
@@ -309,10 +309,13 @@ class _WebSocketFoodb extends Foodb {
       'revs_info': revsInfo
     });
     final response = await _send(uriBuilder: uriBuilder, method: 'GET');
-    return response.data.containsKey('_id')
-        ? Doc<T>.fromJson(
-            response.data, (json) => fromJsonT(json as Map<String, dynamic>))
-        : null;
+    if (response.data.containsKey('_id')) {
+      return Doc<T>.fromJson(
+        response.data,
+        (json) => fromJsonT(json as Map<String, dynamic>),
+      );
+    }
+    throw AdapterException(error: 'not_found', reason: 'missing');
   }
 
   @override
