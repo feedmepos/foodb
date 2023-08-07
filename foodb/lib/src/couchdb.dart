@@ -478,7 +478,11 @@ class _CouchdbFoodb extends Foodb {
       headers: {'Content-Type': 'application/json'},
     ))
         .bodyBytes);
-    return PurgeResponse.fromJson(jsonDecode(result));
+    final json = jsonDecode(result);
+    if (json['error'] != null) {
+      throw AdapterException(error: json['error'], reason: json['reason']);
+    }
+    return PurgeResponse.fromJson(json);
   }
 }
 
