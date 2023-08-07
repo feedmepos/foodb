@@ -399,6 +399,11 @@ class _WebSocketFoodb extends Foodb {
   }
 
   @override
+  Future<void> clearView(String ddocId, String name) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<IndexResponse> createIndex(
       {required QueryViewOptionsDef index,
       String? ddoc,

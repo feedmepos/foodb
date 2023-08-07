@@ -165,6 +165,8 @@ abstract class Foodb {
   Future<GetServerInfoResponse> serverInfo();
   Future<GetInfoResponse> info();
 
+  Future<void> clearView(String ddocId, String name);
+
   Future<Doc<T>> get<T>(
       {required String id,
       bool attachments = false,

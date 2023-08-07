@@ -232,7 +232,7 @@ mixin _KeyValueView on _AbstractKeyValue {
     }
   }
 
-  Future<void> _clearView(String designDocName, String viewName) async {
+  Future<void> clearView(String designDocName, String viewName) async {
     var view = keyValueDb.getViewTableName(
         designDocId: designDocName, viewId: viewName);
     await keyValueDb.delete(ViewMetaKey(key: view));

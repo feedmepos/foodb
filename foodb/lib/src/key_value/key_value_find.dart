@@ -122,7 +122,7 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
     var newViews =
         Map<String, AbstracDesignDocView>.from(designDoc.model.views);
     newViews.removeWhere((key, value) => key == name);
-    await _clearView(designDoc.id, name);
+    await clearView(designDoc.id, name);
     if (newViews.isNotEmpty) {
       await put(
           doc: Doc<Map<String, dynamic>>.fromJson(

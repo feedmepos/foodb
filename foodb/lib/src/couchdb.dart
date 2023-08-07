@@ -246,6 +246,11 @@ class _CouchdbFoodb extends Foodb {
   }
 
   @override
+  Future<void> clearView(String ddocId, String name) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<GetInfoResponse> info() async {
     var response = await this.client.get(this.getUri(''));
     if (response.statusCode != 200) {
