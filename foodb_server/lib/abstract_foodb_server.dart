@@ -185,18 +185,25 @@ abstract class FoodbServer {
         fromJsonT: (v) => v,
       );
       return FoodbServerResponse(
-        data: result != null
-            ? result.toJson((v) => v, fullMeta: true)
-            : {
-                "error": "not_found",
-                "reason": "missing",
-              },
+        data: result.toJson((v) => v, fullMeta: true),
       );
-    } catch (err) {
-      return FoodbServerResponse(data: {
-        "error": 'exception',
-        "reason": err.toString(),
-      });
+    } catch (ex) {
+      if (ex is AdapterException) {
+        return FoodbServerResponse(
+          data: {
+            "error": ex.error,
+            "reason": ex.reason,
+          },
+          status: ex.code ?? 400,
+        );
+      }
+      return FoodbServerResponse(
+        data: {
+          "error": 'exception',
+          "reason": ex.toString(),
+        },
+        status: 400,
+      );
     }
   }
 

@@ -234,14 +234,13 @@ class _CouchdbFoodb extends Foodb {
       'revs_info': revsInfo
     });
 
-    var response =
-        utf8.decode((await this.client.get(uriBuilder.build())).bodyBytes);
-    Map<String, dynamic> result = jsonDecode(response);
+    var response = await this.client.get(uriBuilder.build());
+    Map<String, dynamic> result = jsonDecode(utf8.decode(response.bodyBytes));
     if (result.containsKey('_id')) {
       return Doc<T>.fromJson(
           result, (json) => fromJsonT(json as Map<String, dynamic>));
     } else {
-      throw AdapterException(error: response);
+      throw AdapterException.fromResponse(response);
     }
   }
 

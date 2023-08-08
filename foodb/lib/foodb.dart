@@ -45,6 +45,7 @@ export 'package:foodb/src/methods/put.dart';
 export 'package:foodb/src/methods/revs_diff.dart';
 export 'package:foodb/src/methods/server.dart';
 export 'package:foodb/src/methods/view.dart';
+export 'package:foodb/src/methods/purge.dart';
 import 'package:web_socket_channel/io.dart';
 
 export 'foodb.dart';
