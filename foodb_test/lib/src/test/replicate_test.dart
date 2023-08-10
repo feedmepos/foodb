@@ -9,9 +9,9 @@ void main() {
   final couchdb = CouchdbTestContext();
   final inMemory = InMemoryTestContext();
   // group('couchdb > couchbdb', () {
-  // replicateTest().forEach((t) {
-  //   t(couchdb, couchdb);
-  // });
+  replicateTest().forEach((t) {
+    t(couchdb, couchdb);
+  });
   // });
   // group('couchdb > inMemory', () {
   //   replicateTest().forEach((t) {
@@ -19,9 +19,9 @@ void main() {
   //   });
   // });
   // group('inMemory > couchbdb', () {
-  replicateTest().forEach((t) {
-    t(inMemory, couchdb);
-  });
+  // replicateTest().forEach((t) {
+  //   t(inMemory, couchdb);
+  // });
   // });
   // group('inMemory > inMemory', () {
   //   replicateTest().forEach((t) {
@@ -187,12 +187,12 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
         final target =
             await targetCtx.db('target-continuous-by-max-batch-size');
 
-        var complete = expectAsync0(() => {});
+        ReplicationStream? stream;
+        var complete = expectAsync0(() => stream?.abort());
         var processedCnt = 0;
         var stopwatch = Stopwatch();
         stopwatch.start();
 
-        ReplicationStream? stream;
         stream = replicate(source, target,
             continuous: true,
             maxBatchSize: 10,
@@ -236,15 +236,15 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
         });
       });
       test(
-          'continuous replication, debounce will not fire immediate if no initial change',
+          'continuous replication, debounce will fire immediate if has initial change',
           () async {
         final source = await sourceCtx.db('source-tonituous-no-immediate-fire');
         final target = await targetCtx.db('target-tonituous-no-immediate-fire');
-        var complete = expectAsync0(() => {});
-        var checkpoint = expectAsync0(() => {}, count: 1);
+        ReplicationStream? stream;
+        var complete = expectAsync0(() => {}, count: 2);
+        var checkpoint = expectAsync0(() => {}, count: 2);
         await source.put(doc: Doc(id: 'a', model: {}));
 
-        ReplicationStream? stream;
         stream = replicate(source, target,
             continuous: true, debounce: Duration(microseconds: 2000),
             onCheckpoint: (event) async {
