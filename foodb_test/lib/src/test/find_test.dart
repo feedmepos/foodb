@@ -46,6 +46,39 @@ List<Function(FoodbTestContext)> findTest() {
       });
     },
     (FoodbTestContext ctx) {
+      test('clear-design-doc-view', () async {
+        final db = await ctx.db('clear-design-doc-view');
+        await db.createIndex(
+            index: QueryViewOptionsDef(fields: ['name']),
+            ddoc: 'type_user_name',
+            name: 'index_by_name');
+        await db.put(doc: Doc(id: 'a', model: {'name': 'x'}));
+        await db.put(doc: Doc(id: 'b', model: {'name': 'y'}));
+        await db.put(doc: Doc(id: 'c', model: {'n': '1'}));
+        final response1 = await db.find(
+            FindRequest(selector: EqualOperator(key: 'name', expected: 'x')),
+            (p0) => p0);
+        expect(response1.docs.length, 1);
+        await db.clearView('_design/type_user_name', 'index_by_name');
+        final response2 = await db.find(
+            FindRequest(selector: EqualOperator(key: 'name', expected: 'x')),
+            (p0) => p0);
+        expect(response2.docs.length, 1);
+      });
+    },
+    (FoodbTestContext ctx) {
+      test('clear-all-docs-view', () async {
+        final db = await ctx.db('clear-all-docs-view');
+        await db.put(doc: Doc(id: 'a', model: {'name': 'x'}));
+        await db.put(doc: Doc(id: 'b', model: {'name': 'y'}));
+        final response1 = await db.allDocs(GetViewRequest(), (json) => null);
+        expect(response1.rows.length, 2);
+        await db.clearView('_design/all_docs', '_all_docs');
+        final response2 = await db.allDocs(GetViewRequest(), (json) => null);
+        expect(response2.rows.length, 2);
+      });
+    },
+    (FoodbTestContext ctx) {
       test('correct-view-building-after-crud', () async {
         final db = await ctx.db('correct-view-building-after-crud');
         var a = await db.put(doc: Doc(id: 'a', model: {'name': 'a'}));
