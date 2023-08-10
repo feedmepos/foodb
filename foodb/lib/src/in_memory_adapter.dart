@@ -204,8 +204,8 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
   @override
   Future<bool> clearTable(AbstractKey key,
       {InMemoryAdapterSession? session}) async {
-    _stores[key]?.clear();
-
+    final table = _getTable(key);
+    table.clear();
     return true;
   }
 
