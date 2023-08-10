@@ -7,21 +7,21 @@ import 'package:foodb_test/foodb_test.dart';
 
 void main() {
   final couchdb = CouchdbTestContext();
-  final ctx = InMemoryTestContext();
+  final inMemory = InMemoryTestContext();
   // group('couchdb > couchbdb', () {
-  //   replicateTest().forEach((t) {
-  //     t(couchdb, couchdb);
-  //   });
+  // replicateTest().forEach((t) {
+  //   t(couchdb, couchdb);
+  // });
   // });
   // group('couchdb > inMemory', () {
-  replicateTest().forEach((t) {
-    t(couchdb, ctx);
-  });
+  //   replicateTest().forEach((t) {
+  //     t(couchdb, inMemory);
+  //   });
   // });
   // group('inMemory > couchbdb', () {
-  //   replicateTest().forEach((t) {
-  //     t(inMemory, couchdb);
-  //   });
+  replicateTest().forEach((t) {
+    t(inMemory, couchdb);
+  });
   // });
   // group('inMemory > inMemory', () {
   //   replicateTest().forEach((t) {
@@ -146,10 +146,11 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
             newEdits: false);
 
         replicate(source, target, onComplete: () async {
-          var doc =
-              await target.get(id: 'a', fromJsonT: (json) => json, revs: true);
-          expect(doc, isNull);
-          doc = await target.get(
+          await expectLater(
+              target.get(id: 'a', fromJsonT: (json) => json, revs: true),
+              throwsA(predicate((e) =>
+                  e is AdapterException && e.reason!.contains('deleted'))));
+          var doc = await target.get(
               id: 'a', fromJsonT: (json) => json, rev: '2-b', revs: true);
           expect(doc, isNotNull);
           expect(doc.rev, Rev.fromString('2-b'));
@@ -305,6 +306,48 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
           });
           complete();
         });
+      });
+    },
+    (FoodbTestContext sourceCtx, FoodbTestContext targetCtx) {
+      test('remove local doc will start from beginning', () async {
+        final source = await sourceCtx.db('source-replicate-delete-local-doc');
+        final target = await targetCtx.db('target-replicate-delete-local-doc');
+        var replicationId = 'test';
+        var firstReplicateCompleter = Completer();
+        var complete1 =
+            expectAsync0(() => {firstReplicateCompleter.complete()});
+        var complete2 = expectAsync0(() => {});
+        var onChange1 = expectAsync1((r) => {}, count: 3);
+        var onChange2 = expectAsync1((r) => {}, count: 3);
+
+        await source.put(doc: Doc(id: 'a_1', model: {}));
+        await source.put(doc: Doc(id: 'a_2', model: {}));
+        await source.put(doc: Doc(id: 'a_3', model: {}));
+
+        replicate(
+          source,
+          target,
+          replicationId: replicationId,
+          onError: handleTestReplicationError,
+          onResult: onChange1,
+          onComplete: () async {
+            complete1();
+          },
+        );
+        await firstReplicateCompleter.future;
+        var localDoc =
+            await source.get(id: '_local/$replicationId', fromJsonT: (t) => t);
+        await source.delete(id: localDoc.id, rev: localDoc.rev!);
+        replicate(
+          source,
+          target,
+          replicationId: replicationId,
+          onResult: onChange2,
+          onError: handleTestReplicationError,
+          onComplete: () async {
+            complete2();
+          },
+        );
       });
     }
   ];

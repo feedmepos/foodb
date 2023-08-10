@@ -86,7 +86,11 @@ mixin _KeyValuePut on _AbstractKeyValue {
 
   @override
   Future<DeleteResponse> delete({required String id, required Rev rev}) async {
-    var history = (await keyValueDb.get(DocKey(key: id)))?.value;
+    AbstractKey key = DocKey(key: id);
+    if (id.startsWith('_local/')) {
+      key = LocalDocKey(key: id);
+    }
+    var history = (await keyValueDb.get(key))?.value;
     if (history == null) throw AdapterException(error: 'doc not found');
     var result =
         await put(doc: Doc(id: id, model: {}, deleted: true, rev: rev));

@@ -295,9 +295,9 @@ class DocHistory {
     final newDocs = Map<String, InternalDoc>();
     List<RevisionNode> newNodes = [];
     leafDocs.forEach((doc) {
+      var i = 0;
       newDocs[doc.rev.toString()] = doc;
       Rev? currRev = doc.rev;
-      var i = 0;
       do {
         var nodeToAdd = revisions.nodes
             .firstWhere((element) => element.rev == currRev)
@@ -306,8 +306,6 @@ class DocHistory {
         if (i >= limit) {
           nodeToAdd.prevRev = null;
         }
-        var docsToAdd = docs[currRev.toString()];
-        if (docsToAdd != null) {}
         newNodes.add(nodeToAdd);
         currRev = nodeToAdd.prevRev;
       } while (currRev != null);
