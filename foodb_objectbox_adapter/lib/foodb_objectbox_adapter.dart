@@ -363,7 +363,11 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<bool> clearTable(AbstractKey<Comparable> key,
       {KeyValueAdapterSession? session}) async {
     final boxType = _getBoxFromKey(key);
-    await boxType.removeAll(store, encodeKey(key));
+    var encodedKey = encodeKey(key);
+    if (key is ViewKeyMetaKey) {
+      encodedKey = '${key.viewName}!';
+    }
+    await boxType.removeAll(store, encodedKey);
     return true;
   }
 

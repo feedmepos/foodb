@@ -187,22 +187,25 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
         final target =
             await targetCtx.db('target-continuous-by-max-batch-size');
 
-        ReplicationStream? stream;
-        var complete = expectAsync0(() => stream?.abort());
+        var complete = expectAsync0(() => {});
         var processedCnt = 0;
         var stopwatch = Stopwatch();
         stopwatch.start();
-
-        stream = replicate(source, target,
-            continuous: true,
-            maxBatchSize: 10,
-            debounce: Duration(seconds: 10), onCheckpoint: (checkpoint) async {
-          processedCnt += checkpoint.processed.length;
-          if (processedCnt == 30) {
-            expect(stopwatch.elapsed.inSeconds, lessThan(10));
-            complete();
-          }
-        });
+        ReplicationStream? stream;
+        stream = replicate(
+          source,
+          target,
+          continuous: true,
+          maxBatchSize: 10,
+          debounce: Duration(seconds: 10),
+          onCheckpoint: (checkpoint) async {
+            processedCnt += checkpoint.processed.length;
+            if (processedCnt == 30) {
+              expect(stopwatch.elapsed.inSeconds, lessThan(10));
+              complete();
+            }
+          },
+        );
         Future.delayed(Duration(seconds: 1), () {
           source.bulkDocs(
               body: List.generate(30, (index) => Doc(id: '$index', model: {})));
@@ -220,16 +223,20 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
         stopwatch.start();
 
         ReplicationStream? stream;
-        stream = replicate(source, target,
-            continuous: true,
-            maxBatchSize: 50,
-            debounce: Duration(seconds: 5), onCheckpoint: (checkpoint) async {
-          processedCnt += checkpoint.processed.length;
-          if (processedCnt == 30) {
-            expect(stopwatch.elapsed.inSeconds, greaterThan(5));
-            complete();
-          }
-        });
+        stream = replicate(
+          source,
+          target,
+          continuous: true,
+          maxBatchSize: 50,
+          debounce: Duration(seconds: 5),
+          onCheckpoint: (checkpoint) async {
+            processedCnt += checkpoint.processed.length;
+            if (processedCnt == 30) {
+              expect(stopwatch.elapsed.inSeconds, greaterThan(5));
+              complete();
+            }
+          },
+        );
         Future.delayed(Duration(seconds: 1), () {
           source.bulkDocs(
               body: List.generate(30, (index) => Doc(id: '$index', model: {})));
@@ -240,19 +247,23 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
           () async {
         final source = await sourceCtx.db('source-tonituous-no-immediate-fire');
         final target = await targetCtx.db('target-tonituous-no-immediate-fire');
-        ReplicationStream? stream;
         var complete = expectAsync0(() => {}, count: 2);
         var checkpoint = expectAsync0(() => {}, count: 2);
         await source.put(doc: Doc(id: 'a', model: {}));
 
-        stream = replicate(source, target,
-            continuous: true, debounce: Duration(microseconds: 2000),
-            onCheckpoint: (event) async {
-          checkpoint();
-          var doc = await target.get(id: 'a', fromJsonT: (json) => json);
-          expect(doc, isNotNull);
-          complete();
-        });
+        ReplicationStream? stream;
+        stream = replicate(
+          source,
+          target,
+          continuous: true,
+          debounce: Duration(milliseconds: 2000),
+          onCheckpoint: (event) async {
+            checkpoint();
+            var doc = await target.get(id: 'a', fromJsonT: (json) => json);
+            expect(doc, isNotNull);
+            complete();
+          },
+        );
         Future.delayed(Duration(seconds: 1),
             () => source.put(doc: Doc(id: 'b', model: {})));
       });

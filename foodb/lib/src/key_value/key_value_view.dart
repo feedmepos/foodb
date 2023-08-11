@@ -236,9 +236,9 @@ mixin _KeyValueView on _AbstractKeyValue {
     var view = keyValueDb.getViewTableName(
         designDocId: designDocName, viewId: viewName);
     await keyValueDb.delete(ViewMetaKey(key: view));
-    await keyValueDb.clearTable(ViewDocMetaKey(viewName: view, key: '\uffff'));
-    await keyValueDb.clearTable(
-        ViewKeyMetaKey(viewName: view, key: ViewKeyMeta(key: '\uffff')));
+    await keyValueDb.clearTable(ViewDocMetaKey(viewName: view, key: ''));
+    await keyValueDb
+        .clearTable(ViewKeyMetaKey(viewName: view, key: ViewKeyMeta(key: '')));
   }
 
   Future<GetViewResponse<T>> view<T>(
