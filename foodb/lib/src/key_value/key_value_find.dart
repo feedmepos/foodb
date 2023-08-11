@@ -296,7 +296,7 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
       }
     }
     if (winnerViewId == null || winnerDoc == null) {
-      return MapEntry("_all_docs", allDocDesignDoc);
+      return MapEntry("all_docs", allDocDesignDoc);
     }
     return MapEntry(winnerViewId, winnerDoc);
   }

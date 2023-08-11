@@ -268,7 +268,7 @@ abstract class JSRuntime {
 final allDocDesignDoc = new Doc(
     id: "_design/all_docs",
     model: DesignDoc(
-        language: 'query', views: {"_all_docs": AllDocDesignDocView()}));
+        language: 'query', views: {"all_docs": AllDocDesignDocView()}));
 
 abstract class _AbstractKeyValue extends Foodb {
   KeyValueAdapter keyValueDb;

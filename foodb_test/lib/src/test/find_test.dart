@@ -78,7 +78,7 @@ List<Function(FoodbTestContext)> findTest() {
           await db.put(doc: Doc(id: 'b', model: {'name': 'y'}));
           final response1 = await db.allDocs(GetViewRequest(), (json) => null);
           expect(response1.rows.length, 2);
-          await db.clearView('_design/all_docs', '_all_docs');
+          await db.clearView('_design/all_docs', 'all_docs');
           final response2 = await db.allDocs(GetViewRequest(), (json) => null);
           expect(response2.rows.length, 2);
         } on UnimplementedError catch (ex) {
@@ -517,7 +517,7 @@ List<Function(FoodbTestContext)> findTest() {
                 )
               ]),
               sort: []));
-          expect(explainResponse.index.name, '_all_docs');
+          expect(explainResponse.index.name.contains('all_docs'), true);
         });
         test('check when last generate view failed halfway', () async {
           final db = await ctx.db('generate-view-fail');
