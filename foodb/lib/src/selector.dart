@@ -313,10 +313,16 @@ abstract class CombinationOperator extends Operator {
 
   @override
   List<String> keys() {
+    var isSameOperator = operators.every(
+        (operator) => operator.operator == operators.firstOrNull?.operator);
     List<String> list = [];
     operators.forEach((o) {
       list.addAll(o.keys());
     });
+    if (isSameOperator && list.contains('_id')) {
+      list.remove('_id');
+      list.insert(0, '_id');
+    }
     return list;
   }
 
