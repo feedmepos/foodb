@@ -282,7 +282,8 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
               if (matchingFields.length > maxLength) {
                 winnerViewId = entry.key;
                 winnerDoc = doc;
-                if (matchingFields.length == inputKeys.length) {
+                if (matchingFields.length == inputKeys.length &&
+                    matchingFields.join() == inputKeys.join()) {
                   broke = true;
                   break;
                 }
