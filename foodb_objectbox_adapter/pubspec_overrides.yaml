@@ -1,0 +1,6 @@
+dependency_overrides:
+  foodb:
+    path: ../foodb
+  foodb_test:
+    path: ../foodb_test
+  platform: ^3.1.0

@@ -1,3 +1,2 @@
-## 1.0.0
-
-- Initial version.
+## 0.10.0
+- (change) through Adapter Exception similar to couchdb when get failed
