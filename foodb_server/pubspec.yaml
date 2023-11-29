@@ -15,7 +15,9 @@ dependencies:
       path: pkgs/shelf
   shelf_router: ^1.0.0
   shelf_web_socket: ^1.0.2
-  foodb: ">=0.10.0 <0.11.0"
+#  foodb: ">=0.10.0 <0.11.0"
+  foodb:
+    path: ../foodb
 
 dependency_overrides:
   foodb_test:
