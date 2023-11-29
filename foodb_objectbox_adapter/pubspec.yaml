@@ -11,9 +11,9 @@ dependencies:
   flutter:
     sdk: flutter
   objectbox: ^2.1.0
-#  foodb: ">=0.10.0 <0.11.0"
-  foodb:
-    path: ../foodb
+  foodb: ">=0.10.0 <0.11.0"
+#  foodb:
+#    path: ../foodb
   objectbox_flutter_libs: ^2.1.0
 
 dev_dependencies:
