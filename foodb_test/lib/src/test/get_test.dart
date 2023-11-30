@@ -106,11 +106,12 @@ List<Function(FoodbTestContext)> getTest() {
               BulkGetRequestDoc(
                   id: 'test-bulkget-missing-child', rev: Rev.fromString('2-c')),
               BulkGetRequestDoc(id: 'test-bulkget-no-rev'),
-              BulkGetRequestDoc(id: 'test-bulkget-deleted')
+              BulkGetRequestDoc(id: 'test-bulkget-deleted'),
+              BulkGetRequestDoc(id: 'test-bulkget-not-found')
             ]),
             fromJsonT: (json) => json,
             revs: true);
-        expect(response.results.length, 8);
+        expect(response.results.length, 9);
         expect(
             response.results.where((element) =>
                 element.docs.every((element) => element.doc != null)),
@@ -118,7 +119,7 @@ List<Function(FoodbTestContext)> getTest() {
         expect(
             response.results.where((element) => element.docs.every((element) =>
                 element.error?.reason.contains('missing') ?? false)),
-            hasLength(1));
+            hasLength(2));
       });
     },
     (FoodbTestContext ctx) {
