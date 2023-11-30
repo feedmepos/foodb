@@ -4,7 +4,7 @@
 * (add) lock when generate view
 * (add) implement purge for couchdb
 * (fix) clearView will remove all related view
-* (fix) keyValue put local Doc will target correct table
+* (fix) keyValue delete local Doc will target correct table
 * (fix) replicate will throw exception instead of sync from begining when network error on getting local doc 
 * (fix) index selection when operator has _id
 * 
