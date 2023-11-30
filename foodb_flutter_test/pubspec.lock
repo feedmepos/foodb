@@ -77,10 +77,10 @@ packages:
     dependency: transitive
     description:
       name: ffi
-      sha256: "35d0f481d939de0d640b3db9a7aa36a52cd22054a798a73b4f50bdad5ce12678"
+      sha256: ed5337a5660c506388a9f012be0288fb38b49020ce2b45fe1f8b8323fe429f99
       url: "https://pub.dev"
     source: hosted
-    version: "1.1.2"
+    version: "2.0.2"
   file:
     dependency: transitive
     description:
@@ -89,6 +89,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.1.2"
+  flat_buffers:
+    dependency: transitive
+    description:
+      name: flat_buffers
+      sha256: "23e2ced0d8e8ecdffbd9f267f49a668c74438393b9acaeac1c724123e3764263"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.5"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -189,18 +197,18 @@ packages:
     dependency: transitive
     description:
       name: objectbox
-      sha256: "13fe9f24a954e6b9a2bf4a7ff68157d15f2eacb102a490b262eee0c091e24fde"
+      sha256: "4b645c71771b87188442143a50c55ab238a8e60fe367b6a0968c0842292ffb30"
       url: "https://pub.dev"
     source: hosted
-    version: "1.3.0"
+    version: "2.3.1"
   objectbox_flutter_libs:
     dependency: transitive
     description:
       name: objectbox_flutter_libs
-      sha256: de4870fe603b79bafcacec7decf54cf04ba55534de07effe74fbf6adc2c757cd
+      sha256: e9a3d8e3ce0d47d6fc942921ef0444a238cd4258e8fcefe13b994cf984a8bf61
       url: "https://pub.dev"
     source: hosted
-    version: "1.3.0"
+    version: "2.3.1"
   path:
     dependency: transitive
     description:
@@ -261,10 +269,10 @@ packages:
     dependency: transitive
     description:
       name: path_provider_windows
-      sha256: "74056f334c58bd6db429ba93164e872a1996c8196b3132a100c40924b2672abf"
+      sha256: "1cb68ba4cd3a795033de62ba1b7b4564dace301f952de6bfb3cd91b202b6ee96"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.4"
+    version: "2.1.7"
   platform:
     dependency: transitive
     description:
@@ -402,10 +410,10 @@ packages:
     dependency: transitive
     description:
       name: win32
-      sha256: c3f0cf472871ec6c16a17805601957d75f2a41271297a67b1ae200237c7f084a
+      sha256: "5a751eddf9db89b3e5f9d50c20ab8612296e4e8db69009788d6c8b060a84191c"
       url: "https://pub.dev"
     source: hosted
-    version: "2.3.0"
+    version: "4.1.4"
   xdg_directories:
     dependency: transitive
     description:
@@ -415,5 +423,5 @@ packages:
     source: hosted
     version: "0.2.0"
 sdks:
-  dart: ">=2.18.0 <3.0.0"
-  flutter: ">=2.5.0"
+  dart: ">=2.18.0 <4.0.0"
+  flutter: ">=3.3.0"
