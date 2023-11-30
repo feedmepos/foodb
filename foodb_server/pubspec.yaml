@@ -15,7 +15,11 @@ dependencies:
       path: pkgs/shelf
   shelf_router: ^1.0.0
   shelf_web_socket: ^1.0.2
-  foodb: ">=0.10.0 <0.11.0"
+  foodb:
+    git:
+      url: https://github.com/feedmepos/foodb
+      ref: chore/yr/flutter-3.7.12
+      path: foodb
 #  foodb:
 #    path: ../foodb
 
