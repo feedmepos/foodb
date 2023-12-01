@@ -62,26 +62,29 @@ mixin _KeyValueGet on _AbstractKeyValue {
                 rev: d.rev?.toString() ?? 'undefined',
                 error: 'not_found',
                 reason: 'missing'));
-      }
-      var result = DocHistory.fromJson(entry!.value);
-      var targetRev = d.rev ?? result.winnerWithDeleted!.rev;
-      var resultDoc = result.toDoc(
-        targetRev,
-        fromJsonT,
-        showRevision: revs,
-        showRevInfo: false,
-        showConflicts: false,
-        revLimit: _revLimit,
-      );
-      if (resultDoc != null) {
-        doc = BulkGetDoc(doc: resultDoc);
       } else {
-        doc = BulkGetDoc(
+        var result = DocHistory.fromJson(entry.value);
+        var targetRev = d.rev ?? result.winnerWithDeleted!.rev;
+        var resultDoc = result.toDoc(
+          targetRev,
+          fromJsonT,
+          showRevision: revs,
+          showRevInfo: false,
+          showConflicts: false,
+          revLimit: _revLimit,
+        );
+        if (resultDoc != null) {
+          doc = BulkGetDoc(doc: resultDoc);
+        } else {
+          doc = BulkGetDoc(
             error: BulkGetDocError(
-                id: d.id,
-                rev: d.rev?.toString() ?? 'undefined',
-                error: 'not_found',
-                reason: 'missing'));
+              id: d.id,
+              rev: d.rev?.toString() ?? 'undefined',
+              error: 'not_found',
+              reason: 'missing',
+            ),
+          );
+        }
       }
       results.add(BulkGetIdDocs(id: d.id, docs: [doc]));
     }
