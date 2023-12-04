@@ -2,11 +2,9 @@ library foodb_objectbox_adapter;
 
 import 'dart:convert';
 
-import 'package:foodb/foodb.dart';
 import 'package:foodb/key_value_adapter.dart';
 import 'package:foodb_objectbox_adapter/object_box_entity.dart';
 import 'package:foodb_objectbox_adapter/objectbox.g.dart';
-import 'package:objectbox/internal.dart';
 
 const int int64MaxValue = 9223372036854775807;
 
@@ -229,34 +227,28 @@ final viewDocMetaBox = ObjectBoxType<ViewDocMetaEntity, String>(
     keyQuery: ObjectBoxStringKey(queryKey: ViewDocMetaEntity_.key),
     factory: () => ViewDocMetaEntity(),
     removeAll: (box, key) async {
-      await box.query(ViewDocMetaEntity_.key.startsWith(key)).build().remove();
+      box.query(ViewDocMetaEntity_.key.startsWith(key)).build().remove();
       return true;
     });
 final viewKeyMetaBox = ObjectBoxType<ViewKeyMetaEntity, String>(
     keyQuery: ObjectBoxStringKey(queryKey: ViewKeyMetaEntity_.key),
     factory: () => ViewKeyMetaEntity(),
     removeAll: (box, key) async {
-      await box.query(ViewKeyMetaEntity_.key.startsWith(key)).build().remove();
+      box.query(ViewKeyMetaEntity_.key.startsWith(key)).build().remove();
       return true;
     });
 final allDocViewDocMetaBox = ObjectBoxType<AllDocViewDocMetaEntity, String>(
     keyQuery: ObjectBoxStringKey(queryKey: AllDocViewDocMetaEntity_.key),
     factory: () => AllDocViewDocMetaEntity(),
     removeAll: (box, key) async {
-      await box
-          .query(AllDocViewDocMetaEntity_.key.startsWith(key))
-          .build()
-          .remove();
+      box.query(AllDocViewDocMetaEntity_.key.startsWith(key)).build().remove();
       return true;
     });
 final allDocViewKeyMetaBox = ObjectBoxType<AllDocViewKeyMetaEntity, String>(
     keyQuery: ObjectBoxStringKey(queryKey: AllDocViewKeyMetaEntity_.key),
     factory: () => AllDocViewKeyMetaEntity(),
     removeAll: (box, key) async {
-      await box
-          .query(AllDocViewKeyMetaEntity_.key.startsWith(key))
-          .build()
-          .remove();
+      box.query(AllDocViewKeyMetaEntity_.key.startsWith(key)).build().remove();
       return true;
     });
 
@@ -317,7 +309,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
       if (key is ViewKeyMetaKey) {
         stringKey = key.key?.encode() ?? (isEnd ? '\uffff' : '');
       }
-      result = '${viewName}!${stringKey}';
+      result = '$viewName!$stringKey';
     }
     if (result is String) {
       result = stripReservedCharacter(result);
@@ -382,7 +374,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   @override
   Future<MapEntry<T, Map<String, dynamic>>?> get<T extends AbstractKey>(T key,
       {KeyValueAdapterSession? session}) async {
-    final val = await _getBoxFromKey(key).get(store, encodeKey(key));
+    final val = _getBoxFromKey(key).get(store, encodeKey(key));
     if (val == null) return null;
     return MapEntry(key, val.doc);
   }
@@ -412,7 +404,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<MapEntry<T2, Map<String, dynamic>>?>
       last<T2 extends AbstractKey<Comparable>>(T2 key,
           {KeyValueAdapterSession? session}) async {
-    final val = await _getBoxFromKey(key).last(store, encodeKey(key));
+    final val = _getBoxFromKey(key).last(store, encodeKey(key));
     if (val == null) return null;
     return MapEntry(decodeKey(key, val.key) as T2, val.doc);
   }
@@ -448,7 +440,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     final boxType = _getBoxFromKey(keyType);
     final totalRows = boxType.count(store);
     final offset = 0;
-    final record = await boxType.readBetween(store,
+    final record = boxType.readBetween(store,
         startkey: encodeKey(startkey),
         endkey: encodeKey(endkey, isEnd: true),
         descending: desc,

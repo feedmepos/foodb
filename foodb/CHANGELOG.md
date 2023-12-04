@@ -1,3 +1,6 @@
+### 0.10.1
+* (fix) fixed bulk get missing doc incorrect result
+
 ### 0.10.0 (BREAKING)
 * (BREAKING) get will through AdapterException instead of return null on missing/deleted/error
 * (add) clearView function to rebuild view
