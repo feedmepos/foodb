@@ -10,7 +10,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  foodb: ">=0.7.3"
+  foodb:
+    git:
+      url: https://github.com/feedmepos/foodb
+      ref: chore/yr/temp-flutter-3.7.12
+      path: foodb
   hive: ^2.0.0
   hive_flutter: ^1.1.0
   path: ^1.8.0
@@ -19,9 +23,15 @@ dependencies:
 
 dependency_overrides:
   foodb:
-    path: ../foodb
+    git:
+      url: https://github.com/feedmepos/foodb
+      ref: chore/yr/temp-flutter-3.7.12
+      path: foodb
   foodb_test:
-    path: ../foodb_test
+    git:
+      url: https://github.com/feedmepos/foodb
+      ref: chore/yr/temp-flutter-3.7.12
+      path: foodb_test
 
 dev_dependencies:
   flutter_test:

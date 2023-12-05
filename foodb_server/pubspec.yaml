@@ -15,13 +15,23 @@ dependencies:
       path: pkgs/shelf
   shelf_router: ^1.0.0
   shelf_web_socket: ^1.0.2
-  foodb: ">=0.10.0 <0.11.0"
+  foodb:
+    git:
+      url: https://github.com/feedmepos/foodb
+      ref: chore/yr/temp-flutter-3.7.12
+      path: foodb
 
 dependency_overrides:
   foodb_test:
-    path: ../foodb_test
+    git:
+      url: https://github.com/feedmepos/foodb
+      ref: chore/yr/temp-flutter-3.7.12
+      path: foodb_test
   foodb:
-    path: ../foodb
+    git:
+      url: https://github.com/feedmepos/foodb
+      ref: chore/yr/temp-flutter-3.7.12
+      path: foodb
   shelf:
     git:
       url: https://github.com/feedmepos/shelf

@@ -11,7 +11,11 @@ dependencies:
   flutter:
     sdk: flutter
   objectbox: ^2.1.0
-  foodb: ">=0.10.0 <0.11.0"
+  foodb:
+    git:
+      url: https://github.com/feedmepos/foodb
+      ref: chore/yr/temp-flutter-3.7.12
+      path: foodb
   objectbox_flutter_libs: ^2.1.0
   flat_buffers: ^2.0.5
 
