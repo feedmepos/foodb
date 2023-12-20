@@ -203,7 +203,7 @@ class FoodbHiveAdapter implements KeyValueAdapter {
           reversed: desc, inclusive: inclusiveStart);
     }
     var result = <T2, Map<String, dynamic>>{};
-    var keys = tree.map((e) => e).toList();
+    // var keys = tree.map((e) => e).toList();
     while (iterator.moveNext()) {
       if (endkey?.key != null) {
         var matching = (inclusiveEnd ? 1 : 0) * (desc ? -1 : 1);
