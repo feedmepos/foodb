@@ -12,6 +12,7 @@ class ReadResult<T extends AbstractKey> {
   int totalRows;
   int offset;
   Map<T, Map<String, dynamic>> records;
+
   ReadResult({
     required this.totalRows,
     required this.offset,
@@ -22,11 +23,14 @@ class ReadResult<T extends AbstractKey> {
 abstract class AbstractKey<T extends Comparable> implements Comparable {
   T? key;
   final String tableName;
+
   AbstractKey({
     this.key,
     required this.tableName,
   });
+
   AbstractKey copyWithKey({required T newKey});
+
   int compareTo(other) {
     if (other == null) return 1;
     if (other is AbstractKey) {
@@ -49,6 +53,7 @@ abstract class AbstractKey<T extends Comparable> implements Comparable {
 
 abstract class AbstractViewKey<T extends Comparable> extends AbstractKey<T> {
   String viewName;
+
   AbstractViewKey(
       {required String tableName, required T? key, required this.viewName})
       : super(tableName: tableName, key: key);
@@ -92,6 +97,7 @@ class DocKey extends AbstractKey<String> {
 
 class LocalDocKey extends AbstractKey<String> {
   LocalDocKey({String? key}) : super(key: key, tableName: "local_doc");
+
   @override
   copyWithKey({required String newKey}) {
     return LocalDocKey(key: newKey);
@@ -130,6 +136,7 @@ class ViewKeyMeta<T> implements Comparable {
   final T key;
 
   ViewKeyMeta({required this.key});
+
   int compareTo(other) {
     if (other is ViewKeyMeta) {
       return this.encode().compareTo(other.encode());
@@ -164,6 +171,7 @@ ListOfViewKeyMetaToJsonString(List<ViewKeyMeta> instances) {
 class ViewKeyMetaKey extends AbstractViewKey<ViewKeyMeta> {
   ViewKeyMetaKey({ViewKeyMeta? key, required String viewName})
       : super(viewName: viewName, key: key, tableName: "view_key");
+
   @override
   copyWithKey({required ViewKeyMeta newKey}) {
     return ViewKeyMetaKey(key: newKey, viewName: viewName);
@@ -172,7 +180,9 @@ class ViewKeyMetaKey extends AbstractViewKey<ViewKeyMeta> {
 
 class ViewValue {
   List<ViewValueDoc> docs;
+
   ViewValue({required this.docs});
+
   Map<String, dynamic> toJson() {
     return {
       'l': docs.map((e) => e.toJson()).toList(),
@@ -190,7 +200,9 @@ class ViewValue {
 class ViewValueDoc {
   final String docId;
   final dynamic value;
+
   ViewValueDoc({required this.docId, this.value});
+
   Map<String, dynamic> toJson() {
     return {
       'd': docId,
@@ -278,7 +290,15 @@ abstract class KeyValueAdapter<T extends KeyValueAdapterSession> {
       List<T2> keys,
       {T? session});
 
+  Future<Map<T2, Map<String, dynamic>?>> getManyAsync<T2 extends AbstractKey>(
+      List<T2> keys,
+      {T? session});
+
   Future<MapEntry<T2, Map<String, dynamic>>?> last<T2 extends AbstractKey>(
+      T2 key,
+      {T? session});
+
+  Future<MapEntry<T2, Map<String, dynamic>>?> lastAsync<T2 extends AbstractKey>(
       T2 key,
       {T? session});
 
@@ -294,14 +314,40 @@ abstract class KeyValueAdapter<T extends KeyValueAdapterSession> {
     int? limit,
   });
 
+  Future<ReadResult<T2>> readAsync<T2 extends AbstractKey>(
+    T2 keyType, {
+    T2? startkey,
+    T2? endkey,
+    T? session,
+    required bool desc,
+    required bool inclusiveStart,
+    required bool inclusiveEnd,
+    int? skip,
+    int? limit,
+  });
+
   Future<bool> put(AbstractKey key, Map<String, dynamic> value, {T? session});
+
+  Future<bool> putAsync(AbstractKey key, Map<String, dynamic> value,
+      {T? session});
+
   Future<bool> putMany(Map<AbstractKey, Map<String, dynamic>> entries,
       {T? session});
 
+  Future<bool> putManyAsync(Map<AbstractKey, Map<String, dynamic>> entries,
+      {T? session});
+
   Future<bool> delete(AbstractKey key, {T? session});
-  Future<bool> deleteMany(List<AbstractKey> keys, {T? session});
+
+  Future<bool> deleteAsync(AbstractKey key, {T? session});
+
+  Future<bool> deleteMany(List<AbstractKey<Comparable>> keys, {T? session});
+
+  Future<bool> deleteManyAsync(List<AbstractKey> keys, {T? session});
 
   Future<int> tableSize(AbstractKey key, {T? session});
+
   Future<bool> clearTable(AbstractKey key, {T? session});
+
   Future<bool> destroy({T? session});
 }

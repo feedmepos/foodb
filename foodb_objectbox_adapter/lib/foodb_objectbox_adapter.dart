@@ -1,5 +1,6 @@
 library foodb_objectbox_adapter;
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:foodb/key_value_adapter.dart';
@@ -10,18 +11,26 @@ const int int64MaxValue = 9223372036854775807;
 
 abstract class ObjectBoxKey<T1 extends ObjectBoxEntity, T2> {
   QueryProperty<T1, T2> get property;
+
   Condition<T1> equals(T2 key);
+
   Condition<T1> oneOf(List<dynamic> keys);
+
   Condition<T1> greaterOrEqual(T2 key);
+
   Condition<T1> lessOrEqual(T2 key);
+
   Condition<T1> greaterThan(T2 key);
+
   Condition<T1> lessThan(T2 key);
 }
 
 class ObjectBoxStringKey<T extends ObjectBoxEntity>
     implements ObjectBoxKey<T, String> {
   QueryStringProperty<T> queryKey;
+
   get property => queryKey;
+
   @override
   ObjectBoxStringKey({required this.queryKey});
 
@@ -53,7 +62,9 @@ class ObjectBoxStringKey<T extends ObjectBoxEntity>
 class ObjectBoxIntKey<T extends ObjectBoxEntity>
     implements ObjectBoxKey<T, int> {
   QueryIntegerProperty<T> queryKey;
+
   get property => queryKey;
+
   @override
   ObjectBoxIntKey({required this.queryKey});
 
@@ -86,6 +97,7 @@ class ObjectBoxType<T1 extends ObjectBoxEntity, T2> {
   ObjectBoxKey<T1, T2> keyQuery;
   T1 Function() factory;
   Future<bool> Function(Box<T1>, T2)? _removeAll;
+
   ObjectBoxType({
     required this.keyQuery,
     required this.factory,
@@ -106,6 +118,10 @@ class ObjectBoxType<T1 extends ObjectBoxEntity, T2> {
     return _removeAll?.call(box(store), key) ?? box(store).removeAll();
   }
 
+  Future removeAllAsync(Store store, T2 key) {
+    return _removeAll?.call(box(store), key) ?? box(store).removeAllAsync();
+  }
+
   put(Store store, T2 key, String val) {
     final exist = get(store, key);
     var obj = factory();
@@ -113,6 +129,15 @@ class ObjectBoxType<T1 extends ObjectBoxEntity, T2> {
     obj.key = key;
     obj.value = val;
     return box(store).put(obj);
+  }
+
+  Future putAsync(Store store, T2 key, String val) {
+    final exist = get(store, key);
+    var obj = factory();
+    if (exist != null) obj = exist;
+    obj.key = key;
+    obj.value = val;
+    return box(store).putAsync(obj);
   }
 
   putMany(Store store, Map<dynamic, String> entries) {
@@ -127,12 +152,35 @@ class ObjectBoxType<T1 extends ObjectBoxEntity, T2> {
     return box(store).putMany(toPut);
   }
 
+  Future putManyAsync(Store store, Map<dynamic, String> entries) async {
+    final allItems = await getManyAsync(store, entries.keys.toList());
+    final toPut = allItems.entries.map((e) {
+      final key = e.key;
+      final value = e.value;
+      var obj = value ?? factory();
+      obj.key = key;
+      obj.value = entries[key]!;
+      return obj;
+    }).toList();
+    return box(store).putManyAsync(toPut);
+  }
+
   remove(Store store, key) {
     return box(store).query(keyQuery.equals(key)).build().remove();
   }
 
+  Future removeAsync(Store store, key) {
+    return box(store).query(keyQuery.equals(key)).build().removeAsync();
+  }
+
   T1? get(Store store, key) {
     var list = box(store).query(keyQuery.equals(key)).build().find();
+    if (list.length > 0) return list[0];
+    return null;
+  }
+
+  Future<T1?> getAsync(Store store, key) async {
+    var list = await box(store).query(keyQuery.equals(key)).build().findAsync();
     if (list.length > 0) return list[0];
     return null;
   }
@@ -148,14 +196,85 @@ class ObjectBoxType<T1 extends ObjectBoxEntity, T2> {
     return result;
   }
 
-  List<T1> readBetween(Store store,
-      {T2? startkey,
-      T2? endkey,
-      required bool descending,
-      required bool inclusiveStart,
-      required bool inclusiveEnd,
-      int? offset,
-      int? limit}) {
+  Future<Map<dynamic, T1?>> getManyAsync(
+      Store store, List<dynamic> keys) async {
+    var map = Map<dynamic, T1>.fromIterable(
+        await box(store).query(keyQuery.oneOf(keys)).build().findAsync(),
+        key: (v) => v.key,
+        value: (v) => v);
+    var result = keys.asMap().map((k, e) {
+      return MapEntry(e, map[e]);
+    });
+    return result;
+  }
+
+  List<T1> readBetween(
+    Store store, {
+    T2? startkey,
+    T2? endkey,
+    required bool descending,
+    required bool inclusiveStart,
+    required bool inclusiveEnd,
+    int? offset,
+    int? limit,
+  }) {
+    Condition<T1>? condition = conditionBuilder(
+      startkey: startkey,
+      endkey: endkey,
+      descending: descending,
+      inclusiveStart: inclusiveStart,
+      inclusiveEnd: inclusiveEnd,
+      offset: offset,
+      limit: limit,
+    );
+
+    final query = (box(store).query(condition)
+          ..order(keyQuery.property, flags: descending ? Order.descending : 0))
+        .build();
+
+    if (offset != null) query.offset = offset;
+    if (limit != null) query.limit = limit;
+    return query.find();
+  }
+
+  Future<List<T1>> readBetweenAsync(
+    Store store, {
+    T2? startkey,
+    T2? endkey,
+    required bool descending,
+    required bool inclusiveStart,
+    required bool inclusiveEnd,
+    int? offset,
+    int? limit,
+  }) {
+    final condition = conditionBuilder(
+      startkey: startkey,
+      endkey: endkey,
+      descending: descending,
+      inclusiveStart: inclusiveStart,
+      inclusiveEnd: inclusiveEnd,
+      offset: offset,
+      limit: limit,
+    );
+
+    final query = (box(store).query(condition)
+          ..order(keyQuery.property, flags: descending ? Order.descending : 0))
+        .build();
+
+    if (offset != null) query.offset = offset;
+    if (limit != null) query.limit = limit;
+    return query.findAsync();
+  }
+
+  Condition<T1>? conditionBuilder({
+    T2? startkey,
+    T2? endkey,
+    required bool descending,
+    required bool inclusiveStart,
+    required bool inclusiveEnd,
+    int? offset,
+    int? limit,
+  }) {
     List<Condition<T1>> conditions = [];
     if (startkey != null) {
       if (inclusiveStart) {
@@ -185,14 +304,7 @@ class ObjectBoxType<T1 extends ObjectBoxEntity, T2> {
       finalContidion =
           conditions.reduce((value, element) => value.and(element));
     }
-
-    final query = (box(store).query(finalContidion)
-          ..order(keyQuery.property, flags: descending ? Order.descending : 0))
-        .build();
-
-    if (offset != null) query.offset = offset;
-    if (limit != null) query.limit = limit;
-    return query.find();
+    return finalContidion;
   }
 
   ObjectBoxEntity? last(Store store, key) {
@@ -201,6 +313,18 @@ class ObjectBoxType<T1 extends ObjectBoxEntity, T2> {
         .build();
     query.limit = 1;
     var docs = query.find();
+    if (docs.length > 0) {
+      return docs[0];
+    }
+    return null;
+  }
+
+  Future<ObjectBoxEntity?> lastAsync(Store store, key) async {
+    Query query = (box(store).query()
+          ..order(keyQuery.property, flags: Order.descending))
+        .build();
+    query.limit = 1;
+    var docs = await query.findAsync();
     if (docs.length > 0) {
       return docs[0];
     }
@@ -227,28 +351,40 @@ final viewDocMetaBox = ObjectBoxType<ViewDocMetaEntity, String>(
     keyQuery: ObjectBoxStringKey(queryKey: ViewDocMetaEntity_.key),
     factory: () => ViewDocMetaEntity(),
     removeAll: (box, key) async {
-      box.query(ViewDocMetaEntity_.key.startsWith(key)).build().remove();
+      await box
+          .query(ViewDocMetaEntity_.key.startsWith(key))
+          .build()
+          .removeAsync();
       return true;
     });
 final viewKeyMetaBox = ObjectBoxType<ViewKeyMetaEntity, String>(
     keyQuery: ObjectBoxStringKey(queryKey: ViewKeyMetaEntity_.key),
     factory: () => ViewKeyMetaEntity(),
     removeAll: (box, key) async {
-      box.query(ViewKeyMetaEntity_.key.startsWith(key)).build().remove();
+      await box
+          .query(ViewKeyMetaEntity_.key.startsWith(key))
+          .build()
+          .removeAsync();
       return true;
     });
 final allDocViewDocMetaBox = ObjectBoxType<AllDocViewDocMetaEntity, String>(
     keyQuery: ObjectBoxStringKey(queryKey: AllDocViewDocMetaEntity_.key),
     factory: () => AllDocViewDocMetaEntity(),
     removeAll: (box, key) async {
-      box.query(AllDocViewDocMetaEntity_.key.startsWith(key)).build().remove();
+      await box
+          .query(AllDocViewDocMetaEntity_.key.startsWith(key))
+          .build()
+          .removeAsync();
       return true;
     });
 final allDocViewKeyMetaBox = ObjectBoxType<AllDocViewKeyMetaEntity, String>(
     keyQuery: ObjectBoxStringKey(queryKey: AllDocViewKeyMetaEntity_.key),
     factory: () => AllDocViewKeyMetaEntity(),
     removeAll: (box, key) async {
-      box.query(AllDocViewKeyMetaEntity_.key.startsWith(key)).build().remove();
+      await box
+          .query(AllDocViewKeyMetaEntity_.key.startsWith(key))
+          .build()
+          .removeAsync();
       return true;
     });
 
@@ -268,10 +404,12 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   @override
   String type = 'object-box';
   Store store;
+
   ObjectBoxAdapter(this.store);
 
   String Function({required String designDocId, required String viewId})
       getViewTableName = KeyValueAdapter.defaultGetViewTableName;
+
   String get allDocViewName =>
       KeyValueAdapter.getAllDocViewTableName(getViewTableName);
 
@@ -343,10 +481,27 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   }
 
   @override
+  Future<bool> deleteAsync(AbstractKey<Comparable> key,
+      {KeyValueAdapterSession? session}) async {
+    final boxType = _getBoxFromKey(key);
+    final deleteResult = await boxType.removeAsync(store, encodeKey(key));
+    return deleteResult == 1 ? true : false;
+  }
+
+  @override
   Future<bool> deleteMany(List<AbstractKey<Comparable>> keys,
       {KeyValueAdapterSession? session}) async {
     for (final key in keys) {
       await delete(key);
+    }
+    return true;
+  }
+
+  @override
+  Future<bool> deleteManyAsync(List<AbstractKey<Comparable>> keys,
+      {KeyValueAdapterSession? session}) async {
+    for (final key in keys) {
+      await deleteAsync(key);
     }
     return true;
   }
@@ -393,6 +548,18 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   }
 
   @override
+  Future<Map<T2, Map<String, dynamic>?>>
+      getManyAsync<T2 extends AbstractKey<Comparable>>(
+    List<T2> keys, {
+    KeyValueAdapterSession? session,
+  }) async {
+    var result = await _getBoxFromKey(keys[0])
+        .getManyAsync(store, keys.map((k) => encodeKey(k)).toList());
+    return result.map(
+        (key, value) => MapEntry(decodeKey(keys[0], key) as T2, value?.doc));
+  }
+
+  @override
   Future<bool> initDb() async {
     await Future.wait(allBoxes().map((box) async {
       return box.init(store);
@@ -410,9 +577,31 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   }
 
   @override
+  Future<MapEntry<T2, Map<String, dynamic>>?>
+      lastAsync<T2 extends AbstractKey<Comparable>>(
+    T2 key, {
+    KeyValueAdapterSession? session,
+  }) async {
+    final val = await _getBoxFromKey(key).lastAsync(store, encodeKey(key));
+    if (val == null) return null;
+    return MapEntry(decodeKey(key, val.key) as T2, val.doc);
+  }
+
+  @override
   Future<bool> put(AbstractKey<Comparable> key, Map<String, dynamic> value,
       {KeyValueAdapterSession? session}) async {
     await _getBoxFromKey(key).put(store, encodeKey(key), jsonEncode(value));
+    return true;
+  }
+
+  @override
+  Future<bool> putAsync(
+    AbstractKey<Comparable> key,
+    Map<String, dynamic> value, {
+    KeyValueAdapterSession? session,
+  }) async {
+    await _getBoxFromKey(key)
+        .putAsync(store, encodeKey(key), jsonEncode(value));
     return true;
   }
 
@@ -421,6 +610,17 @@ class ObjectBoxAdapter implements KeyValueAdapter {
       Map<AbstractKey<Comparable>, Map<String, dynamic>> entries,
       {KeyValueAdapterSession? session}) async {
     await _getBoxFromKey(entries.keys.first).putMany(
+        store,
+        entries
+            .map((key, value) => MapEntry(encodeKey(key), jsonEncode(value))));
+    return true;
+  }
+
+  @override
+  Future<bool> putManyAsync(
+      Map<AbstractKey<Comparable>, Map<String, dynamic>> entries,
+      {KeyValueAdapterSession? session}) async {
+    await _getBoxFromKey(entries.keys.first).putManyAsync(
         store,
         entries
             .map((key, value) => MapEntry(encodeKey(key), jsonEncode(value))));
@@ -440,14 +640,48 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     final boxType = _getBoxFromKey(keyType);
     final totalRows = boxType.count(store);
     final offset = 0;
-    final record = boxType.readBetween(store,
-        startkey: encodeKey(startkey),
-        endkey: encodeKey(endkey, isEnd: true),
-        descending: desc,
-        inclusiveEnd: inclusiveEnd,
-        inclusiveStart: inclusiveStart,
-        offset: skip,
-        limit: limit);
+    final record = boxType.readBetween(
+      store,
+      startkey: encodeKey(startkey),
+      endkey: encodeKey(endkey, isEnd: true),
+      descending: desc,
+      inclusiveEnd: inclusiveEnd,
+      inclusiveStart: inclusiveStart,
+      offset: skip,
+      limit: limit,
+    );
+
+    return ReadResult(
+        totalRows: totalRows,
+        offset: offset,
+        records: record.asMap().map((key, value) =>
+            MapEntry(decodeKey(keyType, value.key) as T2, value.doc)));
+  }
+
+  @override
+  Future<ReadResult<T2>> readAsync<T2 extends AbstractKey<Comparable>>(
+      T2 keyType,
+      {T2? startkey,
+      T2? endkey,
+      KeyValueAdapterSession? session,
+      required bool desc,
+      required bool inclusiveStart,
+      required bool inclusiveEnd,
+      int? skip,
+      int? limit}) async {
+    final boxType = _getBoxFromKey(keyType);
+    final totalRows = boxType.count(store);
+    final offset = 0;
+    final record = await boxType.readBetweenAsync(
+      store,
+      startkey: encodeKey(startkey),
+      endkey: encodeKey(endkey, isEnd: true),
+      descending: desc,
+      inclusiveEnd: inclusiveEnd,
+      inclusiveStart: inclusiveStart,
+      offset: skip,
+      limit: limit,
+    );
 
     return ReadResult(
         totalRows: totalRows,

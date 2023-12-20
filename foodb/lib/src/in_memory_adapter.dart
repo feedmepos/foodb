@@ -35,11 +35,13 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
 
   String Function({required String designDocId, required String viewId})
       getViewTableName = KeyValueAdapter.defaultGetViewTableName;
+
   String get allDocViewName =>
       KeyValueAdapter.getAllDocViewTableName(getViewTableName);
 
   @override
   String type = 'in_memory';
+
   InMemoryAdapter({
     this.latency,
   });
@@ -222,5 +224,69 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
   Future<int> tableSize(AbstractKey key,
       {InMemoryAdapterSession? session}) async {
     return _getTable(key).length;
+  }
+
+  @override
+  Future<bool> deleteAsync(AbstractKey<Comparable> key,
+      {InMemoryAdapterSession? session}) {
+    return delete(key, session: session);
+  }
+
+  @override
+  Future<bool> deleteManyAsync(List<AbstractKey<Comparable>> keys,
+      {InMemoryAdapterSession? session}) {
+    return deleteMany(keys, session: session);
+  }
+
+  @override
+  Future<Map<T2, Map<String, dynamic>?>>
+      getManyAsync<T2 extends AbstractKey<Comparable>>(List<T2> keys,
+          {InMemoryAdapterSession? session}) {
+    return getMany(keys, session: session);
+  }
+
+  @override
+  Future<MapEntry<T2, Map<String, dynamic>>?>
+      lastAsync<T2 extends AbstractKey<Comparable>>(T2 key,
+          {InMemoryAdapterSession? session}) {
+    return last(key, session: session);
+  }
+
+  @override
+  Future<bool> putAsync(AbstractKey<Comparable> key, Map<String, dynamic> value,
+      {InMemoryAdapterSession? session}) {
+    return put(key, value, session: session);
+  }
+
+  @override
+  Future<bool> putManyAsync(
+      Map<AbstractKey<Comparable>, Map<String, dynamic>> entries,
+      {InMemoryAdapterSession? session}) {
+    return putMany(entries, session: session);
+  }
+
+  @override
+  Future<ReadResult<T2>> readAsync<T2 extends AbstractKey<Comparable>>(
+    T2 keyType, {
+    T2? startkey,
+    T2? endkey,
+    InMemoryAdapterSession? session,
+    required bool desc,
+    required bool inclusiveStart,
+    required bool inclusiveEnd,
+    int? skip,
+    int? limit,
+  }) {
+    return read(
+      keyType,
+      startkey: startkey,
+      endkey: endkey,
+      session: session,
+      desc: desc,
+      inclusiveStart: inclusiveStart,
+      inclusiveEnd: inclusiveEnd,
+      skip: skip,
+      limit: limit,
+    );
   }
 }

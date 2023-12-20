@@ -26,6 +26,7 @@ class FoodbHiveAdapter implements KeyValueAdapter {
 
   String Function({required String designDocId, required String viewId})
       getViewTableName = _hiveTableName;
+
   String get allDocViewName =>
       KeyValueAdapter.getAllDocViewTableName(getViewTableName);
 
@@ -244,5 +245,69 @@ class FoodbHiveAdapter implements KeyValueAdapter {
   Future<int> tableSize(AbstractKey<Comparable> key,
       {KeyValueAdapterSession? session}) async {
     return _boxes[await getBoxName(key)]!.length;
+  }
+
+  @override
+  Future<bool> deleteAsync(AbstractKey<Comparable> key,
+      {KeyValueAdapterSession? session}) {
+    return delete(key, session: session);
+  }
+
+  @override
+  Future<bool> deleteManyAsync(List<AbstractKey<Comparable>> keys,
+      {KeyValueAdapterSession? session}) {
+    return deleteMany(keys, session: session);
+  }
+
+  @override
+  Future<Map<T2, Map<String, dynamic>?>>
+      getManyAsync<T2 extends AbstractKey<Comparable>>(List<T2> keys,
+          {KeyValueAdapterSession? session}) {
+    return getMany(keys, session: session);
+  }
+
+  @override
+  Future<MapEntry<T2, Map<String, dynamic>>?>
+      lastAsync<T2 extends AbstractKey<Comparable>>(T2 key,
+          {KeyValueAdapterSession? session}) {
+    return last(key, session: session);
+  }
+
+  @override
+  Future<bool> putAsync(AbstractKey<Comparable> key, Map<String, dynamic> value,
+      {KeyValueAdapterSession? session}) {
+    return put(key, value, session: session);
+  }
+
+  @override
+  Future<bool> putManyAsync(
+      Map<AbstractKey<Comparable>, Map<String, dynamic>> entries,
+      {KeyValueAdapterSession? session}) {
+    return putMany(entries, session: session);
+  }
+
+  @override
+  Future<ReadResult<T2>> readAsync<T2 extends AbstractKey<Comparable>>(
+    T2 keyType, {
+    T2? startkey,
+    T2? endkey,
+    KeyValueAdapterSession? session,
+    required bool desc,
+    required bool inclusiveStart,
+    required bool inclusiveEnd,
+    int? skip,
+    int? limit,
+  }) {
+    return read(
+      keyType,
+      startkey: startkey,
+      endkey: endkey,
+      session: session,
+      desc: desc,
+      inclusiveStart: inclusiveStart,
+      inclusiveEnd: inclusiveEnd,
+      skip: skip,
+      limit: limit,
+    );
   }
 }
