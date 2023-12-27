@@ -51,6 +51,7 @@ void main() {
     expect(res.containsKey(DocKey(key: '3')), true);
     expect(res[DocKey(key: '3')], isNull);
   });
+
   test('get-many-int', () async {
     final adapter = await getAdapter('get-many-int');
     await adapter.put(SequenceKey(key: 1), {'a': 1});
@@ -64,6 +65,7 @@ void main() {
     expect(res.containsKey(SequenceKey(key: 3)), true);
     expect(res[SequenceKey(key: 3)], isNull);
   });
+
   test('put-many', () async {
     final adapter = await getAdapter('put-many');
     await adapter.putMany(Map.from({

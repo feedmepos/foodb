@@ -35,11 +35,13 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
 
   String Function({required String designDocId, required String viewId})
       getViewTableName = KeyValueAdapter.defaultGetViewTableName;
+
   String get allDocViewName =>
       KeyValueAdapter.getAllDocViewTableName(getViewTableName);
 
   @override
   String type = 'in_memory';
+
   InMemoryAdapter({
     this.latency,
   });
