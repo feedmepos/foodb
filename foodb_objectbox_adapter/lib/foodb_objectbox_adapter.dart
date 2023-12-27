@@ -2,10 +2,10 @@ library foodb_objectbox_adapter;
 
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:foodb/key_value_adapter.dart';
 import 'package:foodb_objectbox_adapter/object_box_entity.dart';
 import 'package:foodb_objectbox_adapter/objectbox.g.dart';
-import 'package:objectbox/internal.dart';
 
 const int int64MaxValue = 9223372036854775807;
 
@@ -476,8 +476,13 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<bool> delete(AbstractKey<Comparable> key,
       {KeyValueAdapterSession? session}) async {
     final boxType = _getBoxFromKey(key);
-    final deleteResult = await boxType.removeAsync(store, encodeKey(key));
-    return deleteResult == 1 ? true : false;
+    if (kDebugMode) {
+      final deleteResult = await boxType.remove(store, encodeKey(key));
+      return deleteResult == 1 ? true : false;
+    } else {
+      final deleteResult = await boxType.removeAsync(store, encodeKey(key));
+      return deleteResult == 1 ? true : false;
+    }
   }
 
   @override
@@ -497,14 +502,22 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     if (key is ViewKeyMetaKey) {
       encodedKey = '${key.viewName}!';
     }
-    await boxType.removeAllAsync(store, encodedKey);
+    if (kDebugMode) {
+      boxType.removeAll(store, encodedKey);
+    } else {
+      await boxType.removeAllAsync(store, encodedKey);
+    }
     return true;
   }
 
   @override
   Future<bool> destroy({KeyValueAdapterSession? session}) async {
     await Future.wait(allBoxes().map((element) async {
-      return element.box(store).removeAllAsync();
+      if (kDebugMode) {
+        return element.box(store).removeAll();
+      } else {
+        return element.box(store).removeAllAsync();
+      }
     }));
     return true;
   }
@@ -512,7 +525,12 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   @override
   Future<MapEntry<T, Map<String, dynamic>>?> get<T extends AbstractKey>(T key,
       {KeyValueAdapterSession? session}) async {
-    final val = await _getBoxFromKey(key).getAsync(store, encodeKey(key));
+    ObjectBoxEntity? val;
+    if (kDebugMode) {
+      val = await _getBoxFromKey(key).get(store, encodeKey(key));
+    } else {
+      val = await _getBoxFromKey(key).getAsync(store, encodeKey(key));
+    }
     if (val == null) return null;
     return MapEntry(key, val.doc);
   }
@@ -524,8 +542,14 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     if (keys.isEmpty) {
       return Map<T2, Map<String, dynamic>?>();
     }
-    var result = await _getBoxFromKey(keys[0])
-        .getManyAsync(store, keys.map((k) => encodeKey(k)).toList());
+    Map<dynamic, ObjectBoxEntity?> result;
+    if (kDebugMode) {
+      result = await _getBoxFromKey(keys[0])
+          .getMany(store, keys.map((k) => encodeKey(k)).toList());
+    } else {
+      result = await _getBoxFromKey(keys[0])
+          .getManyAsync(store, keys.map((k) => encodeKey(k)).toList());
+    }
     return result.map(
         (key, value) => MapEntry(decodeKey(keys[0], key) as T2, value?.doc));
   }
@@ -542,7 +566,12 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<MapEntry<T2, Map<String, dynamic>>?>
       last<T2 extends AbstractKey<Comparable>>(T2 key,
           {KeyValueAdapterSession? session}) async {
-    final val = await _getBoxFromKey(key).lastAsync(store, encodeKey(key));
+    ObjectBoxEntity? val;
+    if (kDebugMode) {
+      val = await _getBoxFromKey(key).last(store, encodeKey(key));
+    } else {
+      val = await _getBoxFromKey(key).lastAsync(store, encodeKey(key));
+    }
     if (val == null) return null;
     return MapEntry(decodeKey(key, val.key) as T2, val.doc);
   }
@@ -550,7 +579,12 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   @override
   Future<bool> put(AbstractKey<Comparable> key, Map<String, dynamic> value,
       {KeyValueAdapterSession? session}) async {
-    await _getBoxFromKey(key).putAsync(store, encodeKey(key), jsonEncode(value));
+    if (kDebugMode) {
+      await _getBoxFromKey(key).put(store, encodeKey(key), jsonEncode(value));
+    } else {
+      await _getBoxFromKey(key)
+          .putAsync(store, encodeKey(key), jsonEncode(value));
+    }
     return true;
   }
 
@@ -558,10 +592,17 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<bool> putMany(
       Map<AbstractKey<Comparable>, Map<String, dynamic>> entries,
       {KeyValueAdapterSession? session}) async {
-    await _getBoxFromKey(entries.keys.first).putManyAsync(
-        store,
-        entries
-            .map((key, value) => MapEntry(encodeKey(key), jsonEncode(value))));
+    if (kDebugMode) {
+      await _getBoxFromKey(entries.keys.first).putMany(
+          store,
+          entries.map(
+              (key, value) => MapEntry(encodeKey(key), jsonEncode(value))));
+    } else {
+      await _getBoxFromKey(entries.keys.first).putManyAsync(
+          store,
+          entries.map(
+              (key, value) => MapEntry(encodeKey(key), jsonEncode(value))));
+    }
     return true;
   }
 
@@ -578,14 +619,26 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     final boxType = _getBoxFromKey(keyType);
     final totalRows = boxType.count(store);
     final offset = 0;
-    final record = await boxType.readBetweenAsync(store,
-        startkey: encodeKey(startkey),
-        endkey: encodeKey(endkey, isEnd: true),
-        descending: desc,
-        inclusiveEnd: inclusiveEnd,
-        inclusiveStart: inclusiveStart,
-        offset: skip,
-        limit: limit);
+    List<ObjectBoxEntity> record;
+    if (kDebugMode) {
+      record = await boxType.readBetween(store,
+          startkey: encodeKey(startkey),
+          endkey: encodeKey(endkey, isEnd: true),
+          descending: desc,
+          inclusiveEnd: inclusiveEnd,
+          inclusiveStart: inclusiveStart,
+          offset: skip,
+          limit: limit);
+    } else {
+      record = await boxType.readBetweenAsync(store,
+          startkey: encodeKey(startkey),
+          endkey: encodeKey(endkey, isEnd: true),
+          descending: desc,
+          inclusiveEnd: inclusiveEnd,
+          inclusiveStart: inclusiveStart,
+          offset: skip,
+          limit: limit);
+    }
 
     return ReadResult(
         totalRows: totalRows,
