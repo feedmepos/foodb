@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:foodb/key_value_adapter.dart';
 import 'package:foodb_objectbox_adapter/object_box_entity.dart';
 import 'package:foodb_objectbox_adapter/objectbox.g.dart';
+import 'package:objectbox/internal.dart';
 
 const int int64MaxValue = 9223372036854775807;
 
