@@ -1,6 +1,5 @@
 library foodb_objectbox_adapter;
 
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:foodb/key_value_adapter.dart';
@@ -476,14 +475,6 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<bool> delete(AbstractKey<Comparable> key,
       {KeyValueAdapterSession? session}) async {
     final boxType = _getBoxFromKey(key);
-    final deleteResult = await boxType.remove(store, encodeKey(key));
-    return deleteResult == 1 ? true : false;
-  }
-
-  @override
-  Future<bool> deleteAsync(AbstractKey<Comparable> key,
-      {KeyValueAdapterSession? session}) async {
-    final boxType = _getBoxFromKey(key);
     final deleteResult = await boxType.removeAsync(store, encodeKey(key));
     return deleteResult == 1 ? true : false;
   }
@@ -498,15 +489,6 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   }
 
   @override
-  Future<bool> deleteManyAsync(List<AbstractKey<Comparable>> keys,
-      {KeyValueAdapterSession? session}) async {
-    for (final key in keys) {
-      await deleteAsync(key);
-    }
-    return true;
-  }
-
-  @override
   Future<bool> clearTable(AbstractKey<Comparable> key,
       {KeyValueAdapterSession? session}) async {
     final boxType = _getBoxFromKey(key);
@@ -514,14 +496,14 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     if (key is ViewKeyMetaKey) {
       encodedKey = '${key.viewName}!';
     }
-    await boxType.removeAll(store, encodedKey);
+    await boxType.removeAllAsync(store, encodedKey);
     return true;
   }
 
   @override
   Future<bool> destroy({KeyValueAdapterSession? session}) async {
     await Future.wait(allBoxes().map((element) async {
-      return element.box(store).removeAll();
+      return element.box(store).removeAllAsync();
     }));
     return true;
   }
@@ -529,7 +511,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   @override
   Future<MapEntry<T, Map<String, dynamic>>?> get<T extends AbstractKey>(T key,
       {KeyValueAdapterSession? session}) async {
-    final val = _getBoxFromKey(key).get(store, encodeKey(key));
+    final val = await _getBoxFromKey(key).getAsync(store, encodeKey(key));
     if (val == null) return null;
     return MapEntry(key, val.doc);
   }
@@ -541,18 +523,6 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     if (keys.isEmpty) {
       return Map<T2, Map<String, dynamic>?>();
     }
-    var result = _getBoxFromKey(keys[0])
-        .getMany(store, keys.map((k) => encodeKey(k)).toList());
-    return result.map(
-        (key, value) => MapEntry(decodeKey(keys[0], key) as T2, value?.doc));
-  }
-
-  @override
-  Future<Map<T2, Map<String, dynamic>?>>
-      getManyAsync<T2 extends AbstractKey<Comparable>>(
-    List<T2> keys, {
-    KeyValueAdapterSession? session,
-  }) async {
     var result = await _getBoxFromKey(keys[0])
         .getManyAsync(store, keys.map((k) => encodeKey(k)).toList());
     return result.map(
@@ -571,17 +541,6 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<MapEntry<T2, Map<String, dynamic>>?>
       last<T2 extends AbstractKey<Comparable>>(T2 key,
           {KeyValueAdapterSession? session}) async {
-    final val = _getBoxFromKey(key).last(store, encodeKey(key));
-    if (val == null) return null;
-    return MapEntry(decodeKey(key, val.key) as T2, val.doc);
-  }
-
-  @override
-  Future<MapEntry<T2, Map<String, dynamic>>?>
-      lastAsync<T2 extends AbstractKey<Comparable>>(
-    T2 key, {
-    KeyValueAdapterSession? session,
-  }) async {
     final val = await _getBoxFromKey(key).lastAsync(store, encodeKey(key));
     if (val == null) return null;
     return MapEntry(decodeKey(key, val.key) as T2, val.doc);
@@ -590,34 +549,12 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   @override
   Future<bool> put(AbstractKey<Comparable> key, Map<String, dynamic> value,
       {KeyValueAdapterSession? session}) async {
-    await _getBoxFromKey(key).put(store, encodeKey(key), jsonEncode(value));
-    return true;
-  }
-
-  @override
-  Future<bool> putAsync(
-    AbstractKey<Comparable> key,
-    Map<String, dynamic> value, {
-    KeyValueAdapterSession? session,
-  }) async {
-    await _getBoxFromKey(key)
-        .putAsync(store, encodeKey(key), jsonEncode(value));
+    await _getBoxFromKey(key).putAsync(store, encodeKey(key), jsonEncode(value));
     return true;
   }
 
   @override
   Future<bool> putMany(
-      Map<AbstractKey<Comparable>, Map<String, dynamic>> entries,
-      {KeyValueAdapterSession? session}) async {
-    await _getBoxFromKey(entries.keys.first).putMany(
-        store,
-        entries
-            .map((key, value) => MapEntry(encodeKey(key), jsonEncode(value))));
-    return true;
-  }
-
-  @override
-  Future<bool> putManyAsync(
       Map<AbstractKey<Comparable>, Map<String, dynamic>> entries,
       {KeyValueAdapterSession? session}) async {
     await _getBoxFromKey(entries.keys.first).putManyAsync(
@@ -640,48 +577,14 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     final boxType = _getBoxFromKey(keyType);
     final totalRows = boxType.count(store);
     final offset = 0;
-    final record = boxType.readBetween(
-      store,
-      startkey: encodeKey(startkey),
-      endkey: encodeKey(endkey, isEnd: true),
-      descending: desc,
-      inclusiveEnd: inclusiveEnd,
-      inclusiveStart: inclusiveStart,
-      offset: skip,
-      limit: limit,
-    );
-
-    return ReadResult(
-        totalRows: totalRows,
-        offset: offset,
-        records: record.asMap().map((key, value) =>
-            MapEntry(decodeKey(keyType, value.key) as T2, value.doc)));
-  }
-
-  @override
-  Future<ReadResult<T2>> readAsync<T2 extends AbstractKey<Comparable>>(
-      T2 keyType,
-      {T2? startkey,
-      T2? endkey,
-      KeyValueAdapterSession? session,
-      required bool desc,
-      required bool inclusiveStart,
-      required bool inclusiveEnd,
-      int? skip,
-      int? limit}) async {
-    final boxType = _getBoxFromKey(keyType);
-    final totalRows = boxType.count(store);
-    final offset = 0;
-    final record = await boxType.readBetweenAsync(
-      store,
-      startkey: encodeKey(startkey),
-      endkey: encodeKey(endkey, isEnd: true),
-      descending: desc,
-      inclusiveEnd: inclusiveEnd,
-      inclusiveStart: inclusiveStart,
-      offset: skip,
-      limit: limit,
-    );
+    final record = await boxType.readBetweenAsync(store,
+        startkey: encodeKey(startkey),
+        endkey: encodeKey(endkey, isEnd: true),
+        descending: desc,
+        inclusiveEnd: inclusiveEnd,
+        inclusiveStart: inclusiveStart,
+        offset: skip,
+        limit: limit);
 
     return ReadResult(
         totalRows: totalRows,

@@ -290,15 +290,7 @@ abstract class KeyValueAdapter<T extends KeyValueAdapterSession> {
       List<T2> keys,
       {T? session});
 
-  Future<Map<T2, Map<String, dynamic>?>> getManyAsync<T2 extends AbstractKey>(
-      List<T2> keys,
-      {T? session});
-
   Future<MapEntry<T2, Map<String, dynamic>>?> last<T2 extends AbstractKey>(
-      T2 key,
-      {T? session});
-
-  Future<MapEntry<T2, Map<String, dynamic>>?> lastAsync<T2 extends AbstractKey>(
       T2 key,
       {T? session});
 
@@ -314,36 +306,14 @@ abstract class KeyValueAdapter<T extends KeyValueAdapterSession> {
     int? limit,
   });
 
-  Future<ReadResult<T2>> readAsync<T2 extends AbstractKey>(
-    T2 keyType, {
-    T2? startkey,
-    T2? endkey,
-    T? session,
-    required bool desc,
-    required bool inclusiveStart,
-    required bool inclusiveEnd,
-    int? skip,
-    int? limit,
-  });
-
   Future<bool> put(AbstractKey key, Map<String, dynamic> value, {T? session});
-
-  Future<bool> putAsync(AbstractKey key, Map<String, dynamic> value,
-      {T? session});
 
   Future<bool> putMany(Map<AbstractKey, Map<String, dynamic>> entries,
       {T? session});
 
-  Future<bool> putManyAsync(Map<AbstractKey, Map<String, dynamic>> entries,
-      {T? session});
-
   Future<bool> delete(AbstractKey key, {T? session});
 
-  Future<bool> deleteAsync(AbstractKey key, {T? session});
-
-  Future<bool> deleteMany(List<AbstractKey<Comparable>> keys, {T? session});
-
-  Future<bool> deleteManyAsync(List<AbstractKey> keys, {T? session});
+  Future<bool> deleteMany(List<AbstractKey> keys, {T? session});
 
   Future<int> tableSize(AbstractKey key, {T? session});
 
