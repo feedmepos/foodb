@@ -1,0 +1,22 @@
+name: foodb
+sdkPath: .fvm/flutter_sdk
+
+ide:
+  intellij:
+    enabled: false
+
+packages:
+  - foodb
+  - foodb_flutter_test
+  - foodb_hive_adapter
+  - foodb_objectbox_adapter
+  - foodb_server
+  - foodb_test
+
+scripts:
+  analyze:
+    run: melos exec -- flutter analyze .
+    description: Run `dart analyze` in all packages.
+  unit_test:
+    run: melos exec --dir-exists="test" --fail-fast -- flutter test --no-pub --coverage
+    description: Run all Flutter tests in this project.

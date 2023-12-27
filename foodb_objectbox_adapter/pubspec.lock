@@ -254,18 +254,16 @@ packages:
   foodb:
     dependency: "direct main"
     description:
-      name: foodb
-      sha256: "0aee232067c6d8b5eed2cca9dcb3b659f07a23de40b942ceba9abf358e2ff4b8"
-      url: "https://pub.dev"
-    source: hosted
+      path: "../foodb"
+      relative: true
+    source: path
     version: "0.10.1"
   foodb_test:
     dependency: "direct dev"
     description:
-      name: foodb_test
-      sha256: "3db616dcb70b19168c744d6c29ad62171a61f8fa636fa8226aa5c45d427fe473"
-      url: "https://pub.dev"
-    source: hosted
+      path: "../foodb_test"
+      relative: true
+    source: path
     version: "0.10.0"
   frontend_server_client:
     dependency: transitive
@@ -761,5 +759,5 @@ packages:
     source: hosted
     version: "3.1.2"
 sdks:
-  dart: ">=2.19.0 <3.0.0"
+  dart: ">=2.19.0 <4.0.0"
   flutter: ">=3.7.0"
