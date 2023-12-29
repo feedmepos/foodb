@@ -1,0 +1,6 @@
+# melos_managed_dependency_overrides: foodb,foodb_objectbox_adapter
+dependency_overrides:
+  foodb:
+    path: ../foodb
+  foodb_objectbox_adapter:
+    path: ../foodb_objectbox_adapter
