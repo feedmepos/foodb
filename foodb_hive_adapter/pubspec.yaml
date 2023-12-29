@@ -19,15 +19,25 @@ dependencies:
 
 dependency_overrides:
   foodb:
-    path: ../foodb
+    git:
+      url: git@github.com:feedmepos/foodb.git
+      path: foodb
+      ref: feat/yr/ffi-2.1.0
   foodb_test:
-    path: ../foodb_test
+    git:
+      url: git@github.com:feedmepos/foodb.git
+      path: foodb_test
+      ref: feat/yr/ffi-2.1.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^1.0.0
-  foodb_test: ">=0.7.3"
+  foodb_test:
+    git:
+      url: git@github.com:feedmepos/foodb.git
+      path: foodb_test
+      ref: feat/yr/ffi-2.1.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

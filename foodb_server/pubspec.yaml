@@ -16,13 +16,22 @@ dependencies:
   shelf_router: ^1.0.0
   shelf_web_socket: ^1.0.2
   foodb:
-    path: ../foodb
+    git:
+      url: git@github.com:feedmepos/foodb.git
+      path: foodb
+      ref: feat/yr/ffi-2.1.0
 
 dependency_overrides:
   foodb_test:
-    path: ../foodb_test
+    git:
+      url: git@github.com:feedmepos/foodb.git
+      path: foodb_test
+      ref: feat/yr/ffi-2.1.0
   foodb:
-    path: ../foodb
+    git:
+      url: git@github.com:feedmepos/foodb.git
+      path: foodb
+      ref: feat/yr/ffi-2.1.0
   shelf:
     git:
       url: https://github.com/feedmepos/shelf

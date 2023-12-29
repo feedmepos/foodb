@@ -40,9 +40,15 @@ dependencies:
 
 dependency_overrides:
   foodb:
-    path: ../foodb
-  foodb_objectbox_adapter: 
-    path: ../foodb_objectbox_adapter
+    git:
+      url: git@github.com:feedmepos/foodb.git
+      path: foodb
+      ref: feat/yr/ffi-2.1.0
+  foodb_objectbox_adapter:
+    git:
+      url: git@github.com:feedmepos/foodb.git
+      path: foodb_objectbox_adapter
+      ref: feat/yr/ffi-2.1.0
 
 dev_dependencies:
   flutter_test:
