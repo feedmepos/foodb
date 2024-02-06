@@ -124,7 +124,7 @@ List<Function(FoodbTestContext)> getTest() {
     },
     (FoodbTestContext ctx) {
       test('bulkGet() improve json decode', () async {
-        FoodbDebug.logLevel = LOG_LEVEL.debug;
+        FoodbDebug.logLevel = LOG_LEVEL.trace;
         final db = await ctx.db('bulk-get-large-json', persist: true);
         if ((await db.info()).docCount == 0) {
           var docs = <Doc<Map<String, dynamic>>>[];
