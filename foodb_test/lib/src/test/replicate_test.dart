@@ -270,10 +270,13 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
       test('continuous replication, fast oepration', () async {
         final source = await sourceCtx.db('source-replicate-fast-operation');
         final target = await targetCtx.db('target-replicate-fast-operation');
-        var complete = expectAsync0(() => {});
-        var resultCnt = expectAsync1((r) => {}, count: 10);
+        ReplicationStream? stream;
+        var complete = expectAsync0(() {
+          stream?.abort();
+        });
+        var resultCnt = expectAsync1((r) {}, count: 10);
 
-        replicate(
+        stream = replicate(
           source,
           target,
           continuous: true,
