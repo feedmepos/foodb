@@ -70,6 +70,7 @@ Future<Doc<ReplicationLog>> _retriveReplicationLog(
         id: "_local/$replicationId",
         fromJsonT: (json) => ReplicationLog.fromJson(json));
   } on AdapterException catch (ex) {
+    FoodbDebug.debug(ex.toString());
     if (ex.error.contains('not_found')) {
       return Doc(
         id: id,
@@ -338,6 +339,11 @@ ReplicationStream replicate(
    * call when completed a single checkpoint
    */
   void Function(ReplicationCheckpoint)? onCheckpoint,
+  /**
+   * call when source and target has unmatched replication log, should return the desire seq, use "0" if want to sync from beginning
+   */
+  String Function(Doc<ReplicationLog> source, Doc<ReplicationLog> target)?
+      noCommonAncestry,
 }) {
   late ReplicationStream resultStream;
 
@@ -408,6 +414,12 @@ ReplicationStream replicate(
         startSeq = historyA.recordedSeq;
         break;
       }
+    }
+    if (noCommonAncestry != null &&
+        startSeq == "0" &&
+        (initialSourceLog.model.sourceLastSeq != "0" ||
+            initialTargetLog.model.sourceLastSeq != "0")) {
+      startSeq = noCommonAncestry(initialSourceLog, initialTargetLog);
     }
 
     if (continuous) {

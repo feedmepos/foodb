@@ -187,11 +187,11 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
         final target =
             await targetCtx.db('target-continuous-by-max-batch-size');
 
-        var complete = expectAsync0(() => {});
+        ReplicationStream? stream;
+        var complete = expectAsync0(() => stream?.abort());
         var processedCnt = 0;
         var stopwatch = Stopwatch();
         stopwatch.start();
-        ReplicationStream? stream;
         stream = replicate(
           source,
           target,
@@ -243,12 +243,12 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
         });
       });
       test(
-          'continuous replication, debounce will fire immediate if has initial change',
+          'continuous replication, debounce will not fire immediate with initial change',
           () async {
-        final source = await sourceCtx.db('source-tonituous-no-immediate-fire');
-        final target = await targetCtx.db('target-tonituous-no-immediate-fire');
-        var complete = expectAsync0(() => {}, count: 2);
-        var checkpoint = expectAsync0(() => {}, count: 2);
+        final source = await sourceCtx.db('source-contiuous-no-immediate-fire');
+        final target = await targetCtx.db('target-contiuous-no-immediate-fire');
+        var complete = expectAsync0(() => {});
+        var checkpoint = expectAsync0(() => {}, count: 1);
         await source.put(doc: Doc(id: 'a', model: {}));
 
         ReplicationStream? stream;
@@ -323,7 +323,11 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
       });
     },
     (FoodbTestContext sourceCtx, FoodbTestContext targetCtx) {
-      test('remove local doc will start from beginning', () async {
+      test(
+          'remove local doc will start from beginning if noCommonAncestry handler return "0"',
+          () async {
+        // change log level to debug, should see the replication log exception
+        FoodbDebug.logLevel = LOG_LEVEL.debug;
         final source = await sourceCtx.db('source-replicate-delete-local-doc');
         final target = await targetCtx.db('target-replicate-delete-local-doc');
         var replicationId = 'test';
@@ -333,6 +337,9 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
         var complete2 = expectAsync0(() => {});
         var onChange1 = expectAsync1((r) => {}, count: 3);
         var onChange2 = expectAsync1((r) => {}, count: 3);
+        var noCommonAncestry = expectAsync2((a, b) {
+          return '0';
+        });
 
         await source.put(doc: Doc(id: 'a_1', model: {}));
         await source.put(doc: Doc(id: 'a_2', model: {}));
@@ -344,9 +351,7 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
           replicationId: replicationId,
           onError: handleTestReplicationError,
           onResult: onChange1,
-          onComplete: () async {
-            complete1();
-          },
+          onComplete: complete1,
         );
         await firstReplicateCompleter.future;
         var localDoc =
@@ -358,9 +363,8 @@ List<Function(FoodbTestContext sourceCtx, FoodbTestContext targetCtx)>
           replicationId: replicationId,
           onResult: onChange2,
           onError: handleTestReplicationError,
-          onComplete: () async {
-            complete2();
-          },
+          noCommonAncestry: noCommonAncestry,
+          onComplete: complete2,
         );
       });
     }
