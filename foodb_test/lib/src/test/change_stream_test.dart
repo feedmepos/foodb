@@ -6,8 +6,8 @@ import 'package:foodb/foodb.dart';
 import 'package:foodb_test/foodb_test.dart';
 
 void main() {
-  // final ctx = CouchdbTestContext();
-  final ctx = InMemoryTestContext();
+  final ctx = CouchdbTestContext();
+  // final ctx = InMemoryTestContext();
   changeStreamTest().forEach((t) {
     t(ctx);
   });
@@ -34,7 +34,7 @@ List<Function(FoodbTestContext)> changeStreamTest() {
     },
     (FoodbTestContext ctx) {
       test('Test change stream: normal feed, with deleted', () async {
-        final db = await ctx.db('change-stream-normal-feed');
+        final db = await ctx.db('change-stream-normal-feed-with-deleted');
         var doc = await db.put(doc: Doc(id: 'a', model: {}));
         await db.put(doc: Doc(id: 'b', model: {}));
         var deleted = await db.delete(id: doc.id, rev: doc.rev);

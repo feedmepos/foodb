@@ -61,32 +61,51 @@ part 'src/key_value/key_value_util.dart';
 part 'src/key_value/key_value_view.dart';
 part 'src/key_value/key_value_purge.dart';
 
-enum LOG_LEVEL { off, debug }
+enum LOG_LEVEL { trace, debug, off }
 
 class FoodbDebug {
   static LOG_LEVEL logLevel = LOG_LEVEL.off;
   static Map<String, Stopwatch> _cache = {};
 
-  static _print(Stopwatch stopwatch, String step) {
-    print(
+  static var printFn = (String message) {
+    print(message);
+  };
+  static _printStopwatch(Stopwatch stopwatch, String step) {
+    trace(
         '[${stopwatch.elapsed.inMilliseconds.toString().padLeft(7, ' ')} ms]: $step');
   }
 
+  static trace(String message) {
+    if (logLevel.index <= LOG_LEVEL.trace.index) {
+      printFn('{TRACE}: $message');
+    }
+  }
+
+  static debug(String message) {
+    if (logLevel.index <= LOG_LEVEL.debug.index) {
+      printFn('{DEBUG}: $message');
+    }
+  }
+
+  static log(String message) {
+    debug(message);
+  }
+
   static timed(String step, Function fn) async {
-    if (logLevel == LOG_LEVEL.debug) {
+    if (logLevel == LOG_LEVEL.trace) {
       Stopwatch stopwatch = Stopwatch();
       stopwatch.reset();
       stopwatch.start();
       await fn();
       stopwatch.stop();
-      _print(stopwatch, step);
+      _printStopwatch(stopwatch, step);
     } else {
       await fn();
     }
   }
 
   static timedStart(String step) {
-    if (logLevel == LOG_LEVEL.debug) {
+    if (logLevel == LOG_LEVEL.trace) {
       var stopwatch = _cache[step];
       if (stopwatch == null) {
         stopwatch = Stopwatch();
@@ -97,10 +116,11 @@ class FoodbDebug {
   }
 
   static timedEnd(String step, [String Function(int)? message]) {
-    if (logLevel == LOG_LEVEL.debug) {
+    if (logLevel == LOG_LEVEL.trace) {
       var stopwatch = _cache[step];
       if (stopwatch != null) {
-        _print(stopwatch, message?.call(stopwatch.elapsedMilliseconds) ?? step);
+        _printStopwatch(
+            stopwatch, message?.call(stopwatch.elapsedMilliseconds) ?? step);
         stopwatch.stop();
         _cache.remove(step);
       }

@@ -7,7 +7,7 @@ import 'package:foodb_test/foodb_test.dart';
 void main() async {
   // benchmark(300, 10, InMemoryTestContext());
   // benchmark(3000, 10, InMemoryTestContext());
-  FoodbDebug.logLevel = LOG_LEVEL.debug;
+  FoodbDebug.logLevel = LOG_LEVEL.trace;
   replicateBenchmarkTest(
     source: CouchdbTestContext(),
     // source: InMemoryTestContext(),
