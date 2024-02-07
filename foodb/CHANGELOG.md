@@ -1,3 +1,8 @@
+### 0.10.2
+* (fix) race condition in changeStream in KeyValue adapter
+* (add) trace and debug log level
+* (add) expose noCommonAncestry event handler during replication
+
 ### 0.10.1
 * (fix) fixed bulk get missing doc incorrect result
 
