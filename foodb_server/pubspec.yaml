@@ -15,13 +15,23 @@ dependencies:
       path: pkgs/shelf
   shelf_router: ^1.0.0
   shelf_web_socket: ^1.0.2
-  foodb: ">=0.10.0 <0.11.0"
+  foodb:
+    git:
+      url: git@github.com:feedmepos/foodb.git
+      path: foodb
+      ref: feat/yr/ffi-2.1.0
 
 dependency_overrides:
   foodb_test:
-    path: ../foodb_test
+    git:
+      url: git@github.com:feedmepos/foodb.git
+      path: foodb_test
+      ref: feat/yr/ffi-2.1.0
   foodb:
-    path: ../foodb
+    git:
+      url: git@github.com:feedmepos/foodb.git
+      path: foodb
+      ref: feat/yr/ffi-2.1.0
   shelf:
     git:
       url: https://github.com/feedmepos/shelf
@@ -30,7 +40,7 @@ dependency_overrides:
   #   path: C://Users//user//Documents//GitHub//shelf//pkgs//shelf
 
 dev_dependencies:
-  http: ^0.13.0
+  http: ^1.1.0
   lints: ^2.0.0
   test: ^1.15.0
   foodb_test: ">=0.7.4"
