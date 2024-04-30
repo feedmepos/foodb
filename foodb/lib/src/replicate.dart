@@ -361,6 +361,15 @@ ReplicationStream replicate(
     onComplete?.call();
   }
 
+  _verifyChangeResult(ChangeResult result, String startSeq) {
+    // https://github.com/feedmepos/foodb/issues/11
+    // handle broken change feed from couchdb
+    if (int.parse(result.seq!) < int.parse(startSeq)) {
+      throw ReplicationException(
+          'broken change result, doc seq smaller than since seq: ${result.seq} ${startSeq}');
+    }
+  }
+
   runZonedGuarded(() async {
     late final _Replicator replicator;
     ChangesStream? changeStream;
@@ -437,6 +446,7 @@ ReplicationStream replicate(
               timeout: timeout,
               since: startSeq), onResult: (result) async {
         onResult?.call(result);
+        _verifyChangeResult(result, startSeq);
         replicator.pendingList.add(result);
         timer.cancel();
         timer = Timer(debounce, replicator.run);
@@ -466,7 +476,10 @@ ReplicationStream replicate(
                 result.results.last.seq = result.lastSeq!;
               }
               startSeqWithLimit = result.lastSeq!;
-              replicator.pendingList.addAll(result.results);
+              result.results.forEach((cr) {
+                _verifyChangeResult(cr, startSeq);
+                replicator.pendingList.add(cr);
+              });
               replicator.run();
             },
             onError: _onError);
