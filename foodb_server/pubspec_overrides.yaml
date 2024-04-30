@@ -1,0 +1,10 @@
+# melos_managed_dependency_overrides: foodb,foodb_test,shelf
+dependency_overrides:
+  foodb:
+    path: ../foodb
+  foodb_test:
+    path: ../foodb_test
+  shelf:
+    git:
+      url: https://github.com/feedmepos/shelf
+      path: pkgs/shelf

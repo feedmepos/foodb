@@ -1,3 +1,6 @@
+### 0.10.3
+* (add) handle broken changeResult return by couchdb which cause replication start from beginning instead of checkpoint
+
 ### 0.10.2
 * (fix) race condition in changeStream in KeyValue adapter
 * (add) trace and debug log level
