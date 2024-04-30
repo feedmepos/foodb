@@ -26,6 +26,7 @@ class FoodbHiveAdapter implements KeyValueAdapter {
 
   String Function({required String designDocId, required String viewId})
       getViewTableName = _hiveTableName;
+
   String get allDocViewName =>
       KeyValueAdapter.getAllDocViewTableName(getViewTableName);
 
