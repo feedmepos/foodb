@@ -364,9 +364,15 @@ ReplicationStream replicate(
   _verifyChangeResult(ChangeResult result, String startSeq) {
     // https://github.com/feedmepos/foodb/issues/11
     // handle broken change feed from couchdb
-    if (int.parse(result.seq!) < int.parse(startSeq)) {
-      throw ReplicationException(
-          'broken change result, doc seq smaller than since seq: ${result.seq} ${startSeq}');
+    if (result.seq != null) {
+      final changeSeqInt = int.tryParse(result.seq!.split('-')[0]);
+      final startSeqInt = int.tryParse(startSeq.split('-')[0]);
+      if (changeSeqInt != null &&
+          startSeqInt != null &&
+          changeSeqInt < startSeqInt) {
+        throw ReplicationException(
+            'broken change result, doc seq smaller than since seq: ${result.seq} ${startSeq}');
+      }
     }
   }
 
