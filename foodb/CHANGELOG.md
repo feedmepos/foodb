@@ -1,4 +1,7 @@
-### 0.10.3
+### 0.10.4
+* (fix) wrongly parse the sequence number in 0.10.3
+
+### 0.10.3 (BROKEN)
 * (add) handle broken changeResult return by couchdb which cause replication start from beginning instead of checkpoint
 
 ### 0.10.2
