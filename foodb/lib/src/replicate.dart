@@ -364,9 +364,19 @@ ReplicationStream replicate(
   _verifyChangeResult(ChangeResult result, String startSeq) {
     // https://github.com/feedmepos/foodb/issues/11
     // handle broken change feed from couchdb
-    if (int.parse(result.seq!) < int.parse(startSeq)) {
-      throw ReplicationException(
-          'broken change result, doc seq smaller than since seq: ${result.seq} ${startSeq}');
+    if (result.seq != null) {
+      // Sequence ID will be an increasing integer, but in couchdb, it encode together with node meta
+      // example: 0-g1AAAABbeJzLYWBgYMxgTmGwT84vTc5ISXKA0row2lAPTUQvJbVMr7gsWS85p7S4JLVILyc_OTEnB2gQUyJDHgvDfyDISmTIAgBNxh-c
+      // more reading: https://docs.couchdb.org/en/stable/replication/protocol.html#definitions
+      final changeSeqInt = int.tryParse(result.seq!.split('-')[0]);
+      final startSeqInt = int.tryParse(startSeq.split('-')[0]);
+      if (changeSeqInt != null &&
+          startSeqInt != null &&
+          // base on couchdb, the sequence ID is always increasing,
+          changeSeqInt < startSeqInt) {
+        throw ReplicationException(
+            'broken change result, doc seq smaller than since seq: ${result.seq} ${startSeq}');
+      }
     }
   }
 
