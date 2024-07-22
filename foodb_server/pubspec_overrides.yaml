@@ -1,9 +1,15 @@
 # melos_managed_dependency_overrides: foodb,foodb_test,shelf
 dependency_overrides:
   foodb:
-    path: ../foodb
+    git:
+      url: git@github.com:feedmepos/foodb.git
+      ref: feat/yr/ffi-2.1.0
+      path: foodb
   foodb_test:
-    path: ../foodb_test
+    git:
+      url: git@github.com:feedmepos/foodb.git
+      ref: feat/yr/ffi-2.1.0
+      path: foodb_test
   shelf:
     git:
       url: https://github.com/feedmepos/shelf

@@ -1,6 +1,12 @@
 # melos_managed_dependency_overrides: foodb,foodb_objectbox_adapter
 dependency_overrides:
   foodb:
-    path: ../foodb
+    git:
+      url: git@github.com:feedmepos/foodb.git
+      ref: feat/yr/ffi-2.1.0
+      path: foodb
   foodb_objectbox_adapter:
-    path: ../foodb_objectbox_adapter
+    git:
+      url: git@github.com:feedmepos/foodb.git
+      ref: feat/yr/ffi-2.1.0
+      path: foodb_objectbox_adapter
