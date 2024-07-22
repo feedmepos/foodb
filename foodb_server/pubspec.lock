@@ -92,16 +92,20 @@ packages:
   foodb:
     dependency: "direct main"
     description:
-      path: "../foodb"
-      relative: true
-    source: path
-    version: "0.10.4"
+      path: foodb
+      ref: "feat/yr/ffi-2.1.0"
+      resolved-ref: "1bd5bf048bc33ea3235bec597d96ef3e14be0b37"
+      url: "git@github.com:feedmepos/foodb.git"
+    source: git
+    version: "0.10.1"
   foodb_test:
     dependency: "direct dev"
     description:
-      path: "../foodb_test"
-      relative: true
-    source: path
+      path: foodb_test
+      ref: "feat/yr/ffi-2.1.0"
+      resolved-ref: "1bd5bf048bc33ea3235bec597d96ef3e14be0b37"
+      url: "git@github.com:feedmepos/foodb.git"
+    source: git
     version: "0.10.0"
   frontend_server_client:
     dependency: transitive
@@ -123,10 +127,10 @@ packages:
     dependency: "direct dev"
     description:
       name: http
-      sha256: "6aa2946395183537c8b880962d935877325d6a09a2867c3970c05c0fed6ac482"
+      sha256: "759d1a329847dd0f39226c688d3e06a6b8679668e350e2891a6474f8b4bb8525"
       url: "https://pub.dev"
     source: hosted
-    version: "0.13.5"
+    version: "1.1.0"
   http_methods:
     dependency: transitive
     description:
@@ -457,4 +461,4 @@ packages:
     source: hosted
     version: "3.1.1"
 sdks:
-  dart: ">=2.17.6 <3.0.0"
+  dart: ">=3.0.0 <4.0.0"
