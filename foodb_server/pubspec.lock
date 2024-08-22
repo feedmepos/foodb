@@ -93,17 +93,17 @@ packages:
     dependency: "direct main"
     description:
       path: foodb
-      ref: "feat/yr/ffi-2.1.0"
-      resolved-ref: "1bd5bf048bc33ea3235bec597d96ef3e14be0b37"
+      ref: "feat/yr/flutter-3.22"
+      resolved-ref: "29468ec7c6826f4b9a93ec30b18a5c4b200b17f4"
       url: "git@github.com:feedmepos/foodb.git"
     source: git
-    version: "0.10.1"
+    version: "0.10.4"
   foodb_test:
     dependency: "direct dev"
     description:
       path: foodb_test
-      ref: "feat/yr/ffi-2.1.0"
-      resolved-ref: "1bd5bf048bc33ea3235bec597d96ef3e14be0b37"
+      ref: "feat/yr/flutter-3.22"
+      resolved-ref: "29468ec7c6826f4b9a93ec30b18a5c4b200b17f4"
       url: "git@github.com:feedmepos/foodb.git"
     source: git
     version: "0.10.0"
@@ -332,6 +332,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.9.1"
+  sprintf:
+    dependency: transitive
+    description:
+      name: sprintf
+      sha256: "1fc9ffe69d4df602376b52949af107d8f5703b77cda567c4d7d86a0693120f23"
+      url: "https://pub.dev"
+    source: hosted
+    version: "7.0.0"
   stack_trace:
     dependency: transitive
     description:
@@ -416,10 +424,10 @@ packages:
     dependency: transitive
     description:
       name: uuid
-      sha256: "2469694ad079893e3b434a627970c33f2fa5adc46dfe03c9617546969a9a8afc"
+      sha256: b715b8d3858b6fa9f68f87d20d98830283628014750c2b09b6f516c1da4af2a7
       url: "https://pub.dev"
     source: hosted
-    version: "3.0.6"
+    version: "4.1.0"
   vm_service:
     dependency: transitive
     description:

@@ -14,7 +14,7 @@ dependencies:
     git:
       url: git@github.com:feedmepos/foodb.git
       path: foodb
-      ref: feat/yr/ffi-2.1.0
+      ref: feat/yr/flutter-3.22
 
 dev_dependencies:
   pedantic: ^1.10.0

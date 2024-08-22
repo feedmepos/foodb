@@ -3,12 +3,12 @@ dependency_overrides:
   foodb:
     git:
       url: git@github.com:feedmepos/foodb.git
-      ref: feat/yr/ffi-2.1.0
+      ref: feat/yr/flutter-3.22
       path: foodb
   foodb_test:
     git:
       url: git@github.com:feedmepos/foodb.git
-      ref: feat/yr/ffi-2.1.0
+      ref: feat/yr/flutter-3.22
       path: foodb_test
   shelf:
     git:
