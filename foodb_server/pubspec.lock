@@ -92,20 +92,16 @@ packages:
   foodb:
     dependency: "direct main"
     description:
-      path: foodb
-      ref: "feat/yr/flutter-3.22"
-      resolved-ref: "29468ec7c6826f4b9a93ec30b18a5c4b200b17f4"
-      url: "git@github.com:feedmepos/foodb.git"
-    source: git
+      path: "../foodb"
+      relative: true
+    source: path
     version: "0.10.4"
   foodb_test:
     dependency: "direct dev"
     description:
-      path: foodb_test
-      ref: "feat/yr/flutter-3.22"
-      resolved-ref: "29468ec7c6826f4b9a93ec30b18a5c4b200b17f4"
-      url: "git@github.com:feedmepos/foodb.git"
-    source: git
+      path: "../foodb_test"
+      relative: true
+    source: path
     version: "0.10.0"
   frontend_server_client:
     dependency: transitive

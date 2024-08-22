@@ -23,15 +23,9 @@ dependencies:
 
 dependency_overrides:
   foodb_test:
-    git:
-      url: git@github.com:feedmepos/foodb.git
-      path: foodb_test
-      ref: feat/yr/flutter-3.22
+    path: ../foodb_test
   foodb:
-    git:
-      url: git@github.com:feedmepos/foodb.git
-      path: foodb
-      ref: feat/yr/flutter-3.22
+    path: ../foodb
   shelf:
     git:
       url: https://github.com/feedmepos/shelf
