@@ -7,10 +7,10 @@ environment:
   sdk: ">=2.13.0 <3.0.0"
 
 dependencies:
-  http: ^0.13.3
+  http: ^1.1.0
   json_annotation: ^4.0.1
   uri: ^1.0.0
-  uuid: ^3.0.4
+  uuid: ^4.0.0
   crypto: ^3.0.1
   collection: ^1.15.0
   synchronized: ^3.0.0+2

@@ -27,7 +27,11 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^1.0.0
-  foodb_test: ">=0.7.3"
+  foodb_test:
+    git:
+      url: git@github.com:feedmepos/foodb.git
+      path: foodb_test
+      ref: feat/yr/flutter-3.22
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

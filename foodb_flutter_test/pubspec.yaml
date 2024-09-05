@@ -41,7 +41,7 @@ dependencies:
 dependency_overrides:
   foodb:
     path: ../foodb
-  foodb_objectbox_adapter: 
+  foodb_objectbox_adapter:
     path: ../foodb_objectbox_adapter
 
 dev_dependencies:
