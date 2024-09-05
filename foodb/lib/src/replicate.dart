@@ -134,7 +134,6 @@ class _Replicator {
     this._source,
     this._target, {
     required this.maxBatchSize,
-    this.onFinishCheckpoint,
     this.whereChange,
     required this.onError,
   });

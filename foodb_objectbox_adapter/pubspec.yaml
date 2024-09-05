@@ -1,30 +1,22 @@
 name: foodb_objectbox_adapter
 description: Foodb database persistance using object
-version: 0.11.0
+version: 0.12.0
 repository: https://github.com/feedmepos/foodb 
 
 environment:
-  sdk: ">=2.18.0 <3.0.0"
+  sdk: ">=2.19.0 <4.0.0"
   flutter: ">=3.7.0"
 
 dependencies:
   flutter:
     sdk: flutter
   objectbox: ^4.0.1
-  foodb:
-    git:
-      url: git@github.com:feedmepos/foodb.git
-      path: foodb
-      ref: feat/yr/flutter-3.22
+  foodb: ^0.12.0
   objectbox_flutter_libs: ^4.0.1
   flat_buffers: ^23.5.26
 
 dev_dependencies:
-  foodb_test:
-    git:
-      url: git@github.com:feedmepos/foodb.git
-      path: foodb_test
-      ref: feat/yr/flutter-3.22
+  foodb_test: ^0.12.0
   flutter_test:
     sdk: flutter
   build_runner: ^2.3.3

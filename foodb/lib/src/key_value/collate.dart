@@ -150,10 +150,7 @@ class _ObjEncoder extends _Encoder<Map> {
 }
 
 normalizeKey(dynamic key) {
-  if (key is num &&
-      (key == double.nan ||
-          key == double.infinity ||
-          key == double.negativeInfinity)) {
+  if (key is num && (key.isNaN || key.isInfinite)) {
     return null;
   }
   if (key is DateTime) {

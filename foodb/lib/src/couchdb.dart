@@ -79,7 +79,6 @@ class _CouchdbFoodb extends Foodb {
     }
   }
 
-  @override
   Future<ChangeResponse> changes(ChangeRequest request) async {
     var changeClient = getClient();
     request.feed = ChangeFeed.normal;

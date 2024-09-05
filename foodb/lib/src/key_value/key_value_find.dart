@@ -185,7 +185,7 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
 
     List<String> docFields;
     if (docView is QueryDesignDocView) {
-      docFields = (docView as QueryDesignDocView).options.def.fields;
+      docFields = docView.options.def.fields;
     } else {
       docFields = ["_id"];
     }

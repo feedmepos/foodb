@@ -254,100 +254,95 @@ mixin _KeyValueView on _AbstractKeyValue {
       designDoc = await fetchDesignDoc(ddocName: ddocId);
     }
 
-    if (designDoc != null) {
-      await _generateView(designDoc);
-      var viewName = keyValueDb.getViewTableName(
-          designDocId: designDoc.id, viewId: viewId);
-      late ReadResult<ViewKeyMetaKey> result;
-      if (getViewRequest.keys != null) {
-        result = ReadResult(
-          totalRows:
-              await keyValueDb.tableSize(ViewKeyMetaKey(viewName: viewName)),
-          offset: 0,
-          records: Map.fromIterable(
-            (await Future.wait(
-              getViewRequest.keys!.map(
-                (e) => keyValueDb.get<ViewKeyMetaKey>(
-                  ViewKeyMetaKey(
-                    viewName: viewName,
-                    key: ViewKeyMeta(
-                      key: e,
-                    ),
+    await _generateView(designDoc);
+    var viewName =
+        keyValueDb.getViewTableName(designDocId: designDoc.id, viewId: viewId);
+    late ReadResult<ViewKeyMetaKey> result;
+    if (getViewRequest.keys != null) {
+      result = ReadResult(
+        totalRows:
+            await keyValueDb.tableSize(ViewKeyMetaKey(viewName: viewName)),
+        offset: 0,
+        records: Map.fromIterable(
+          (await Future.wait(
+            getViewRequest.keys!.map(
+              (e) => keyValueDb.get<ViewKeyMetaKey>(
+                ViewKeyMetaKey(
+                  viewName: viewName,
+                  key: ViewKeyMeta(
+                    key: e,
                   ),
                 ),
               ),
-            ))
-                .where((element) => element != null),
-            key: (e) =>
-                (e as MapEntry<ViewKeyMetaKey, Map<String, dynamic>>).key,
-            value: (e) =>
-                (e as MapEntry<ViewKeyMetaKey, Map<String, dynamic>>).value,
-          ),
-        );
-      } else {
-        result = await keyValueDb.read<ViewKeyMetaKey>(
-          ViewKeyMetaKey(viewName: viewName),
-          startkey: getViewRequest.startkey == null
-              ? null
-              : ViewKeyMetaKey(
-                  viewName: viewName,
-                  key: ViewKeyMeta(
-                    key: getViewRequest.startkey,
-                  )),
-          endkey: getViewRequest.endkey == null
-              ? null
-              : ViewKeyMetaKey(
-                  viewName: viewName,
-                  key: ViewKeyMeta(key: getViewRequest.endkey)),
-          desc: getViewRequest.descending == true,
-          inclusiveEnd: getViewRequest.inclusiveEnd != false,
-          inclusiveStart: true,
-          limit: getViewRequest.limit,
-          skip: getViewRequest.skip,
-        );
-      }
-
-      var data = result.records.entries.expand((e) =>
-          ViewValue.fromJson(e.value).docs.map((d) => MapEntry(e.key, d)));
-
-      List<ViewRow<T>> rows = [];
-      Map<String, DocHistory> map = {};
-      if (getViewRequest.includeDocs == true) {
-        var docs = (await keyValueDb.getMany(data
-            .map(
-              (e) => DocKey(
-                  key: isAllDoc ? e.key.key?.key as String : e.value.docId),
-            )
-            .toList()));
-        docs.removeWhere((key, value) => value == null);
-        map = docs.map<String, DocHistory>(
-          (key, value) => MapEntry(key.key!, DocHistory.fromJson(value!)),
-        );
-      }
-
-      for (var r in data) {
-        final key = r.key.key!;
-        final value = r.value;
-        final docId = isAllDoc ? key.key as String : value.docId;
-        ViewRow<T> row = ViewRow<T>(
-            id: docId,
-            key: key.key,
-            value: value.value,
-            doc: getViewRequest.includeDocs == true
-                ? map[docId]!.toDoc<T>(
-                    map[docId]!.winner!.rev,
-                    fromJsonT,
-                    revLimit: _revLimit,
-                  )
-                : null);
-        rows.add(row);
-      }
-
-      return GetViewResponse(
-          offset: result.offset, totalRows: result.totalRows, rows: rows);
+            ),
+          ))
+              .where((element) => element != null),
+          key: (e) => (e as MapEntry<ViewKeyMetaKey, Map<String, dynamic>>).key,
+          value: (e) =>
+              (e as MapEntry<ViewKeyMetaKey, Map<String, dynamic>>).value,
+        ),
+      );
     } else {
-      throw AdapterException(error: "Design Doc Not Exists");
+      result = await keyValueDb.read<ViewKeyMetaKey>(
+        ViewKeyMetaKey(viewName: viewName),
+        startkey: getViewRequest.startkey == null
+            ? null
+            : ViewKeyMetaKey(
+                viewName: viewName,
+                key: ViewKeyMeta(
+                  key: getViewRequest.startkey,
+                )),
+        endkey: getViewRequest.endkey == null
+            ? null
+            : ViewKeyMetaKey(
+                viewName: viewName,
+                key: ViewKeyMeta(key: getViewRequest.endkey)),
+        desc: getViewRequest.descending == true,
+        inclusiveEnd: getViewRequest.inclusiveEnd != false,
+        inclusiveStart: true,
+        limit: getViewRequest.limit,
+        skip: getViewRequest.skip,
+      );
     }
+
+    var data = result.records.entries.expand(
+        (e) => ViewValue.fromJson(e.value).docs.map((d) => MapEntry(e.key, d)));
+
+    List<ViewRow<T>> rows = [];
+    Map<String, DocHistory> map = {};
+    if (getViewRequest.includeDocs == true) {
+      var docs = (await keyValueDb.getMany(data
+          .map(
+            (e) => DocKey(
+                key: isAllDoc ? e.key.key?.key as String : e.value.docId),
+          )
+          .toList()));
+      docs.removeWhere((key, value) => value == null);
+      map = docs.map<String, DocHistory>(
+        (key, value) => MapEntry(key.key!, DocHistory.fromJson(value!)),
+      );
+    }
+
+    for (var r in data) {
+      final key = r.key.key!;
+      final value = r.value;
+      final docId = isAllDoc ? key.key as String : value.docId;
+      ViewRow<T> row = ViewRow<T>(
+          id: docId,
+          key: key.key,
+          value: value.value,
+          doc: getViewRequest.includeDocs == true
+              ? map[docId]!.toDoc<T>(
+                  map[docId]!.winner!.rev,
+                  fromJsonT,
+                  revLimit: _revLimit,
+                )
+              : null);
+      rows.add(row);
+    }
+
+    return GetViewResponse(
+        offset: result.offset, totalRows: result.totalRows, rows: rows);
   }
 
   @override

@@ -1,10 +1,10 @@
 name: foodb_server
 description: A server app using the shelf package and Docker.
-version: 0.10.0
+version: 0.12.0
 # homepage: https://www.example.com
 
 environment:
-  sdk: ">=2.17.6 <3.0.0"
+  sdk: '>=2.19.0 <4.0.0'
 
 dependencies:
   dotenv: ^3.0.0
@@ -15,11 +15,7 @@ dependencies:
       path: pkgs/shelf
   shelf_router: ^1.0.0
   shelf_web_socket: ^1.0.2
-  foodb:
-    git:
-      url: git@github.com:feedmepos/foodb.git
-      path: foodb
-      ref: feat/yr/flutter-3.22
+  foodb: ^0.12.0
 
 dependency_overrides:
   foodb_test:

@@ -24,8 +24,11 @@ class FoodbHiveAdapter implements KeyValueAdapter {
   final Map<String, AvlTreeSet<AbstractKey>> _avlTrees = {};
   final Map<String, LazyBox<String>> _boxes = {};
 
+  @override
   String Function({required String designDocId, required String viewId})
       getViewTableName = _hiveTableName;
+
+  @override
   String get allDocViewName =>
       KeyValueAdapter.getAllDocViewTableName(getViewTableName);
 
@@ -107,6 +110,7 @@ class FoodbHiveAdapter implements KeyValueAdapter {
     if (result != null) {
       return MapEntry(key, jsonDecode(result));
     }
+    return null;
   }
 
   @override
@@ -157,6 +161,7 @@ class FoodbHiveAdapter implements KeyValueAdapter {
         return MapEntry(_avlTrees[boxName]!.last as T2, jsonDecode(result));
       }
     }
+    return null;
   }
 
   @override
@@ -202,7 +207,6 @@ class FoodbHiveAdapter implements KeyValueAdapter {
           reversed: desc, inclusive: inclusiveStart);
     }
     var result = <T2, Map<String, dynamic>>{};
-    var keys = tree.map((e) => e).toList();
     while (iterator.moveNext()) {
       if (endkey?.key != null) {
         var matching = (inclusiveEnd ? 1 : 0) * (desc ? -1 : 1);

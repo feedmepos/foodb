@@ -1,3 +1,6 @@
+## 0.12.0 (major)
+- (major) upgrade dart to 3.4
+
 ## 0.10.0
 - (add) purge test
 - (add) test to cover race condition during view generation

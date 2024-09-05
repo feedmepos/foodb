@@ -1,19 +1,8 @@
 A library for Dart developers.
 
-## Usage
+## Environment Setup
 
-A simple usage example:
-
-```dart
-import 'package:foodb_test/foodb_test.dart';
-
-main() {
-  var awesome = new Awesome();
-}
+To run test, make sure install the native library on your machine
 ```
-
-## Features and bugs
-
-Please file feature requests and bugs at the [issue tracker][tracker].
-
-[tracker]: http://example.com/issues/replaceme
+bash <(curl -s https://raw.githubusercontent.com/objectbox/objectbox-dart/main/install.sh)
+```

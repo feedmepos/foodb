@@ -356,7 +356,6 @@ abstract class FoodbServer {
           (json) => json as Map<String, dynamic>),
       newEdits: request.queryParams['new_edits'],
     );
-    final v = await (await _getDb(request)).get(id: id, fromJsonT: (v) => v);
     return FoodbServerResponse(data: result.toJson());
   }
 

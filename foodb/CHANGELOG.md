@@ -1,3 +1,6 @@
+### 0.12.0 (Major)
+* (mojor) upgrade flutter support to 3.22
+
 ### 0.10.4
 * (fix) wrongly parse the sequence number in 0.10.3
 
