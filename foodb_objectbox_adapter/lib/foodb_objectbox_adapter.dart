@@ -355,43 +355,51 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     port.listen((message) async {
       final msg = message as ObjectBoxMessage;
       dynamic result;
-      switch (msg.command) {
-        case 'put':
-          result = await _put(store!, msg.data);
-          break;
-        case 'putMany':
-          result = await _putMany(store!, msg.data);
-          break;
-        case 'get':
-          result = await _get(store!, msg.data);
-          break;
-        case 'getMany':
-          result = await _getMany(store!, msg.data);
-          break;
-        case 'read':
-          result = await _read(store!, msg.data);
-          break;
-        case 'last':
-          result = await _last(store!, msg.data);
-          break;
-        case 'delete':
-          result = await _delete(store!, msg.data);
-          break;
-        case 'clearTable':
-          result = await _clearTable(store!, msg.data);
-          break;
-        case 'tableSize':
-          result = await _tableSize(store!, msg.data);
-          break;
-        case 'init':
-          result = await _initDb(store!);
-          break;
-        case 'destroy':
-          result = await _destroy(store!);
-          break;
-      // Add other cases for different commands as needed...
+
+      try {
+        switch (msg.command) {
+          case 'put':
+            result = await _put(store!, msg.data);
+            break;
+          case 'putMany':
+            result = await _putMany(store!, msg.data);
+            break;
+          case 'get':
+            result = await _get(store!, msg.data);
+            break;
+          case 'getMany':
+            result = await _getMany(store!, msg.data);
+            break;
+          case 'read':
+            result = await _read(store!, msg.data);
+            break;
+          case 'last':
+            result = await _last(store!, msg.data);
+            break;
+          case 'delete':
+            result = await _delete(store!, msg.data);
+            break;
+          case 'clearTable':
+            result = await _clearTable(store!, msg.data);
+            break;
+          case 'tableSize':
+            result = await _tableSize(store!, msg.data);
+            break;
+          case 'init':
+            result = await _initDb(store!);
+            break;
+          case 'destroy':
+            result = await _destroy(store!);
+            break;
+        // Add other cases for different commands as needed...
+        }
+        // print("RESULT:");
+        // print(result);
+        msg.replyPort.send(result);
+      } catch (e) {
+        msg.replyPort.send(e);
       }
-      msg.replyPort.send(result);
+
     });
   }
 
@@ -455,7 +463,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   }
 
 
-  static Future<dynamic> _read(Store store, Map<String, dynamic> data) async {
+  static Future<ReadResult<dynamic>> _read(Store store, Map<String, dynamic> data) async {
     final AbstractKey keyType = data['keyType'];
     final int? limit = data['limit'];
     final int? skip = data['skip'];
@@ -656,7 +664,13 @@ class ObjectBoxAdapter implements KeyValueAdapter {
       'skip': skip,
       'limit': limit,
     }, replyPort.sendPort);
-    return Future.value(await replyPort.first);
+    ReadResult<dynamic> res = await replyPort.first;
+    ReadResult<T2> ret = ReadResult(
+        totalRows: res.totalRows,
+        offset: res.offset,
+        records: res.records.map((key, value) => MapEntry(key as T2, value)),
+    );
+    return Future.value(ret);
   }
 
   @override
