@@ -1,6 +1,7 @@
 library foodb_objectbox_adapter;
 
 import 'dart:convert';
+import 'dart:isolate';
 
 import 'package:foodb/key_value_adapter.dart';
 import 'package:foodb_objectbox_adapter/object_box_entity.dart';
@@ -150,12 +151,12 @@ class ObjectBoxType<T1 extends ObjectBoxEntity, T2> {
 
   List<T1> readBetween(Store store,
       {T2? startkey,
-      T2? endkey,
-      required bool descending,
-      required bool inclusiveStart,
-      required bool inclusiveEnd,
-      int? offset,
-      int? limit}) {
+        T2? endkey,
+        required bool descending,
+        required bool inclusiveStart,
+        required bool inclusiveEnd,
+        int? offset,
+        int? limit}) {
     List<Condition<T1>> conditions = [];
     if (startkey != null) {
       if (inclusiveStart) {
@@ -187,7 +188,7 @@ class ObjectBoxType<T1 extends ObjectBoxEntity, T2> {
     }
 
     final query = (box(store).query(finalContidion)
-          ..order(keyQuery.property, flags: descending ? Order.descending : 0))
+      ..order(keyQuery.property, flags: descending ? Order.descending : 0))
         .build();
 
     if (offset != null) query.offset = offset;
@@ -197,7 +198,7 @@ class ObjectBoxType<T1 extends ObjectBoxEntity, T2> {
 
   ObjectBoxEntity? last(Store store, key) {
     Query query = (box(store).query()
-          ..order(keyQuery.property, flags: Order.descending))
+      ..order(keyQuery.property, flags: Order.descending))
         .build();
     query.limit = 1;
     var docs = query.find();
@@ -253,16 +254,16 @@ final allDocViewKeyMetaBox = ObjectBoxType<AllDocViewKeyMetaEntity, String>(
     });
 
 List<ObjectBoxType> allBoxes() => [
-      utilsBox,
-      sequenceBox,
-      docBox,
-      localDocBox,
-      viewMetaBox,
-      viewDocMetaBox,
-      viewKeyMetaBox,
-      allDocViewDocMetaBox,
-      allDocViewKeyMetaBox
-    ];
+  utilsBox,
+  sequenceBox,
+  docBox,
+  localDocBox,
+  viewMetaBox,
+  viewDocMetaBox,
+  viewKeyMetaBox,
+  allDocViewDocMetaBox,
+  allDocViewKeyMetaBox
+];
 
 class ObjectBoxAdapter implements KeyValueAdapter {
   @override
@@ -271,7 +272,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   ObjectBoxAdapter(this.store);
 
   String Function({required String designDocId, required String viewId})
-      getViewTableName = KeyValueAdapter.defaultGetViewTableName;
+  getViewTableName = KeyValueAdapter.defaultGetViewTableName;
   String get allDocViewName =>
       KeyValueAdapter.getAllDocViewTableName(getViewTableName);
 
@@ -318,6 +319,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   }
 
   AbstractKey decodeKey(AbstractKey type, dynamic objectBoxKey) {
+    print("decodeKey t:" + type.toString() + "  obk: " + objectBoxKey.toString());
     if (objectBoxKey is String) {
       objectBoxKey = revertStripReservedCharacter(objectBoxKey);
     }
@@ -381,15 +383,15 @@ class ObjectBoxAdapter implements KeyValueAdapter {
 
   @override
   Future<Map<T2, Map<String, dynamic>?>>
-      getMany<T2 extends AbstractKey<Comparable>>(List<T2> keys,
-          {KeyValueAdapterSession? session}) async {
+  getMany<T2 extends AbstractKey<Comparable>>(List<T2> keys,
+      {KeyValueAdapterSession? session}) async {
     if (keys.isEmpty) {
       return Map<T2, Map<String, dynamic>?>();
     }
     var result = _getBoxFromKey(keys[0])
         .getMany(store, keys.map((k) => encodeKey(k)).toList());
     return result.map(
-        (key, value) => MapEntry(decodeKey(keys[0], key) as T2, value?.doc));
+            (key, value) => MapEntry(decodeKey(keys[0], key) as T2, value?.doc));
   }
 
   @override
@@ -402,8 +404,8 @@ class ObjectBoxAdapter implements KeyValueAdapter {
 
   @override
   Future<MapEntry<T2, Map<String, dynamic>>?>
-      last<T2 extends AbstractKey<Comparable>>(T2 key,
-          {KeyValueAdapterSession? session}) async {
+  last<T2 extends AbstractKey<Comparable>>(T2 key,
+      {KeyValueAdapterSession? session}) async {
     final val = _getBoxFromKey(key).last(store, encodeKey(key));
     if (val == null) return null;
     return MapEntry(decodeKey(key, val.key) as T2, val.doc);
@@ -430,16 +432,21 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   @override
   Future<ReadResult<T2>> read<T2 extends AbstractKey<Comparable>>(T2 keyType,
       {T2? startkey,
-      T2? endkey,
-      required bool desc,
-      required bool inclusiveEnd,
-      required bool inclusiveStart,
-      int? limit,
-      int? skip,
-      KeyValueAdapterSession? session}) async {
+        T2? endkey,
+        required bool desc,
+        required bool inclusiveEnd,
+        required bool inclusiveStart,
+        int? limit,
+        int? skip,
+        KeyValueAdapterSession? session}) async {
+    print("using objectbox");
+    var t0 = DateTime.now().millisecondsSinceEpoch;
+    print(">[t0:4a2] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
     final boxType = _getBoxFromKey(keyType);
     final totalRows = boxType.count(store);
+    print(">[t0:4a3] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
     final offset = 0;
+    print(">[t0:4a4] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
     final record = boxType.readBetween(store,
         startkey: encodeKey(startkey),
         endkey: encodeKey(endkey, isEnd: true),
@@ -448,12 +455,16 @@ class ObjectBoxAdapter implements KeyValueAdapter {
         inclusiveStart: inclusiveStart,
         offset: skip,
         limit: limit);
+    print(">[t0:4a5] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
+
+    var records = record.asMap().map((key, value) =>
+        MapEntry(decodeKey(keyType, value.key) as T2, value.doc));
+    print(">[t0:4a6] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
 
     return ReadResult(
         totalRows: totalRows,
         offset: offset,
-        records: record.asMap().map((key, value) =>
-            MapEntry(decodeKey(keyType, value.key) as T2, value.doc)));
+        records: records);
   }
 
   @override

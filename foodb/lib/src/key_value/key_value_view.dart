@@ -248,16 +248,20 @@ mixin _KeyValueView on _AbstractKeyValue {
       T Function(Map<String, dynamic> json) fromJsonT) async {
     Doc<DesignDoc>? designDoc;
     final isAllDoc = ddocId == allDocDesignDoc.id;
+    var t0 = DateTime.now().millisecondsSinceEpoch;
+    print(">[t0:1] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
     if (isAllDoc) {
       designDoc = allDocDesignDoc;
     } else {
       designDoc = await fetchDesignDoc(ddocName: ddocId);
     }
 
+    print(">[t0:2] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
     await _generateView(designDoc);
     var viewName =
         keyValueDb.getViewTableName(designDocId: designDoc.id, viewId: viewId);
     late ReadResult<ViewKeyMetaKey> result;
+    print(">[t0:3] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
     if (getViewRequest.keys != null) {
       result = ReadResult(
         totalRows:
@@ -282,6 +286,7 @@ mixin _KeyValueView on _AbstractKeyValue {
               (e as MapEntry<ViewKeyMetaKey, Map<String, dynamic>>).value,
         ),
       );
+      print(">[t0:4a] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
     } else {
       result = await keyValueDb.read<ViewKeyMetaKey>(
         ViewKeyMetaKey(viewName: viewName),
@@ -303,11 +308,13 @@ mixin _KeyValueView on _AbstractKeyValue {
         limit: getViewRequest.limit,
         skip: getViewRequest.skip,
       );
+      print(">[t0:4b] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
     }
 
     var data = result.records.entries.expand(
         (e) => ViewValue.fromJson(e.value).docs.map((d) => MapEntry(e.key, d)));
 
+    print(">[t0:5] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
     List<ViewRow<T>> rows = [];
     Map<String, DocHistory> map = {};
     if (getViewRequest.includeDocs == true) {
@@ -322,6 +329,7 @@ mixin _KeyValueView on _AbstractKeyValue {
         (key, value) => MapEntry(key.key!, DocHistory.fromJson(value!)),
       );
     }
+    print(">[t0:6] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
 
     for (var r in data) {
       final key = r.key.key!;
@@ -340,6 +348,7 @@ mixin _KeyValueView on _AbstractKeyValue {
               : null);
       rows.add(row);
     }
+    print(">[t0:7] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
 
     return GetViewResponse(
         offset: result.offset, totalRows: result.totalRows, rows: rows);

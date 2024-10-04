@@ -2,6 +2,8 @@ library foodb;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'dart:isolate';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:foodb/src/common.dart';
 import 'package:foodb/src/methods/purge.dart';
