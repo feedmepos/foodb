@@ -1,13 +1,67 @@
 library foodb_objectbox_adapter;
 
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:isolate';
 
+import 'package:flutter/services.dart';
 import 'package:foodb/key_value_adapter.dart';
 import 'package:foodb_objectbox_adapter/object_box_entity.dart';
 import 'package:foodb_objectbox_adapter/objectbox.g.dart';
 
 const int int64MaxValue = 9223372036854775807;
+
+class _IsolateData {
+  final RootIsolateToken token;
+  final SendPort sendPort;
+
+  _IsolateData({
+    required this.token,
+    required this.sendPort,
+  });
+}
+
+dynamic encodeKey(AbstractKey? key, {bool isEnd = false}) {
+  dynamic result = key?.key;
+  if (key is AbstractViewKey) {
+    final viewName = key.viewName;
+    var stringKey = key.key;
+    if (key is ViewKeyMetaKey) {
+      stringKey = key.key?.encode() ?? (isEnd ? '\uffff' : '');
+    }
+    result = '$viewName!$stringKey';
+  }
+  if (result is String) {
+    result = stripReservedCharacter(result);
+  }
+  return result;
+}
+
+AbstractKey decodeKey(AbstractKey type, dynamic objectBoxKey) {
+  if (objectBoxKey is String) {
+    objectBoxKey = revertStripReservedCharacter(objectBoxKey);
+  }
+
+  if (type is AbstractViewKey) {
+    objectBoxKey as String;
+    int index = objectBoxKey.indexOf('!');
+    objectBoxKey = objectBoxKey.substring(index + 1);
+  }
+
+  if (type is ViewKeyMetaKey) {
+    return type.copyWithKey(newKey: ViewKeyMeta.decode(objectBoxKey));
+  }
+  return type.copyWithKey(newKey: objectBoxKey);
+}
+
+
+class ObjectBoxMessage {
+  final String command;
+  final dynamic data;
+  final SendPort replyPort;
+
+  ObjectBoxMessage(this.command, this.data, this.replyPort);
+}
 
 abstract class ObjectBoxKey<T1 extends ObjectBoxEntity, T2> {
   QueryProperty<T1, T2> get property;
@@ -266,17 +320,72 @@ List<ObjectBoxType> allBoxes() => [
 ];
 
 class ObjectBoxAdapter implements KeyValueAdapter {
-  @override
+  static Store? store;
+  late SendPort _sendPort;
+  late ReceivePort _receivePort;
+  late final Isolate _isolate;
   String type = 'object-box';
-  Store store;
-  ObjectBoxAdapter(this.store);
 
   String Function({required String designDocId, required String viewId})
   getViewTableName = KeyValueAdapter.defaultGetViewTableName;
   String get allDocViewName =>
       KeyValueAdapter.getAllDocViewTableName(getViewTableName);
 
-  ObjectBoxType _getBoxFromKey(AbstractKey key) {
+  ObjectBoxAdapter(Store _store) {
+    _store.close();
+    _init();
+  }
+
+  void _init() async {
+    _receivePort = ReceivePort();
+    _isolate = await Isolate.spawn(_isolateEntry, _IsolateData(token: RootIsolateToken.instance!, sendPort: _receivePort.sendPort));
+    _sendPort = await _receivePort.first as SendPort;
+  }
+
+  static void _isolateEntry(_IsolateData idata) async {
+    BackgroundIsolateBinaryMessenger.ensureInitialized(idata.token);
+    var isolate = Service.getIsolateID(Isolate.current);
+    print("ISOLATE Running in isolate " + isolate.toString());
+    final port = ReceivePort();
+    idata.sendPort.send(port.sendPort);
+
+    store?.close();
+    store = await openStore();
+
+    port.listen((message) async {
+      final msg = message as ObjectBoxMessage;
+      dynamic result;
+      print("in isolate: cmd " + msg.command);
+
+      switch (msg.command) {
+        case 'put':
+          result = await _put(store!, msg.data);
+          break;
+        case 'get':
+          result = await _get(store!, msg.data);
+          break;
+        case 'delete':
+          result = await _delete(store!, msg.data);
+          break;
+        case 'clearTable':
+          result = await _clearTable(store!, msg.data);
+          break;
+        case 'init':
+          result = await _initDb(store!);
+          break;
+        case 'destroy':
+          result = await _destroy(store!);
+          break;
+      // Add other cases for different commands as needed...
+      }
+      print("RESULT:");
+      print(result);
+      msg.replyPort.send(result);
+    });
+  }
+
+
+  static ObjectBoxType _getBoxFromKey(AbstractKey key) {
     if (key is SequenceKey) {
       return sequenceBox;
     } else if (key is DocKey) {
@@ -286,12 +395,12 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     } else if (key is ViewMetaKey) {
       return viewMetaBox;
     } else if (key is ViewDocMetaKey) {
-      if (key.viewName == allDocViewName)
+      if (key.viewName == KeyValueAdapter.getAllDocViewTableName(KeyValueAdapter.defaultGetViewTableName))
         return allDocViewDocMetaBox;
       else
         return viewDocMetaBox;
     } else if (key is ViewKeyMetaKey) {
-      if (key.viewName == allDocViewName)
+      if (key.viewName == KeyValueAdapter.getAllDocViewTableName(KeyValueAdapter.defaultGetViewTableName))
         return allDocViewKeyMetaBox;
       else
         return viewKeyMetaBox;
@@ -302,60 +411,32 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     }
   }
 
-  dynamic encodeKey(AbstractKey? key, {bool isEnd = false}) {
-    dynamic result = key?.key;
-    if (key is AbstractViewKey) {
-      final viewName = key.viewName;
-      var stringKey = key.key;
-      if (key is ViewKeyMetaKey) {
-        stringKey = key.key?.encode() ?? (isEnd ? '\uffff' : '');
-      }
-      result = '$viewName!$stringKey';
-    }
-    if (result is String) {
-      result = stripReservedCharacter(result);
-    }
-    return result;
+
+  static Future<bool> _put(Store store, Map<String, dynamic> data) async {
+    final key = data['key'];
+    final box = data['box'];
+    final value = data['value'];
+    return box.put(store, encodeKey(key), jsonEncode(value));
   }
 
-  AbstractKey decodeKey(AbstractKey type, dynamic objectBoxKey) {
-    print("decodeKey t:" + type.toString() + "  obk: " + objectBoxKey.toString());
-    if (objectBoxKey is String) {
-      objectBoxKey = revertStripReservedCharacter(objectBoxKey);
-    }
-
-    if (type is AbstractViewKey) {
-      objectBoxKey as String;
-      int index = objectBoxKey.indexOf('!');
-      objectBoxKey = objectBoxKey.substring(index + 1);
-    }
-
-    if (type is ViewKeyMetaKey) {
-      return type.copyWithKey(newKey: ViewKeyMeta.decode(objectBoxKey));
-    }
-    return type.copyWithKey(newKey: objectBoxKey);
+  static Future<dynamic> _get(Store store, Map<String, dynamic> data) async {
+    print("in isolate: get " +  store.toString() + " | data: " +  data.toString());
+    final key = data['key'];
+    final box = data['box'];
+    final val = box.get(store, encodeKey(key));
+    if (val == null) return null;
+    return MapEntry(key, val.doc);
   }
 
-  @override
-  Future<bool> delete(AbstractKey<Comparable> key,
-      {KeyValueAdapterSession? session}) async {
-    final boxType = _getBoxFromKey(key);
-    final deleteResult = await boxType.remove(store, encodeKey(key));
+  static Future<bool> _delete(Store store, Map<String, dynamic> data) async {
+    final key = data['key'];
+    final box = data['box'];
+    final deleteResult = await box.remove(store, encodeKey(key));
     return deleteResult == 1 ? true : false;
   }
 
-  @override
-  Future<bool> deleteMany(List<AbstractKey<Comparable>> keys,
-      {KeyValueAdapterSession? session}) async {
-    for (final key in keys) {
-      await delete(key);
-    }
-    return true;
-  }
-
-  @override
-  Future<bool> clearTable(AbstractKey<Comparable> key,
-      {KeyValueAdapterSession? session}) async {
+  static Future<bool> _clearTable(Store store, Map<String, dynamic> data) async {
+    final key = data['key'];
     final boxType = _getBoxFromKey(key);
     var encodedKey = encodeKey(key);
     if (key is ViewKeyMetaKey) {
@@ -365,118 +446,123 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     return true;
   }
 
-  @override
-  Future<bool> destroy({KeyValueAdapterSession? session}) async {
-    await Future.wait(allBoxes().map((element) async {
-      return element.box(store).removeAll();
+  static Future<bool> _destroy(Store store) async {
+    await Future.wait(allBoxes().map((box) async {
+      return box.box(store).removeAll();
     }));
     return true;
   }
 
-  @override
-  Future<MapEntry<T, Map<String, dynamic>>?> get<T extends AbstractKey>(T key,
-      {KeyValueAdapterSession? session}) async {
-    final val = _getBoxFromKey(key).get(store, encodeKey(key));
-    if (val == null) return null;
-    return MapEntry(key, val.doc);
-  }
 
-  @override
-  Future<Map<T2, Map<String, dynamic>?>>
-  getMany<T2 extends AbstractKey<Comparable>>(List<T2> keys,
-      {KeyValueAdapterSession? session}) async {
-    if (keys.isEmpty) {
-      return Map<T2, Map<String, dynamic>?>();
-    }
-    var result = _getBoxFromKey(keys[0])
-        .getMany(store, keys.map((k) => encodeKey(k)).toList());
-    return result.map(
-            (key, value) => MapEntry(decodeKey(keys[0], key) as T2, value?.doc));
-  }
-
-  @override
-  Future<bool> initDb() async {
+  static Future<bool> _initDb(Store store) async {
     await Future.wait(allBoxes().map((box) async {
       return box.init(store);
     }));
     return true;
   }
 
+
   @override
-  Future<MapEntry<T2, Map<String, dynamic>>?>
-  last<T2 extends AbstractKey<Comparable>>(T2 key,
+  Future<bool> delete(AbstractKey<Comparable> key,
       {KeyValueAdapterSession? session}) async {
-    final val = _getBoxFromKey(key).last(store, encodeKey(key));
-    if (val == null) return null;
-    return MapEntry(decodeKey(key, val.key) as T2, val.doc);
+    final replyPort = ReceivePort();
+    final box = _getBoxFromKey(key);
+    _sendToIsolate('delete', {'key': key, 'box': box}, replyPort.sendPort);
+    return Future<bool>.value(await replyPort.first);
   }
 
   @override
   Future<bool> put(AbstractKey<Comparable> key, Map<String, dynamic> value,
       {KeyValueAdapterSession? session}) async {
-    await _getBoxFromKey(key).put(store, encodeKey(key), jsonEncode(value));
-    return true;
+    final replyPort = ReceivePort();
+    final box = _getBoxFromKey(key);
+    _sendToIsolate('put', {'key': key, 'box': box, 'value': value}, replyPort.sendPort);
+    return Future<bool>.value(await replyPort.first);
   }
 
   @override
-  Future<bool> putMany(
-      Map<AbstractKey<Comparable>, Map<String, dynamic>> entries,
+  Future<bool> destroy({KeyValueAdapterSession? session}) async {
+    final replyPort = ReceivePort();
+    _sendToIsolate('destroy', {}, replyPort.sendPort);
+    return Future<bool>.value(await replyPort.first);
+  }
+
+  @override
+  Future<bool> clearTable(AbstractKey<Comparable> key,
       {KeyValueAdapterSession? session}) async {
-    await _getBoxFromKey(entries.keys.first).putMany(
-        store,
-        entries
-            .map((key, value) => MapEntry(encodeKey(key), jsonEncode(value))));
-    return true;
+    final replyPort = ReceivePort();
+    _sendToIsolate('clearTable', {'key': key}, replyPort.sendPort);
+    return Future<bool>.value(await replyPort.first);
+  }
+  @override
+  Future<bool> deleteMany(List<AbstractKey<Comparable>> keys, {KeyValueAdapterSession? session}) {
+    // TODO: implement deleteMany
+    throw UnimplementedError("deleteMany");
+    // return Future<bool>.value(await replyPort.first);
   }
 
   @override
-  Future<ReadResult<T2>> read<T2 extends AbstractKey<Comparable>>(T2 keyType,
-      {T2? startkey,
-        T2? endkey,
-        required bool desc,
-        required bool inclusiveEnd,
-        required bool inclusiveStart,
-        int? limit,
-        int? skip,
-        KeyValueAdapterSession? session}) async {
-    print("using objectbox");
-    var t0 = DateTime.now().millisecondsSinceEpoch;
-    print(">[t0:4a2] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
-    final boxType = _getBoxFromKey(keyType);
-    final totalRows = boxType.count(store);
-    print(">[t0:4a3] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
-    final offset = 0;
-    print(">[t0:4a4] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
-    final record = boxType.readBetween(store,
-        startkey: encodeKey(startkey),
-        endkey: encodeKey(endkey, isEnd: true),
-        descending: desc,
-        inclusiveEnd: inclusiveEnd,
-        inclusiveStart: inclusiveStart,
-        offset: skip,
-        limit: limit);
-    print(">[t0:4a5] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
-
-    var records = record.asMap().map((key, value) =>
-        MapEntry(decodeKey(keyType, value.key) as T2, value.doc));
-    print(">[t0:4a6] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
-
-    return ReadResult(
-        totalRows: totalRows,
-        offset: offset,
-        records: records);
+  Future<MapEntry<T2, Map<String, dynamic>>?> get<T2 extends AbstractKey<Comparable>>(T2 key, {KeyValueAdapterSession? session}) async {
+    final replyPort = ReceivePort();
+    final box = _getBoxFromKey(key);
+    _sendToIsolate('get', {'key': key, 'box': box}, replyPort.sendPort);
+    var ret = await replyPort.first;
+    if (ret is MapEntry<dynamic, dynamic>) {
+      ret = MapEntry<T2, Map<String, dynamic>>(ret.key as T2, ret.value);
+    }
+    return Future.value(ret);
   }
 
   @override
-  Future<void> runInSession(
-      Future<void> Function(KeyValueAdapterSession p1) function) {
+  Future<Map<T2, Map<String, dynamic>?>> getMany<T2 extends AbstractKey<Comparable>>(List<T2> keys, {KeyValueAdapterSession? session}) {
+    // TODO: implement getMany
+    throw UnimplementedError("getMany");
+  }
+
+  @override
+  Future<bool> initDb() async {
+    final replyPort = ReceivePort();
+    _sendToIsolate('init', {}, replyPort.sendPort);
+    return Future<bool>.value(await replyPort.first);
+  }
+
+  @override
+  Future<MapEntry<T2, Map<String, dynamic>>?> last<T2 extends AbstractKey<Comparable>>(T2 key, {KeyValueAdapterSession? session}) {
+    // TODO: implement last
+    throw UnimplementedError("last");
+  }
+
+  @override
+  Future<bool> putMany(Map<AbstractKey<Comparable>, Map<String, dynamic>> entries, {KeyValueAdapterSession? session}) {
+    // TODO: implement putMany
+    throw UnimplementedError("putMany");
+    // return Future<bool>.value(await replyPort.first);
+  }
+
+  @override
+  Future<ReadResult<T2>> read<T2 extends AbstractKey<Comparable>>(T2 keyType, {T2? startkey, T2? endkey, KeyValueAdapterSession? session, required bool desc, required bool inclusiveStart, required bool inclusiveEnd, int? skip, int? limit}) {
+    // TODO: implement read
+    throw UnimplementedError("read");
+  }
+
+  @override
+  Future<void> runInSession(Future<void> Function(KeyValueAdapterSession p1) function) {
     // TODO: implement runInSession
-    throw UnimplementedError();
+    throw UnimplementedError("runInSession");
   }
 
   @override
-  Future<int> tableSize(AbstractKey<Comparable> key,
-      {KeyValueAdapterSession? session}) async {
-    return _getBoxFromKey(key).count(store);
+  Future<int> tableSize(AbstractKey<Comparable> key, {KeyValueAdapterSession? session}) {
+    // TODO: implement tableSize
+    throw UnimplementedError("tableSize");
   }
+
+  // Implement other methods like get, clearTable, destroy, etc.
+
+  void _sendToIsolate(String command, dynamic data, SendPort replyPort) {
+    final message = ObjectBoxMessage(command, data, replyPort);
+    _sendPort.send(message);
+  }
+
+// Other methods as defined in your existing ObjectBoxAdapter...
 }
