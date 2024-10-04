@@ -285,7 +285,6 @@ ReplicationStream replicate(
     // prepare target
     var sourceInstanceInfo = await source.serverInfo();
     GetServerInfoResponse targetInstanceInfo = await target.serverInfo();
-    print(">[-1d] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
     try {
       await target.info();
     } catch (err) {
