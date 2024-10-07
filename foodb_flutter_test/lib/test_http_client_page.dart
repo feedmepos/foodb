@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:developer';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:flutter/material.dart';
 import 'package:foodb_flutter_test/main.dart';
@@ -90,15 +92,21 @@ class TestHttpClientPage extends StatefulWidget {
 class _TestHttpClientPageState extends State<TestHttpClientPage> {
   late Foodb sourceFoodb;
   late Foodb targetFoodb;
+  late Foodb replicateFoodb;
   late Store store;
 
   @override
   void initState() {
     super.initState();
+    var isolate = Service.getIsolateID(Isolate.current);
+    print("FOODB Running in isolate " + isolate.toString());
     sourceFoodb = Foodb.couchdb(
         dbName: 'find-production',
-        baseUri: Uri.parse('http://admin:secret@192.168.68.103:6984'));
+        baseUri: Uri.parse('http://admin:secret@192.168.0.176:5984'));
     store = GlobalStore.store;
+    replicateFoodb = Foodb.keyvalue(
+        dbName: 'replicate-test',
+        keyValueDb: ObjectBoxAdapter(store));
   }
 
   @override
@@ -112,7 +120,7 @@ class _TestHttpClientPageState extends State<TestHttpClientPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             CircularProgressIndicator(),
-            Row(
+            Column(
               children: [
                 ElevatedButton(
                     onPressed: () async {
@@ -123,12 +131,25 @@ class _TestHttpClientPageState extends State<TestHttpClientPage> {
                     child: Text('reset db')),
                 ElevatedButton(
                     onPressed: () async {
+                      await FoodbDebug.timed('start replication', () async {
+                        replicate(
+                          sourceFoodb,
+                          replicateFoodb,
+                          maxBatchSize: 300,
+                          // continuous: true,
+                        );
+                      });
+                    },
+                    child: Text('start replication')),
+                ElevatedButton(
+                    onPressed: () async {
                       await FoodbDebug.timed('init target db', () async {
                         final firstSync = Completer();
                         setState(() {
                           targetFoodb = Foodb.keyvalue(
                               dbName: 'find-production',
-                              keyValueDb: ObjectBoxAdapter(store));
+                              keyValueDb: ObjectBoxAdapter(store)
+                          );
                         });
                         await targetFoodb.initDb();
                         replicate(
@@ -145,6 +166,8 @@ class _TestHttpClientPageState extends State<TestHttpClientPage> {
                             name: 'bill_status');
                         var dd = await targetFoodb.fetchAllDesignDocs();
                         print(dd);
+                        var dd2 = await targetFoodb.fetchAllDesignDocs();
+                        print(dd2);
                       });
                     },
                     child: Text('init')),

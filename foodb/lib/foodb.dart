@@ -2,6 +2,8 @@ library foodb;
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'dart:isolate';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:foodb/src/common.dart';
 import 'package:foodb/src/methods/purge.dart';
@@ -28,6 +30,7 @@ import 'package:synchronized/synchronized.dart';
 import 'package:uuid/uuid.dart';
 
 export 'package:foodb/src/replicate.dart';
+export 'package:foodb/src/replication_utils.dart';
 export 'package:foodb/src/selector.dart';
 export 'package:foodb/src/common.dart';
 export 'package:foodb/src/design_doc.dart';

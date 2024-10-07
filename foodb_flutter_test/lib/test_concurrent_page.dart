@@ -27,7 +27,8 @@ class _TestConcurrentPageState extends State<TestConcurrentPage> {
 
   foodbForTest(String name, Future Function(Foodb) func) async {
     var db = Foodb.keyvalue(
-        dbName: name, keyValueDb: ObjectBoxAdapter(GlobalStore.store));
+        dbName: name, keyValueDb: ObjectBoxAdapter(GlobalStore.store)
+    );
     try {
       await func(db);
     } catch (err) {
@@ -47,27 +48,28 @@ class _TestConcurrentPageState extends State<TestConcurrentPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Row(
+            Column(
               children: [
                 ...[10, 100, 1000, 3000, 5000].map((count) => ElevatedButton(
-                      child: Text('test $count'),
-                      onPressed: () async {
-                        await FoodbDebug.timed('test $count', () async {
-                          await foodbForTest('test $count', (db) async {
-                            await Future.wait(List.generate(
-                                count,
-                                (index) => db.put(
-                                    doc:
-                                        Doc(id: index.toString(), model: {}))));
-                            var docs = await db.allDocs(
-                                GetViewRequest(), (json) => json);
-                            setState(() {
-                              totalDoc = docs.totalRows;
-                            });
-                          });
+                  child: Text('test $count'),
+                  onPressed: () async {
+                    await FoodbDebug.timed('test $count', () async {
+                      await foodbForTest('test $count', (db) async {
+                        await Future.wait(
+                          List.generate(
+                            count,
+                              (index) => db.put(doc: Doc(id: index.toString(), model: {})
+                            )
+                          )
+                        );
+                        var docs = await db.allDocs(GetViewRequest(), (json) => json);
+                        setState(() {
+                          totalDoc = docs.totalRows;
                         });
-                      },
-                    ))
+                      });
+                    });
+                  },
+                ))
               ],
             ),
             Text('total docs: $totalDoc')

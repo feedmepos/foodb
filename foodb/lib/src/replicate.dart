@@ -1,120 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:math';
 
-import "package:crypto/crypto.dart";
-import 'package:uuid/uuid.dart';
-
 import 'package:foodb/foodb.dart';
-
-final replicatorVersion = 1;
-
-class ReplicationCheckpoint {
-  Doc<ReplicationLog> log;
-  List<ChangeResult> processed;
-  List<ChangeResult> replicated;
-  ReplicationCheckpoint({
-    required this.replicated,
-    required this.log,
-    required this.processed,
-  });
-}
-
-class ReplicationException implements Exception {
-  final Object? err;
-  ReplicationException(this.err);
-
-  @override
-  String toString() => 'ReplicationException(msg: $err)';
-}
-
-class ReplicationStream {
-  final void Function() onCancel;
-  ReplicationStream({required this.onCancel});
-
-  abort() {
-    this.onCancel();
-  }
-}
-
-String _generateReplicationId(
-    {String? sourceUuid,
-    String? sourceUri,
-    String? targetUuid,
-    String? targetUri,
-    bool? createTarget,
-    bool? continuous,
-    Map<String, String>? headers,
-    String? filter,
-    Map<String, String>? params}) {
-  return md5
-      .convert(utf8.encode([
-        sourceUuid ?? "",
-        sourceUri ?? "",
-        targetUuid ?? "",
-        targetUri ?? "",
-        createTarget?.toString() ?? "",
-        continuous?.toString() ?? "",
-        headers?.toString() ?? "",
-        filter ?? "",
-        params?.toString() ?? ""
-      ].join()))
-      .toString();
-}
-
-Future<Doc<ReplicationLog>> _retriveReplicationLog(
-    Foodb db, replicationId) async {
-  final id = "_local/$replicationId";
-  try {
-    return await db.get(
-        id: "_local/$replicationId",
-        fromJsonT: (json) => ReplicationLog.fromJson(json));
-  } on AdapterException catch (ex) {
-    FoodbDebug.debug(ex.toString());
-    if (ex.error.contains('not_found')) {
-      return Doc(
-        id: id,
-        model: ReplicationLog(
-          history: [],
-          replicationIdVersion: 1,
-          sessionId: "",
-          sourceLastSeq: "0",
-        ),
-      );
-    }
-    rethrow;
-  }
-}
-
-Future<Doc<ReplicationLog>> _setReplicationCheckpoint(
-    {required Foodb db,
-    required Doc<ReplicationLog> oldLog,
-    required DateTime startime,
-    required String lastSeq,
-    required String sessionId}) async {
-  final newReplicationLog = ReplicationLog(
-      history: [
-        History(
-          endTime: DateTime.now().toIso8601String(),
-          startTime: DateTime.now().toIso8601String(),
-          recordedSeq: lastSeq,
-          sessionId: sessionId,
-        ),
-        ...oldLog.model.history.sublist(0, min(oldLog.model.history.length, 5))
-      ],
-      replicationIdVersion: replicatorVersion,
-      sessionId: sessionId,
-      sourceLastSeq: lastSeq);
-
-  final doc = Doc<Map<String, dynamic>>(
-      id: oldLog.id, rev: oldLog.rev, model: newReplicationLog.toJson());
-  final putResponse = await db.put(doc: doc);
-  return Doc(id: oldLog.id, rev: putResponse.rev, model: newReplicationLog);
-}
-
-parseSeqInt(String seq) {
-  return int.tryParse(seq.split('-')[0]) ?? 0;
-}
+import 'package:uuid/uuid.dart';
 
 class _Replicator {
   List<ChangeResult> pendingList = [];
@@ -131,12 +19,12 @@ class _Replicator {
   bool _cyclePass = false;
   Function(Object?, StackTrace? stackTrace) onError;
   _Replicator(
-    this._source,
-    this._target, {
-    required this.maxBatchSize,
-    this.whereChange,
-    required this.onError,
-  });
+      this._source,
+      this._target, {
+        required this.maxBatchSize,
+        this.whereChange,
+        required this.onError,
+      });
 
   cancel() {
     cancelled = true;
@@ -172,7 +60,7 @@ class _Replicator {
           }
         });
         Map<String, RevsDiff> revsDiff =
-            await _target.revsDiff(body: groupedChange);
+        await _target.revsDiff(body: groupedChange);
         FoodbDebug.timedEnd('<replication>: get revs diff');
 
         // have revs diff, need fetch doc
@@ -183,14 +71,14 @@ class _Replicator {
           FoodbDebug.timedStart('<replication>: retrieve gen-1 using allDoc');
           final gen1Ids = revsDiff.keys
               .where((key) =>
-                  revsDiff[key]!.missing.length == 1 &&
-                  revsDiff[key]!.missing[0].index == 1)
+          revsDiff[key]!.missing.length == 1 &&
+              revsDiff[key]!.missing[0].index == 1)
               .toList();
           if (gen1Ids.length > 0) {
             final docs = await _source.allDocs(
                 GetViewRequest(
                     keys: gen1Ids, includeDocs: true, conflicts: true),
-                (json) => json);
+                    (json) => json);
             if (cancelled) throw ReplicationException('cancelled');
             docs.rows.forEach((row) {
               if (row.doc == null ||
@@ -210,22 +98,22 @@ class _Replicator {
           FoodbDebug.timedStart(
               '<replication>: retrieve the rest using bulkGet');
           toInsert.addAll((await _source.bulkGet<Map<String, dynamic>>(
-                  body: BulkGetRequest(
-                      docs: revsDiff.keys
-                          .expand((k) => revsDiff[k]!
-                              .missing
-                              .map((r) => BulkGetRequestDoc(id: k, rev: r)))
-                          .toList()),
-                  revs: true,
-                  fromJsonT: (json) => json))
+              body: BulkGetRequest(
+                  docs: revsDiff.keys
+                      .expand((k) => revsDiff[k]!
+                      .missing
+                      .map((r) => BulkGetRequestDoc(id: k, rev: r)))
+                      .toList()),
+              revs: true,
+              fromJsonT: (json) => json))
               .results
               .expand((BulkGetIdDocs<Map<String, dynamic>> result) => result
-                  .docs
-                  .where((BulkGetDoc<Map<String, dynamic>> item) =>
-                      item.doc != null)
-                  .expand(
-                      (BulkGetDoc<Map<String, dynamic>> item) => [item.doc!])
-                  .toList()));
+              .docs
+              .where((BulkGetDoc<Map<String, dynamic>> item) =>
+          item.doc != null)
+              .expand(
+                  (BulkGetDoc<Map<String, dynamic>> item) => [item.doc!])
+              .toList()));
           FoodbDebug.timedEnd('<replication>: retrieve the rest using bulkGet');
 
           // perform bulkDoc
@@ -239,13 +127,13 @@ class _Replicator {
         String lastSeq = toProcess.last.seq!;
 
         // add checkpoint
-        sourceLog = await _setReplicationCheckpoint(
+        sourceLog = await setReplicationCheckpoint(
             db: _source,
             oldLog: sourceLog,
             startime: startTime,
             lastSeq: lastSeq,
             sessionId: sessionId);
-        targetLog = await _setReplicationCheckpoint(
+        targetLog = await setReplicationCheckpoint(
             db: _target,
             oldLog: targetLog,
             startime: startTime,
@@ -265,92 +153,82 @@ class _Replicator {
       ++_cycleCount;
       FoodbDebug.timedEnd(
           'replication checkpoint',
-          (ms) =>
-              '<replication> ${_cyclePass ? 'pass' : 'fail'}: checkpoint $_cycleCount, processed ${toProcess.length}, ${ms / toProcess.length} ms/doc');
+              (ms) =>
+          '<replication> ${_cyclePass ? 'pass' : 'fail'}: checkpoint $_cycleCount, processed ${toProcess.length}, ${ms / toProcess.length} ms/doc');
     }
   }
 }
 
-class WhereFunction<T> {
-  final String id;
-  final bool Function(T) whereFn;
-  WhereFunction(this.id, this.whereFn);
-  bool call(T val) {
-    return whereFn(val);
-  }
-}
-
 ReplicationStream replicate(
-  Foodb source,
-  Foodb target, {
-  /**
-   * override the auto generated replicateId
-   */
-  String? replicationId,
-  /**
-   * create target database if not exist
-   */
-  bool createTarget = false,
-  /**
-   * run in continuous mode, the replication will be a long running process
-   * however user are required to handle network error through onError callback
-   */
-  bool continuous = false,
-  /**
-   * used when continuous = true.
-   * specify a certain millisecond before kick start the cycle
-   */
-  Duration debounce = const Duration(milliseconds: 30),
-  /**
-   * when continuous = true, when is size meet but replictor still in debounce, replication cycle will be triggered
-   * when continuous = false, batchSize is used in seq_interval in ChangeRequest, let the couchdb decide the upperbound
-   */
-  int maxBatchSize = 25,
-  /**
-   * heartbeat for ChangeRequest
-   */
-  int heartbeat = 10000,
-  /**
-   * timeout for ChangeRequest
-   */
-  int timeout = 30000,
-  /**
-   * Client side run filter for each change result
-   * this will prevent the whole document being fetched over the wire during bulkGet
-   * 
-   * Version is required to determine the replication id, so that the replication stay consistance
-   * Do update the version when changing the whereFn
-   */
-  WhereFunction<ChangeResult>? whereChange,
-  /**
-   * when counter error, can use the stream to decide retry or abort
-   */
-  void Function(Object?, StackTrace? stackTrace) onError = defaultOnError,
-  /**
-   * call when got a new change stream result
-   */
-  void Function(ChangeResult)? onResult,
-  /**
-   * call when a non-continuous replication completed
-   */
-  void Function()? onComplete,
-  /**
-   * call when completed a single checkpoint
-   */
-  void Function(ReplicationCheckpoint)? onCheckpoint,
-  /**
-   * call when source and target has unmatched replication log, should return the desire seq, use "0" if want to sync from beginning
-   */
-  String Function(Doc<ReplicationLog> source, Doc<ReplicationLog> target)?
+    Foodb source,
+    Foodb target, {
+      /**
+       * override the auto generated replicateId
+       */
+      String? replicationId,
+      /**
+       * create target database if not exist
+       */
+      bool createTarget = false,
+      /**
+       * run in continuous mode, the replication will be a long running process
+       * however user are required to handle network error through onError callback
+       */
+      bool continuous = false,
+      /**
+       * used when continuous = true.
+       * specify a certain millisecond before kick start the cycle
+       */
+      Duration debounce = const Duration(milliseconds: 30),
+      /**
+       * when continuous = true, when is size meet but replictor still in debounce, replication cycle will be triggered
+       * when continuous = false, batchSize is used in seq_interval in ChangeRequest, let the couchdb decide the upperbound
+       */
+      int maxBatchSize = 50,
+      /**
+       * heartbeat for ChangeRequest
+       */
+      int heartbeat = 10000,
+      /**
+       * timeout for ChangeRequest
+       */
+      int timeout = 30000,
+      /**
+       * Client side run filter for each change result
+       * this will prevent the whole document being fetched over the wire during bulkGet
+       *
+       * Version is required to determine the replication id, so that the replication stay consistance
+       * Do update the version when changing the whereFn
+       */
+      WhereFunction<ChangeResult>? whereChange,
+      /**
+       * when counter error, can use the stream to decide retry or abort
+       */
+      void Function(Object?, StackTrace? stackTrace) onError = defaultOnError,
+      /**
+       * call when got a new change stream result
+       */
+      void Function(ChangeResult)? onResult,
+      /**
+       * call when a non-continuous replication completed
+       */
+      void Function()? onComplete,
+      /**
+       * call when completed a single checkpoint
+       */
+      void Function(ReplicationCheckpoint)? onCheckpoint,
+      /**
+       * call when source and target has unmatched replication log, should return the desire seq, use "0" if want to sync from beginning
+       */
+      String Function(Doc<ReplicationLog> source, Doc<ReplicationLog> target)?
       noCommonAncestry,
-}) {
+    }) {
   late ReplicationStream resultStream;
 
   _onError(e, s) {
     resultStream.abort();
     onError(e, s);
   }
-
   FoodbDebug.timedStart('replication full');
   FoodbDebug.timedStart('replication checkpoint');
 
@@ -397,15 +275,15 @@ ReplicationStream replicate(
     GetServerInfoResponse targetInstanceInfo = await target.serverInfo();
     try {
       await target.info();
-    } catch (err) {
+    } catch (err, stacktrace) {
       if (createTarget) {
         await target.initDb();
       } else {
+        print(stacktrace);
         throw ReplicationException(err);
       }
     }
-
-    replicationId ??= await _generateReplicationId(
+    replicationId ??= await generateReplicationId(
         sourceUuid: sourceInstanceInfo.uuid,
         sourceUri: source.dbUri,
         targetUuid: targetInstanceInfo.uuid,
@@ -417,11 +295,12 @@ ReplicationStream replicate(
     // get first start seq
     var startSeq = '0';
     final initialSourceLog =
-        await _retriveReplicationLog(source, replicationId);
+    await retriveReplicationLog(source, replicationId);
     replicator.sourceLog = initialSourceLog;
     final initialTargetLog =
-        await _retriveReplicationLog(target, replicationId);
+    await retriveReplicationLog(target, replicationId);
     replicator.targetLog = initialTargetLog;
+
     if (initialSourceLog.model.sessionId == initialTargetLog.model.sessionId &&
         initialSourceLog.model.sessionId != "") {
       startSeq = initialTargetLog.model.sourceLastSeq;

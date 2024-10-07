@@ -8,8 +8,7 @@ import 'package:foodb_objectbox_adapter/foodb_objectbox_adapter.dart';
 import 'package:foodb_objectbox_adapter/objectbox.g.dart';
 import 'package:path/path.dart';
 
-Future<ObjectBoxAdapter> getAdapter(String dbName,
-    {bool persist = false}) async {
+Future<ObjectBoxAdapter> getAdapter(String dbName, {bool persist = false}) async {
   var directory = join(Directory.current.path, 'temp/$dbName');
   final dir = Directory(directory);
   late Store store;
@@ -20,7 +19,11 @@ Future<ObjectBoxAdapter> getAdapter(String dbName,
       if (dir.existsSync()) dir.deleteSync(recursive: true);
     });
   }
-  store = await openStore(directory: directory);
+  if(Store.isOpen(directory)){
+    store = Store.attach(getObjectBoxModel(), directory);
+  } else {
+    store = await openStore(directory: directory);
+  }
   final adapter = ObjectBoxAdapter(store);
   await adapter.initDb();
   return adapter;
@@ -44,7 +47,6 @@ void main() {
     await adapter.put(DocKey(key: '2'), {'b': 1});
     var res = await adapter
         .getMany([DocKey(key: '1'), DocKey(key: '3'), DocKey(key: '2')]);
-    print(res);
     expect(res, hasLength(3));
     expect(res[DocKey(key: '1')], isNotNull);
     expect(res[DocKey(key: '2')], isNotNull);
@@ -57,7 +59,6 @@ void main() {
     await adapter.put(SequenceKey(key: 2), {'b': 1});
     var res = await adapter.getMany(
         [SequenceKey(key: 1), SequenceKey(key: 3), SequenceKey(key: 2)]);
-    print(res);
     expect(res, hasLength(3));
     expect(res[SequenceKey(key: 1)], isNotNull);
     expect(res[SequenceKey(key: 2)], isNotNull);

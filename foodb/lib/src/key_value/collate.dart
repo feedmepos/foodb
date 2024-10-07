@@ -203,11 +203,11 @@ _Encoder _getEncoderByCollationType(String key) {
 
 String encodeToIndex(dynamic key) {
   final encoder = _getEncoderByRuntimeType(key);
-  return encoder.COLLATION_TYPE_STR + encoder.encode(key) + RESERVED_DELIMITER;
+  return '${encoder.COLLATION_TYPE_STR}${encoder.encode(key)}$RESERVED_DELIMITER';
 }
 
 dynamic decodeFromIndex(String str) {
-  String strToParse = "";
+  StringBuffer buffer = StringBuffer();
   _Encoder? encoder;
   Queue<List<dynamic>> valueStack = Queue();
   Queue<_Encoder> collectionStack = Queue();
@@ -235,7 +235,7 @@ dynamic decodeFromIndex(String str) {
       if (encoder is _ArrEncoder || encoder is _ObjEncoder) {
         valueStack.add([]);
         collectionStack.addLast(encoder);
-        strToParse = '';
+        buffer = StringBuffer();
         encoder = null;
       }
       continue;
@@ -243,7 +243,7 @@ dynamic decodeFromIndex(String str) {
 
     // reached the end of string, time to run encoder
     if (c == RESERVED_DELIMITER) {
-      final value = encoder.decode(strToParse);
+      final value = encoder.decode(buffer.toString());
 
       // if the value is for the collection, add to stack
       // else return
@@ -252,10 +252,10 @@ dynamic decodeFromIndex(String str) {
       } else {
         return value;
       }
-      strToParse = '';
+      buffer = StringBuffer();
       encoder = null;
       continue;
     }
-    strToParse += c;
+    buffer.write(c);
   }
 }
