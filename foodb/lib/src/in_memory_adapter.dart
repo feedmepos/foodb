@@ -129,7 +129,6 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
       int? skip,
       int? limit,
       InMemoryAdapterSession? session}) async {
-    print("using inmemory");
     var table = _getTable(keyType);
     Map<T, Map<String, dynamic>> result = {};
     int? offSet = null;

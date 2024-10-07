@@ -285,17 +285,14 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     } else if (key is ViewMetaKey) {
       return viewMetaBox;
     } else if (key is ViewDocMetaKey) {
-      if (key.viewName == allDocViewName) {
-        print("allDocViewDocMetaBox");
+      if (key.viewName == allDocViewName)
         return allDocViewDocMetaBox;
-      }
       else
         return viewDocMetaBox;
     } else if (key is ViewKeyMetaKey) {
-      if (key.viewName == allDocViewName) {
-        print("allDocViewKeyMetaBox");
+      if (key.viewName == allDocViewName)
         return allDocViewKeyMetaBox;
-      } else
+      else
         return viewKeyMetaBox;
     } else if (key is UtilsKey) {
       return utilsBox;
@@ -415,8 +412,6 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   @override
   Future<bool> put(AbstractKey<Comparable> key, Map<String, dynamic> value,
       {KeyValueAdapterSession? session}) async {
-    var totalRows = _getBoxFromKey(key).count(store);
-    print("PUT RESULT: box: ${_getBoxFromKey(key)}, key: ${encodeKey(key)}, rows: $totalRows");
     await _getBoxFromKey(key).put(store, encodeKey(key), jsonEncode(value));
     return true;
   }
@@ -444,8 +439,6 @@ class ObjectBoxAdapter implements KeyValueAdapter {
       KeyValueAdapterSession? session}) async {
     final boxType = _getBoxFromKey(keyType);
     final totalRows = boxType.count(store);
-    print("Box is ${boxType}");
-    print("Store [] total rows = $totalRows");
     final offset = 0;
     final record = boxType.readBetween(store,
         startkey: encodeKey(startkey),

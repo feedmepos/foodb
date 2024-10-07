@@ -250,7 +250,6 @@ class _CouchdbFoodb extends Foodb {
 
   @override
   Future<GetInfoResponse> info() async {
-    print("> couchdb local ");
     var response = await this.client.get(this.getUri(''));
     if (response.statusCode != 200) {
       throw AdapterException(error: 'database not found');

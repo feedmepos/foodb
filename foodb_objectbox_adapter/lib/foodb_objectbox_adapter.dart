@@ -325,7 +325,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   static Store? _store;
   late SendPort _sendPort;
   late ReceivePort _receivePort;
-  late final Isolate _isolate;
+  Isolate? _isolate = null;
   String type = 'object-box';
   String path = '';
 
@@ -560,13 +560,6 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   }
 
   @override
-  Future<bool> destroy({KeyValueAdapterSession? session}) async {
-    final replyPort = ReceivePort();
-    _sendToIsolate('destroy', {}, replyPort.sendPort);
-    return Future<bool>.value(await replyPort.first);
-  }
-
-  @override
   Future<bool> clearTable(AbstractKey<Comparable> key,
       {KeyValueAdapterSession? session}) async {
     final replyPort = ReceivePort();
@@ -586,10 +579,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     final replyPort = ReceivePort();
     _sendToIsolate('get', {'key': key}, replyPort.sendPort);
     var ret = await replyPort.first;
-    if (ret is MapEntry<dynamic, dynamic>) {
-      ret = MapEntry<T2, Map<String, dynamic>>(ret.key as T2, ret.value);
-    }
-    return Future.value(ret);
+    return Future.value(ret != null ? MapEntry<T2, Map<String, dynamic>>(ret.key as T2, ret.value) : null);
   }
 
   @override
@@ -604,15 +594,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     return Future.value(result);
   }
 
-  @override
-  Future<bool> initDb() async {
-    _receivePort = ReceivePort();
-    _isolate = await Isolate.spawn(_isolateEntry, _IsolateData(token: RootIsolateToken.instance!, sendPort: _receivePort.sendPort, store: path));
-    _sendPort = await _receivePort.first as SendPort;
-    final replyPort = ReceivePort();
-    _sendToIsolate('init', {}, replyPort.sendPort);
-    return Future<bool>.value(await replyPort.first);
-  }
+
 
   @override
   Future<MapEntry<T2, Map<String, dynamic>>?> last<T2 extends AbstractKey<Comparable>>(T2 key, {KeyValueAdapterSession? session}) async {
@@ -672,8 +654,30 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     _sendToIsolate('tableSize', {'key': key}, replyPort.sendPort);
     return Future.value(await replyPort.first);
   }
+  @override
+  Future<bool> initDb() async {
+    if (_isolate == null) {
+      _receivePort = ReceivePort();
+      _isolate = await Isolate.spawn(_isolateEntry, _IsolateData(token: RootIsolateToken.instance!, sendPort: _receivePort.sendPort, store: path));
+      _sendPort = await _receivePort.first as SendPort;
+    }
+    final replyPort = ReceivePort();
+    _sendToIsolate('init', {}, replyPort.sendPort);
+    return Future<bool>.value(await replyPort.first);
+  }
 
-  // Implement other methods like get, clearTable, destroy, etc.
+  @override
+  Future<bool> destroy({KeyValueAdapterSession? session}) async {
+    final replyPort = ReceivePort();
+    _sendToIsolate('destroy', {}, replyPort.sendPort);
+    var result = await replyPort.first;
+    if (_isolate != null) {
+      _isolate?.kill(priority: 0);
+      _receivePort.close();
+    }
+    return Future<bool>.value(result);
+  }
+
 
   void _sendToIsolate(String command, dynamic data, SendPort replyPort) {
     final message = ObjectBoxMessage(command, data, replyPort);
