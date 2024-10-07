@@ -4,8 +4,7 @@ mixin _KeyValueUtil on _AbstractKeyValue {
   @override
   Future<GetInfoResponse> info() async {
     // need to build index first
-    var data = GetViewRequest();
-    await allDocs(data, (json) => json);
+    await allDocs(GetViewRequest(), (json) => json);
     return Future.value(GetInfoResponse(
         instanceStartTime: "0",
         updateSeq:

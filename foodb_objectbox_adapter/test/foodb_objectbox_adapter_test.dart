@@ -22,8 +22,9 @@ Future<ObjectBoxAdapter> getAdapter(String dbName,
   }
   if(Store.isOpen(directory)){
     store = Store.attach(getObjectBoxModel(), directory);
+  } else {
+    store = await openStore(directory: directory);
   }
-  store = await openStore(directory: directory);
   final adapter = ObjectBoxAdapter(store);
   await adapter.initDb();
   return adapter;

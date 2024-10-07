@@ -282,7 +282,7 @@ mixin _KeyValueView on _AbstractKeyValue {
               (e as MapEntry<ViewKeyMetaKey, Map<String, dynamic>>).value,
         ),
       );
-      } else {
+    } else {
       result = await keyValueDb.read<ViewKeyMetaKey>(
         ViewKeyMetaKey(viewName: viewName),
         startkey: getViewRequest.startkey == null
@@ -303,7 +303,7 @@ mixin _KeyValueView on _AbstractKeyValue {
         limit: getViewRequest.limit,
         skip: getViewRequest.skip,
       );
-      }
+    }
 
     var data = result.records.entries.expand(
         (e) => ViewValue.fromJson(e.value).docs.map((d) => MapEntry(e.key, d)));
@@ -322,6 +322,7 @@ mixin _KeyValueView on _AbstractKeyValue {
         (key, value) => MapEntry(key.key!, DocHistory.fromJson(value!)),
       );
     }
+
     for (var r in data) {
       final key = r.key.key!;
       final value = r.value;
@@ -339,6 +340,7 @@ mixin _KeyValueView on _AbstractKeyValue {
               : null);
       rows.add(row);
     }
+
     return GetViewResponse(
         offset: result.offset, totalRows: result.totalRows, rows: rows);
   }
