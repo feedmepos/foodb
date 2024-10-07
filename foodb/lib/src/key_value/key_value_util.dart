@@ -3,14 +3,9 @@ part of '../../foodb.dart';
 mixin _KeyValueUtil on _AbstractKeyValue {
   @override
   Future<GetInfoResponse> info() async {
-    print("> couchdb kvu ");
     // need to build index first
-    var t0 = DateTime.now().millisecondsSinceEpoch;
-    print("> couchdb kvu 1 = " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
     var data = GetViewRequest();
-    print("> couchdb kvu 2 = " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
     await allDocs(data, (json) => json);
-    print("> couchdb kvu 3 = " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
     return Future.value(GetInfoResponse(
         instanceStartTime: "0",
         updateSeq:

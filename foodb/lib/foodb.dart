@@ -30,6 +30,7 @@ import 'package:synchronized/synchronized.dart';
 import 'package:uuid/uuid.dart';
 
 export 'package:foodb/src/replicate.dart';
+export 'package:foodb/src/replication_utils.dart';
 export 'package:foodb/src/selector.dart';
 export 'package:foodb/src/common.dart';
 export 'package:foodb/src/design_doc.dart';

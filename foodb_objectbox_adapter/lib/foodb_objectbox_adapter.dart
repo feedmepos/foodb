@@ -14,10 +14,12 @@ const int int64MaxValue = 9223372036854775807;
 class _IsolateData {
   final RootIsolateToken token;
   final SendPort sendPort;
+  final String store;
 
   _IsolateData({
     required this.token,
     required this.sendPort,
+    required this.store,
   });
 }
 
@@ -320,37 +322,35 @@ List<ObjectBoxType> allBoxes() => [
 ];
 
 class ObjectBoxAdapter implements KeyValueAdapter {
-  static Store? store;
+  static Store? _store;
   late SendPort _sendPort;
   late ReceivePort _receivePort;
   late final Isolate _isolate;
   String type = 'object-box';
+  String path = '';
 
   String Function({required String designDocId, required String viewId})
   getViewTableName = KeyValueAdapter.defaultGetViewTableName;
   String get allDocViewName =>
       KeyValueAdapter.getAllDocViewTableName(getViewTableName);
 
-  ObjectBoxAdapter(Store _store) {
-    _store.close();
-    _init();
-  }
-
-  void _init() async {
-    _receivePort = ReceivePort();
-    _isolate = await Isolate.spawn(_isolateEntry, _IsolateData(token: RootIsolateToken.instance!, sendPort: _receivePort.sendPort));
-    _sendPort = await _receivePort.first as SendPort;
+  ObjectBoxAdapter(Store s) {
+    path = s.directoryPath;
+    _store = s;
   }
 
   static void _isolateEntry(_IsolateData idata) async {
     BackgroundIsolateBinaryMessenger.ensureInitialized(idata.token);
-    var isolate = Service.getIsolateID(Isolate.current);
-    print("ISOLATE Running in isolate " + isolate.toString());
     final port = ReceivePort();
     idata.sendPort.send(port.sendPort);
 
-    store?.close();
-    store = await openStore();
+    final isOpen = Store.isOpen(idata.store);
+    var store;
+    if (isOpen) {
+      store = Store.attach(getObjectBoxModel(), idata.store);
+    } else {
+      store = await openStore();
+    }
 
     port.listen((message) async {
       final msg = message as ObjectBoxMessage;
@@ -359,42 +359,39 @@ class ObjectBoxAdapter implements KeyValueAdapter {
       try {
         switch (msg.command) {
           case 'put':
-            result = await _put(store!, msg.data);
+            result = await _put(store, msg.data);
             break;
           case 'putMany':
-            result = await _putMany(store!, msg.data);
+            result = await _putMany(store, msg.data);
             break;
           case 'get':
-            result = await _get(store!, msg.data);
+            result = await _get(store, msg.data);
             break;
           case 'getMany':
-            result = await _getMany(store!, msg.data);
+            result = await _getMany(store, msg.data);
             break;
           case 'read':
-            result = await _read(store!, msg.data);
+            result = await _read(store, msg.data);
             break;
           case 'last':
-            result = await _last(store!, msg.data);
+            result = await _last(store, msg.data);
             break;
           case 'delete':
-            result = await _delete(store!, msg.data);
+            result = await _delete(store, msg.data);
             break;
           case 'clearTable':
-            result = await _clearTable(store!, msg.data);
+            result = await _clearTable(store, msg.data);
             break;
           case 'tableSize':
-            result = await _tableSize(store!, msg.data);
+            result = await _tableSize(store, msg.data);
             break;
           case 'init':
-            result = await _initDb(store!);
+            result = await _initDb(store);
             break;
           case 'destroy':
-            result = await _destroy(store!);
+            result = await _destroy(store);
             break;
-        // Add other cases for different commands as needed...
         }
-        // print("RESULT:");
-        // print(result);
         msg.replyPort.send(result);
       } catch (e) {
         msg.replyPort.send(e);
@@ -405,6 +402,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
 
 
   static ObjectBoxType _getBoxFromKey(AbstractKey key) {
+    final advn = KeyValueAdapter.getAllDocViewTableName(KeyValueAdapter.defaultGetViewTableName);
     if (key is SequenceKey) {
       return sequenceBox;
     } else if (key is DocKey) {
@@ -414,12 +412,12 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     } else if (key is ViewMetaKey) {
       return viewMetaBox;
     } else if (key is ViewDocMetaKey) {
-      if (key.viewName == KeyValueAdapter.getAllDocViewTableName(KeyValueAdapter.defaultGetViewTableName))
+      if (key.viewName.compareTo(advn) == 0)
         return allDocViewDocMetaBox;
       else
         return viewDocMetaBox;
     } else if (key is ViewKeyMetaKey) {
-      if (key.viewName == KeyValueAdapter.getAllDocViewTableName(KeyValueAdapter.defaultGetViewTableName))
+      if (key.viewName.compareTo(advn) == 0)
         return allDocViewKeyMetaBox;
       else
         return viewKeyMetaBox;
@@ -432,15 +430,16 @@ class ObjectBoxAdapter implements KeyValueAdapter {
 
 
   static Future<bool> _putMany(Store store, Map<String, dynamic> data) async {
-    final box = data['box'];
-    final Map<dynamic, String> entries = data['entries'];
-    box.putMany(store, entries);
+    final Map<AbstractKey, Map<String, dynamic>> entries = data['entries'];
+    final box = _getBoxFromKey(entries.keys.first);
+    var e = entries.map((key, value) => MapEntry(encodeKey(key), jsonEncode(value)));
+    box.putMany(store, e);
     return true;
   }
 
   static Future<dynamic> _get(Store store, Map<String, dynamic> data) async {
     final key = data['key'];
-    final box = data['box'];
+    final box = _getBoxFromKey(key);
     final val = box.get(store, encodeKey(key));
     if (val == null) return null;
     return MapEntry(key, val.doc);
@@ -448,23 +447,24 @@ class ObjectBoxAdapter implements KeyValueAdapter {
 
 
   static Future<Map<dynamic, dynamic>> _getMany(Store store, Map<String, dynamic> data) async {
-    final List<dynamic> keys = data['keys'];
-    final box = data['box'];
-    final val = box.getMany(store, keys);
+    final List<AbstractKey> keys = data['keys'];
+    final box = _getBoxFromKey(keys[0]);
+    final val = box.getMany(store, keys.map((k) => encodeKey(k)).toList());
     return val;
   }
 
 
   static Future<dynamic> _put(Store store, Map<String, dynamic> data) async {
-    final key = data['key'];
-    final box = data['box'];
+    final AbstractKey<Comparable> key = data['key'];
+    final box = _getBoxFromKey(key);
     final value = data['value'];
-    return box.put(store, encodeKey(key), jsonEncode(value));
+    var ret = box.put(store, encodeKey(key), jsonEncode(value));
+    return ret;
   }
 
 
   static Future<ReadResult<dynamic>> _read(Store store, Map<String, dynamic> data) async {
-    final AbstractKey keyType = data['keyType'];
+    final AbstractKey keyType = data['key'];
     final int? limit = data['limit'];
     final int? skip = data['skip'];
     final AbstractKey? startkey = data['startkey'];
@@ -473,8 +473,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     final bool inclusiveEnd = data['inclusiveEnd'];
     final bool inclusiveStart = data['inclusiveStart'];
 
-    final ObjectBoxType<ObjectBoxEntity<dynamic>, dynamic> box = data['box'];
-
+    final box = _getBoxFromKey(keyType);
     final totalRows = box.count(store);
     final offset = 0;
     final record = box.readBetween(store,
@@ -484,7 +483,8 @@ class ObjectBoxAdapter implements KeyValueAdapter {
         inclusiveEnd: inclusiveEnd,
         inclusiveStart: inclusiveStart,
         offset: skip,
-        limit: limit);
+        limit: limit,
+    );
 
     return ReadResult(
         totalRows: totalRows,
@@ -496,15 +496,15 @@ class ObjectBoxAdapter implements KeyValueAdapter {
 
   static Future<dynamic> _last(Store store, Map<String, dynamic> data) async {
     final key = data['key'];
-    final box = data['box'];
+    final box = _getBoxFromKey(key);
     final val = box.last(store, encodeKey(key));
     if (val == null) return null;
-    return MapEntry(key, val.doc);
+    return MapEntry(decodeKey(key, val.key), val.doc);
   }
 
   static Future<bool> _delete(Store store, Map<String, dynamic> data) async {
     final key = data['key'];
-    final box = data['box'];
+    final box = _getBoxFromKey(key);
     final deleteResult = await box.remove(store, encodeKey(key));
     return deleteResult == 1 ? true : false;
   }
@@ -547,8 +547,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<bool> delete(AbstractKey<Comparable> key,
       {KeyValueAdapterSession? session}) async {
     final replyPort = ReceivePort();
-    final box = _getBoxFromKey(key);
-    _sendToIsolate('delete', {'key': key, 'box': box}, replyPort.sendPort);
+    _sendToIsolate('delete', {'key': key}, replyPort.sendPort);
     return Future<bool>.value(await replyPort.first);
   }
 
@@ -556,8 +555,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<bool> put(AbstractKey<Comparable> key, Map<String, dynamic> value,
       {KeyValueAdapterSession? session}) async {
     final replyPort = ReceivePort();
-    final box = _getBoxFromKey(key);
-    _sendToIsolate('put', {'key': key, 'box': box, 'value': value}, replyPort.sendPort);
+    _sendToIsolate('put', {'key': key, 'value': value}, replyPort.sendPort);
     return Future<bool>.value(await replyPort.first == 1);
   }
 
@@ -586,8 +584,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   @override
   Future<MapEntry<T2, Map<String, dynamic>>?> get<T2 extends AbstractKey<Comparable>>(T2 key, {KeyValueAdapterSession? session}) async {
     final replyPort = ReceivePort();
-    final box = _getBoxFromKey(key);
-    _sendToIsolate('get', {'key': key, 'box': box}, replyPort.sendPort);
+    _sendToIsolate('get', {'key': key}, replyPort.sendPort);
     var ret = await replyPort.first;
     if (ret is MapEntry<dynamic, dynamic>) {
       ret = MapEntry<T2, Map<String, dynamic>>(ret.key as T2, ret.value);
@@ -601,24 +598,17 @@ class ObjectBoxAdapter implements KeyValueAdapter {
       return Map<T2, Map<String, dynamic>?>();
     }
     final replyPort = ReceivePort();
-    final box = _getBoxFromKey(keys[0]);
-    final s_keys = keys.map((k) => encodeKey(k)).toList();
-
-    _sendToIsolate('getMany', {'keys': s_keys, 'box': box}, replyPort.sendPort);
+    _sendToIsolate('getMany', {'keys': keys}, replyPort.sendPort);
     Map<dynamic, dynamic> ret = await replyPort.first;
-    Map<T2, Map<String, dynamic>> result = await ret.map((key, value) {
-      if (key is String) {
-        var decoded = decodeKey(keys[0], key);
-        return MapEntry(decoded as T2, value.doc);
-      } else {
-        throw Exception('Non-string key found: $key');
-      }
-    });
+    Map<T2, Map<String, dynamic>?> result = await ret.map((key, value) => MapEntry(decodeKey(keys[0], key) as T2, value?.doc));
     return Future.value(result);
   }
 
   @override
   Future<bool> initDb() async {
+    _receivePort = ReceivePort();
+    _isolate = await Isolate.spawn(_isolateEntry, _IsolateData(token: RootIsolateToken.instance!, sendPort: _receivePort.sendPort, store: path));
+    _sendPort = await _receivePort.first as SendPort;
     final replyPort = ReceivePort();
     _sendToIsolate('init', {}, replyPort.sendPort);
     return Future<bool>.value(await replyPort.first);
@@ -627,11 +617,10 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   @override
   Future<MapEntry<T2, Map<String, dynamic>>?> last<T2 extends AbstractKey<Comparable>>(T2 key, {KeyValueAdapterSession? session}) async {
     final replyPort = ReceivePort();
-    final box = _getBoxFromKey(key);
-    _sendToIsolate('last', {'key': key, 'box': box}, replyPort.sendPort);
+    _sendToIsolate('last', {'key': key}, replyPort.sendPort);
     var ret = await replyPort.first;
     if (ret is MapEntry<dynamic, dynamic>) {
-      ret = MapEntry<T2, Map<String, dynamic>>(ret.key as T2, ret.value);
+      return Future.value(MapEntry<T2, Map<String, dynamic>>(ret.key as T2, ret.value));
     }
     return Future.value(ret);
   }
@@ -640,21 +629,20 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<bool> putMany(Map<AbstractKey<Comparable>, Map<String, dynamic>> entries, {KeyValueAdapterSession? session}) async {
     final replyPort = ReceivePort();
     _sendToIsolate('putMany', {
-      'entries': entries.map((key, value) => MapEntry(encodeKey(key), jsonEncode(value))),
-      'box': _getBoxFromKey(entries.keys.first),
+      'entries': entries,
     }, replyPort.sendPort);
     var ret = await replyPort.first;
     return Future.value(ret);
   }
 
   @override
-  Future<ReadResult<T2>> read<T2 extends AbstractKey<Comparable>>(T2 keyType, {T2? startkey, T2? endkey, KeyValueAdapterSession? session,
-    required bool desc, required bool inclusiveStart, required bool inclusiveEnd, int? skip, int? limit}) async {
-    final boxType = _getBoxFromKey(keyType);
+  Future<ReadResult<T2>> read<T2 extends AbstractKey<Comparable>>(T2 keyType, {T2? startkey, T2? endkey,
+    required bool desc, required bool inclusiveStart, required bool inclusiveEnd, int? skip, int? limit,
+    KeyValueAdapterSession? session
+  }) async {
     final replyPort = ReceivePort();
     _sendToIsolate('read', {
-      'keyType': keyType,
-      'box': boxType,
+      'key': keyType,
       'startkey': startkey,
       'endkey': endkey,
       'session': session,
@@ -665,12 +653,11 @@ class ObjectBoxAdapter implements KeyValueAdapter {
       'limit': limit,
     }, replyPort.sendPort);
     ReadResult<dynamic> res = await replyPort.first;
-    ReadResult<T2> ret = ReadResult(
-        totalRows: res.totalRows,
-        offset: res.offset,
-        records: res.records.map((key, value) => MapEntry(key as T2, value)),
-    );
-    return Future.value(ret);
+    return Future.value(ReadResult(
+      totalRows: res.totalRows,
+      offset: res.offset,
+      records: res.records.map((key, value) => MapEntry(key as T2, value)),
+    ));
   }
 
   @override

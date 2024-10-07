@@ -132,13 +132,11 @@ class _TestHttpClientPageState extends State<TestHttpClientPage> {
                 ElevatedButton(
                     onPressed: () async {
                       await FoodbDebug.timed('start replication', () async {
-                        var isolate = Service.getIsolateID(Isolate.current);
-                        print("Replicating in isolate " + isolate.toString());
                         replicate(
                           sourceFoodb,
                           replicateFoodb,
                           maxBatchSize: 300,
-                          continuous: true,
+                          // continuous: true,
                         );
                       });
                     },

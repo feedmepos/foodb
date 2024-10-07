@@ -1,13 +1,8 @@
 import 'dart:async';
-import 'dart:developer';
-import 'dart:isolate';
 import 'dart:math';
 
 import 'package:foodb/foodb.dart';
-import 'package:foodb/src/replication_utils.dart';
 import 'package:uuid/uuid.dart';
-
-final replicatorVersion = 1;
 
 class _Replicator {
   List<ChangeResult> pendingList = [];
@@ -36,8 +31,6 @@ class _Replicator {
   }
 
   Future<void> run() async {
-    var isolate = Service.getIsolateID(Isolate.current);
-    print("Running Replicator  in isolate " + isolate.toString());
     if (isRunning || cancelled) return;
     isRunning = true;
     String sessionId = Uuid().v4();
@@ -236,8 +229,6 @@ ReplicationStream replicate(
     resultStream.abort();
     onError(e, s);
   }
-  var isolate = Service.getIsolateID(Isolate.current);
-  print("FOODB Replication: replicating in isolate " + isolate.toString());
   FoodbDebug.timedStart('replication full');
   FoodbDebug.timedStart('replication checkpoint');
 
@@ -267,9 +258,6 @@ ReplicationStream replicate(
   }
 
   runZonedGuarded(() async {
-    var t0 = DateTime.now().millisecondsSinceEpoch;
-
-
     late final _Replicator replicator;
     ChangesStream? changeStream;
     var timer = Timer(debounce, () {});
@@ -287,15 +275,14 @@ ReplicationStream replicate(
     GetServerInfoResponse targetInstanceInfo = await target.serverInfo();
     try {
       await target.info();
-    } catch (err) {
+    } catch (err, stacktrace) {
       if (createTarget) {
         await target.initDb();
       } else {
+        print(stacktrace);
         throw ReplicationException(err);
       }
     }
-    print(">[0] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
-
     replicationId ??= await generateReplicationId(
         sourceUuid: sourceInstanceInfo.uuid,
         sourceUri: source.dbUri,
@@ -305,7 +292,6 @@ ReplicationStream replicate(
         continuous: continuous,
         filter: whereChange != null ? 'whereChange_${whereChange.id}' : null);
 
-    print(">[1] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
     // get first start seq
     var startSeq = '0';
     final initialSourceLog =
@@ -315,12 +301,10 @@ ReplicationStream replicate(
     await retriveReplicationLog(target, replicationId);
     replicator.targetLog = initialTargetLog;
 
-    print(">[2] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
     if (initialSourceLog.model.sessionId == initialTargetLog.model.sessionId &&
         initialSourceLog.model.sessionId != "") {
       startSeq = initialTargetLog.model.sourceLastSeq;
     }
-    print(">[3] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
     for (final historyA in initialTargetLog.model.history) {
       if (initialSourceLog.model.history
           .any((historyB) => historyB.sessionId == historyA.sessionId)) {
@@ -328,25 +312,20 @@ ReplicationStream replicate(
         break;
       }
     }
-    print(">[4] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
     if (noCommonAncestry != null &&
         startSeq == "0" &&
         (initialSourceLog.model.sourceLastSeq != "0" ||
             initialTargetLog.model.sourceLastSeq != "0")) {
       startSeq = noCommonAncestry(initialSourceLog, initialTargetLog);
     }
-    print(">[5] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
-    print(DateTime.now().millisecondsSinceEpoch.toString());
 
     if (continuous) {
-      print(">[6] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
       replicator.onFinishCheckpoint = (checkpoint) async {
         onCheckpoint?.call(checkpoint);
         if (replicator.pendingList.isNotEmpty) {
           replicator.run();
         }
       };
-      print(">[7] ms elapsed: " + (DateTime.now().millisecondsSinceEpoch - t0).toString());
       changeStream = await source.changesStream(
           ChangeRequest(
               feed: ChangeFeed.continuous,
