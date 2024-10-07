@@ -8,8 +8,7 @@ import 'package:foodb_objectbox_adapter/foodb_objectbox_adapter.dart';
 import 'package:foodb_objectbox_adapter/objectbox.g.dart';
 import 'package:path/path.dart';
 
-Future<ObjectBoxAdapter> getAdapter(String dbName,
-    {bool persist = false}) async {
+Future<ObjectBoxAdapter> getAdapter(String dbName, {bool persist = false}) async {
   var directory = join(Directory.current.path, 'temp/$dbName');
   final dir = Directory(directory);
   late Store store;

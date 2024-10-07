@@ -24,7 +24,7 @@ mixin _KeyValueGet on _AbstractKeyValue {
     }
     var entry = await keyValueDb.get(baseKey);
     if (entry == null) {
-      throw AdapterException(error: "not_found", reason: ("missing key" + baseKey.toString()));
+      throw AdapterException(error: "not_found", reason: "missing");
     }
     var result = DocHistory.fromJson(entry.value);
     Doc<T>? doc;

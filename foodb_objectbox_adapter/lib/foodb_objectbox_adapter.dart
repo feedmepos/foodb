@@ -323,8 +323,8 @@ List<ObjectBoxType> allBoxes() => [
 
 class ObjectBoxAdapter implements KeyValueAdapter {
   static Store? _store;
-  late SendPort _sendPort;
-  late ReceivePort _receivePort;
+  SendPort? _sendPort = null;
+  ReceivePort? _receivePort = null;
   Isolate? _isolate = null;
   String type = 'object-box';
   String path = '';
@@ -337,6 +337,15 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   ObjectBoxAdapter(Store s) {
     path = s.directoryPath;
     _store = s;
+  }
+
+  Future<void> init() async {
+    if (_isolate == null) {
+      var r = ReceivePort();
+      _isolate = await Isolate.spawn(_isolateEntry, _IsolateData(token: RootIsolateToken.instance!, sendPort: r.sendPort, store: path));
+      _receivePort = r;
+      _sendPort = await r.first as SendPort;
+    }
   }
 
   static void _isolateEntry(_IsolateData idata) async {
@@ -547,7 +556,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<bool> delete(AbstractKey<Comparable> key,
       {KeyValueAdapterSession? session}) async {
     final replyPort = ReceivePort();
-    _sendToIsolate('delete', {'key': key}, replyPort.sendPort);
+    await _sendToIsolate('delete', {'key': key}, replyPort.sendPort);
     return Future<bool>.value(await replyPort.first);
   }
 
@@ -555,7 +564,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<bool> put(AbstractKey<Comparable> key, Map<String, dynamic> value,
       {KeyValueAdapterSession? session}) async {
     final replyPort = ReceivePort();
-    _sendToIsolate('put', {'key': key, 'value': value}, replyPort.sendPort);
+    await _sendToIsolate('put', {'key': key, 'value': value}, replyPort.sendPort);
     return Future<bool>.value(await replyPort.first == 1);
   }
 
@@ -563,7 +572,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<bool> clearTable(AbstractKey<Comparable> key,
       {KeyValueAdapterSession? session}) async {
     final replyPort = ReceivePort();
-    _sendToIsolate('clearTable', {'key': key}, replyPort.sendPort);
+    await _sendToIsolate('clearTable', {'key': key}, replyPort.sendPort);
     return Future<bool>.value(await replyPort.first);
   }
   @override
@@ -577,7 +586,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   @override
   Future<MapEntry<T2, Map<String, dynamic>>?> get<T2 extends AbstractKey<Comparable>>(T2 key, {KeyValueAdapterSession? session}) async {
     final replyPort = ReceivePort();
-    _sendToIsolate('get', {'key': key}, replyPort.sendPort);
+    await _sendToIsolate('get', {'key': key}, replyPort.sendPort);
     var ret = await replyPort.first;
     return Future.value(ret != null ? MapEntry<T2, Map<String, dynamic>>(ret.key as T2, ret.value) : null);
   }
@@ -588,7 +597,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
       return Map<T2, Map<String, dynamic>?>();
     }
     final replyPort = ReceivePort();
-    _sendToIsolate('getMany', {'keys': keys}, replyPort.sendPort);
+    await _sendToIsolate('getMany', {'keys': keys}, replyPort.sendPort);
     Map<dynamic, dynamic> ret = await replyPort.first;
     Map<T2, Map<String, dynamic>?> result = await ret.map((key, value) => MapEntry(decodeKey(keys[0], key) as T2, value?.doc));
     return Future.value(result);
@@ -599,7 +608,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   @override
   Future<MapEntry<T2, Map<String, dynamic>>?> last<T2 extends AbstractKey<Comparable>>(T2 key, {KeyValueAdapterSession? session}) async {
     final replyPort = ReceivePort();
-    _sendToIsolate('last', {'key': key}, replyPort.sendPort);
+    await _sendToIsolate('last', {'key': key}, replyPort.sendPort);
     var ret = await replyPort.first;
     if (ret is MapEntry<dynamic, dynamic>) {
       return Future.value(MapEntry<T2, Map<String, dynamic>>(ret.key as T2, ret.value));
@@ -610,7 +619,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   @override
   Future<bool> putMany(Map<AbstractKey<Comparable>, Map<String, dynamic>> entries, {KeyValueAdapterSession? session}) async {
     final replyPort = ReceivePort();
-    _sendToIsolate('putMany', {
+    await _sendToIsolate('putMany', {
       'entries': entries,
     }, replyPort.sendPort);
     var ret = await replyPort.first;
@@ -623,7 +632,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     KeyValueAdapterSession? session
   }) async {
     final replyPort = ReceivePort();
-    _sendToIsolate('read', {
+    await _sendToIsolate('read', {
       'key': keyType,
       'startkey': startkey,
       'endkey': endkey,
@@ -651,37 +660,33 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   @override
   Future<int> tableSize(AbstractKey<Comparable> key, {KeyValueAdapterSession? session}) async {
     final replyPort = ReceivePort();
-    _sendToIsolate('tableSize', {'key': key}, replyPort.sendPort);
+    await _sendToIsolate('tableSize', {'key': key}, replyPort.sendPort);
     return Future.value(await replyPort.first);
   }
   @override
   Future<bool> initDb() async {
-    if (_isolate == null) {
-      _receivePort = ReceivePort();
-      _isolate = await Isolate.spawn(_isolateEntry, _IsolateData(token: RootIsolateToken.instance!, sendPort: _receivePort.sendPort, store: path));
-      _sendPort = await _receivePort.first as SendPort;
-    }
     final replyPort = ReceivePort();
-    _sendToIsolate('init', {}, replyPort.sendPort);
+    await _sendToIsolate('init', {}, replyPort.sendPort);
     return Future<bool>.value(await replyPort.first);
   }
 
   @override
   Future<bool> destroy({KeyValueAdapterSession? session}) async {
     final replyPort = ReceivePort();
-    _sendToIsolate('destroy', {}, replyPort.sendPort);
+    await _sendToIsolate('destroy', {}, replyPort.sendPort);
     var result = await replyPort.first;
     if (_isolate != null) {
       _isolate?.kill(priority: 0);
-      _receivePort.close();
+      _receivePort?.close();
     }
     return Future<bool>.value(result);
   }
 
 
-  void _sendToIsolate(String command, dynamic data, SendPort replyPort) {
+  Future<void> _sendToIsolate(String command, dynamic data, SendPort replyPort) async {
+    await init();
     final message = ObjectBoxMessage(command, data, replyPort);
-    _sendPort.send(message);
+    _sendPort?.send(message);
   }
 
 // Other methods as defined in your existing ObjectBoxAdapter...
