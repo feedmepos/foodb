@@ -14,7 +14,7 @@ const int int64MaxValue = 9223372036854775807;
 class _IsolateData {
   final RootIsolateToken token;
   final SendPort sendPort;
-  final String store;
+  final ByteData store;
 
   _IsolateData({
     required this.token,
@@ -327,7 +327,8 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   ReceivePort? _receivePort = null;
   Isolate? _isolate = null;
   String type = 'object-box';
-  String path = '';
+  late ByteData path;
+  static bool occupied = false;
 
   String Function({required String designDocId, required String viewId})
   getViewTableName = KeyValueAdapter.defaultGetViewTableName;
@@ -335,7 +336,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
       KeyValueAdapter.getAllDocViewTableName(getViewTableName);
 
   ObjectBoxAdapter(Store s) {
-    path = s.directoryPath;
+    path = s.reference;
     _store = s;
   }
 
@@ -353,17 +354,17 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     final port = ReceivePort();
     idata.sendPort.send(port.sendPort);
 
-    final isOpen = Store.isOpen(idata.store);
-    var store;
-    if (isOpen) {
-      store = Store.attach(getObjectBoxModel(), idata.store);
-    } else {
-      store = await openStore();
-    }
+    var store = Store.fromReference(getObjectBoxModel(), idata.store);
 
     port.listen((message) async {
       final msg = message as ObjectBoxMessage;
       dynamic result;
+
+      // print("processing message " + msg.command);
+
+      while(occupied) ;
+
+      occupied = true;
 
       try {
         switch (msg.command) {
@@ -405,6 +406,8 @@ class ObjectBoxAdapter implements KeyValueAdapter {
       } catch (e) {
         msg.replyPort.send(e);
       }
+      occupied = false;
+      // print("processing message " + msg.command + " ok");
 
     });
   }
@@ -467,8 +470,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     final AbstractKey<Comparable> key = data['key'];
     final box = _getBoxFromKey(key);
     final value = data['value'];
-    var ret = box.put(store, encodeKey(key), jsonEncode(value));
-    return ret;
+    return box.put(store, encodeKey(key), jsonEncode(value));
   }
 
 
