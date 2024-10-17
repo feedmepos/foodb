@@ -1,7 +1,6 @@
 library foodb_objectbox_adapter;
 
 import 'dart:convert';
-import 'dart:developer';
 import 'dart:isolate';
 
 import 'package:flutter/services.dart';
@@ -10,6 +9,19 @@ import 'package:foodb_objectbox_adapter/object_box_entity.dart';
 import 'package:foodb_objectbox_adapter/objectbox.g.dart';
 
 const int int64MaxValue = 9223372036854775807;
+
+const int cmdInit = 1;
+const int cmdDestroy = 2;
+const int cmdTableSize = 3;
+const int cmdClearTable = 4;
+
+const int cmdPut = 11;
+const int cmdPutMany = 12;
+const int cmdGet = 21;
+const int cmdGetMany = 22;
+const int cmdDelete = 31;
+const int cmdRead = 41;
+const int cmdLast = 51;
 
 class _IsolateData {
   final RootIsolateToken token;
@@ -58,7 +70,7 @@ AbstractKey decodeKey(AbstractKey type, dynamic objectBoxKey) {
 
 
 class ObjectBoxMessage {
-  final String command;
+  final int command;
   final dynamic data;
   final SendPort replyPort;
 
@@ -322,13 +334,11 @@ List<ObjectBoxType> allBoxes() => [
 ];
 
 class ObjectBoxAdapter implements KeyValueAdapter {
-  static Store? _store;
   SendPort? _sendPort = null;
   ReceivePort? _receivePort = null;
   Isolate? _isolate = null;
   String type = 'object-box';
   late ByteData path;
-  static bool occupied = false;
 
   String Function({required String designDocId, required String viewId})
   getViewTableName = KeyValueAdapter.defaultGetViewTableName;
@@ -337,7 +347,6 @@ class ObjectBoxAdapter implements KeyValueAdapter {
 
   ObjectBoxAdapter(Store s) {
     path = s.reference;
-    _store = s;
   }
 
   Future<void> init() async {
@@ -359,46 +368,39 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     port.listen((message) async {
       final msg = message as ObjectBoxMessage;
       dynamic result;
-
-      // print("processing message " + msg.command);
-
-      while(occupied) ;
-
-      occupied = true;
-
       try {
         switch (msg.command) {
-          case 'put':
+          case cmdPut:
             result = await _put(store, msg.data);
             break;
-          case 'putMany':
+          case cmdPutMany:
             result = await _putMany(store, msg.data);
             break;
-          case 'get':
+          case cmdGet:
             result = await _get(store, msg.data);
             break;
-          case 'getMany':
+          case cmdGetMany:
             result = await _getMany(store, msg.data);
             break;
-          case 'read':
+          case cmdRead:
             result = await _read(store, msg.data);
             break;
-          case 'last':
+          case cmdLast:
             result = await _last(store, msg.data);
             break;
-          case 'delete':
+          case cmdDelete:
             result = await _delete(store, msg.data);
             break;
-          case 'clearTable':
+          case cmdClearTable:
             result = await _clearTable(store, msg.data);
             break;
-          case 'tableSize':
+          case cmdTableSize:
             result = await _tableSize(store, msg.data);
             break;
-          case 'init':
+          case cmdInit:
             result = await _initDb(store);
             break;
-          case 'destroy':
+          case cmdDestroy:
             result = await _destroy(store);
             break;
         }
@@ -406,8 +408,6 @@ class ObjectBoxAdapter implements KeyValueAdapter {
       } catch (e) {
         msg.replyPort.send(e);
       }
-      occupied = false;
-      // print("processing message " + msg.command + " ok");
 
     });
   }
@@ -558,7 +558,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<bool> delete(AbstractKey<Comparable> key,
       {KeyValueAdapterSession? session}) async {
     final replyPort = ReceivePort();
-    await _sendToIsolate('delete', {'key': key}, replyPort.sendPort);
+    await _sendToIsolate(cmdDelete, {'key': key}, replyPort.sendPort);
     return Future<bool>.value(await replyPort.first);
   }
 
@@ -566,7 +566,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<bool> put(AbstractKey<Comparable> key, Map<String, dynamic> value,
       {KeyValueAdapterSession? session}) async {
     final replyPort = ReceivePort();
-    await _sendToIsolate('put', {'key': key, 'value': value}, replyPort.sendPort);
+    await _sendToIsolate(cmdPut, {'key': key, 'value': value}, replyPort.sendPort);
     return Future<bool>.value(await replyPort.first == 1);
   }
 
@@ -574,7 +574,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   Future<bool> clearTable(AbstractKey<Comparable> key,
       {KeyValueAdapterSession? session}) async {
     final replyPort = ReceivePort();
-    await _sendToIsolate('clearTable', {'key': key}, replyPort.sendPort);
+    await _sendToIsolate(cmdClearTable, {'key': key}, replyPort.sendPort);
     return Future<bool>.value(await replyPort.first);
   }
   @override
@@ -588,7 +588,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   @override
   Future<MapEntry<T2, Map<String, dynamic>>?> get<T2 extends AbstractKey<Comparable>>(T2 key, {KeyValueAdapterSession? session}) async {
     final replyPort = ReceivePort();
-    await _sendToIsolate('get', {'key': key}, replyPort.sendPort);
+    await _sendToIsolate(cmdGet, {'key': key}, replyPort.sendPort);
     var ret = await replyPort.first;
     return Future.value(ret != null ? MapEntry<T2, Map<String, dynamic>>(ret.key as T2, ret.value) : null);
   }
@@ -599,7 +599,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
       return Map<T2, Map<String, dynamic>?>();
     }
     final replyPort = ReceivePort();
-    await _sendToIsolate('getMany', {'keys': keys}, replyPort.sendPort);
+    await _sendToIsolate(cmdGetMany, {'keys': keys}, replyPort.sendPort);
     Map<dynamic, dynamic> ret = await replyPort.first;
     Map<T2, Map<String, dynamic>?> result = await ret.map((key, value) => MapEntry(decodeKey(keys[0], key) as T2, value?.doc));
     return Future.value(result);
@@ -610,7 +610,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   @override
   Future<MapEntry<T2, Map<String, dynamic>>?> last<T2 extends AbstractKey<Comparable>>(T2 key, {KeyValueAdapterSession? session}) async {
     final replyPort = ReceivePort();
-    await _sendToIsolate('last', {'key': key}, replyPort.sendPort);
+    await _sendToIsolate(cmdLast, {'key': key}, replyPort.sendPort);
     var ret = await replyPort.first;
     if (ret is MapEntry<dynamic, dynamic>) {
       return Future.value(MapEntry<T2, Map<String, dynamic>>(ret.key as T2, ret.value));
@@ -621,7 +621,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   @override
   Future<bool> putMany(Map<AbstractKey<Comparable>, Map<String, dynamic>> entries, {KeyValueAdapterSession? session}) async {
     final replyPort = ReceivePort();
-    await _sendToIsolate('putMany', {
+    await _sendToIsolate(cmdPutMany, {
       'entries': entries,
     }, replyPort.sendPort);
     var ret = await replyPort.first;
@@ -634,7 +634,7 @@ class ObjectBoxAdapter implements KeyValueAdapter {
     KeyValueAdapterSession? session
   }) async {
     final replyPort = ReceivePort();
-    await _sendToIsolate('read', {
+    await _sendToIsolate(cmdRead, {
       'key': keyType,
       'startkey': startkey,
       'endkey': endkey,
@@ -662,30 +662,30 @@ class ObjectBoxAdapter implements KeyValueAdapter {
   @override
   Future<int> tableSize(AbstractKey<Comparable> key, {KeyValueAdapterSession? session}) async {
     final replyPort = ReceivePort();
-    await _sendToIsolate('tableSize', {'key': key}, replyPort.sendPort);
+    await _sendToIsolate(cmdTableSize, {'key': key}, replyPort.sendPort);
     return Future.value(await replyPort.first);
   }
   @override
   Future<bool> initDb() async {
     final replyPort = ReceivePort();
-    await _sendToIsolate('init', {}, replyPort.sendPort);
+    await _sendToIsolate(cmdInit, {}, replyPort.sendPort);
     return Future<bool>.value(await replyPort.first);
   }
 
   @override
   Future<bool> destroy({KeyValueAdapterSession? session}) async {
     final replyPort = ReceivePort();
-    await _sendToIsolate('destroy', {}, replyPort.sendPort);
+    await _sendToIsolate(cmdDestroy, {}, replyPort.sendPort);
     var result = await replyPort.first;
-    if (_isolate != null) {
-      _isolate?.kill(priority: 0);
-      _receivePort?.close();
-    }
+    // if (_isolate != null) {
+    //   _isolate?.kill(priority: 0);
+    //   _receivePort?.close();
+    // }
     return Future<bool>.value(result);
   }
 
 
-  Future<void> _sendToIsolate(String command, dynamic data, SendPort replyPort) async {
+  Future<void> _sendToIsolate(int command, dynamic data, SendPort replyPort) async {
     await init();
     final message = ObjectBoxMessage(command, data, replyPort);
     _sendPort?.send(message);

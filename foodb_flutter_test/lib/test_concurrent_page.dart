@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:foodb_flutter_test/main.dart';
 import 'package:foodb_objectbox_adapter/foodb_objectbox_adapter.dart';
 import 'package:foodb_objectbox_adapter/objectbox.g.dart';
@@ -19,10 +20,23 @@ class TestConcurrentPage extends StatefulWidget {
 class _TestConcurrentPageState extends State<TestConcurrentPage> {
   int testCount = 1;
   int totalDoc = 0;
+  int frameId = 0;
+  int totalTime = 0;
+  int totalFrames = 0;
+  int maxLag = 0;
+  DateTime dt = DateTime.now();
 
   @override
   void initState() {
     super.initState();
+    SchedulerBinding.instance.addPersistentFrameCallback((Duration runtime) {
+        frameId += 1;
+        if (DateTime.now().difference(dt).inMilliseconds > maxLag) {
+          maxLag = DateTime.now().difference(dt).inMilliseconds;
+        }
+        dt = DateTime.now();
+    });
+
   }
 
   foodbForTest(String name, Future Function(Foodb) func) async {
@@ -48,19 +62,26 @@ class _TestConcurrentPageState extends State<TestConcurrentPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
+            CircularProgressIndicator(),
             Column(
               children: [
-                ...[10, 100, 1000, 3000, 5000].map((count) => ElevatedButton(
+                ...[10, 100, 1000, 3000, 5000, 10000].map((count) => ElevatedButton(
                   child: Text('test $count'),
                   onPressed: () async {
+                    setState(() {
+
+                      maxLag = 0;
+                    });
+                    var startFrames = frameId;
+                    var t = DateTime.now();
                     await FoodbDebug.timed('test $count', () async {
                       await foodbForTest('test $count', (db) async {
                         await Future.wait(
-                          List.generate(
-                            count,
-                              (index) => db.put(doc: Doc(id: index.toString(), model: {})
+                            List.generate(
+                                count,
+                                    (index) => db.put(doc: Doc(id: index.toString(), model: {})
+                                )
                             )
-                          )
                         );
                         var docs = await db.allDocs(GetViewRequest(), (json) => json);
                         setState(() {
@@ -68,11 +89,20 @@ class _TestConcurrentPageState extends State<TestConcurrentPage> {
                         });
                       });
                     });
+                    var endFrames = frameId;
+                    setState(() {
+                      totalFrames = endFrames - startFrames;
+                      totalTime = DateTime.now().difference(t).inMilliseconds;
+                    });
                   },
                 ))
               ],
             ),
-            Text('total docs: $totalDoc')
+            Text('total docs: $totalDoc'),
+            Text('total time: $totalTime ms'),
+            Text('max lag: $maxLag ms'),
+            Text('total frames: $totalFrames'),
+            Text('average fps: ${totalFrames / totalTime * 1000}'),
           ],
         ),
       ),
