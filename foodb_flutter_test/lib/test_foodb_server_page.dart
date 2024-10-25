@@ -77,6 +77,8 @@ class _TestFoodbServerPageState extends State<TestFoodbServerPage> {
   SendPort? sendPort;
   Completer? serverStopCompleter;
 
+  List<Doc<Map<String, dynamic>>> docs = [];
+
   @override
   void initState() {
     super.initState();
@@ -85,6 +87,30 @@ class _TestFoodbServerPageState extends State<TestFoodbServerPage> {
   Future<void> _startMainServer() async {
     server = await _initMainServer(_getObjectboxDb);
     await _connectMainServer();
+    _listenChanges();
+  }
+
+  _listenChanges() {
+    foodb?.changesStream(
+      ChangeRequest(
+        feed: 'continuous',
+        includeDocs: true,
+        since: 'now',
+        heartbeat: 30000,
+      ),
+      onResult: (result) {
+        print('changes ${result.id}');
+        if (result.doc != null) {
+          docs.add(result.doc!);
+        }
+      },
+      onError: (e, s) async {
+        // localDbChangeStream.sink
+        //     .add(ChangeResultOrException(exception: e, stacktrace: s));
+        // stream.cancel();
+        // onError?.call();
+      },
+    );
   }
 
   Future<void> _startIsolateMainServer() async {
@@ -113,6 +139,7 @@ class _TestFoodbServerPageState extends State<TestFoodbServerPage> {
     });
     await completer.future;
     await _connectMainServer();
+    _listenChanges();
   }
 
   Future<void> _connectMainServer() async {
