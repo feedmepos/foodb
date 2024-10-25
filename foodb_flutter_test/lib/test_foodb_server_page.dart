@@ -144,7 +144,15 @@ Future<void> _startMainServerInIsolate(Map<String, dynamic> input) async {
     if (message == "STOP") {
       print('STOPPING');
       await server.stop();
-      print('STOPPED');
+      final storeDir = Directory(
+          (await getApplicationDocumentsDirectory()).path + '/objectbox');
+      final telemetry2 = Telemetry.start("_startMainServerInIsolate.listSync");
+      final files = storeDir.listSync();
+      for (var file in files) {
+        file.deleteSync();
+      }
+      telemetry2.end("_startMainServerInIsolate.listSync.done");
+      GlobalStore.store.close();
       sendPort.send("STOPPPPPPPPED");
     }
   });
@@ -176,14 +184,17 @@ class _TestFoodbServerPageState extends State<TestFoodbServerPage> {
   }
 
   Future<void> _startMainServer() async {
+    final telemetry = Telemetry.start("_startMainServer._initMainServer");
     server = await _initMainServer(_getObjectboxDb);
+    telemetry.end();
+    final telemetry2 = Telemetry.start("_startMainServer._connectMainServer");
     await _connectMainServer();
   }
 
   Future<void> _startIsolateMainServer() async {
     final receivePort = ReceivePort();
     final completer = Completer();
-    receivePort.listen((message) {
+    receivePort.listen((message) async {
       print('main:: $message');
       if (message is SendPort) {
         sendPort = message;
@@ -195,16 +206,22 @@ class _TestFoodbServerPageState extends State<TestFoodbServerPage> {
       }
       if (message == "STOPPPPPPPPED") {
         serverStopCompleter?.complete();
+
         return;
       }
     });
     final token = RootIsolateToken.instance;
+    final telemetry =
+        Telemetry.start("_startIsolateMainServer._startMainServerInIsolate");
     isolate = await Isolate.spawn(_startMainServerInIsolate, {
       'getObjectboxDb': _getObjectboxDb,
       'sendPort': receivePort.sendPort,
       'token': token,
     });
     await completer.future;
+    telemetry.end();
+    final telemetry2 =
+        Telemetry.start("_startIsolateMainServer._connectMainServer");
     await _connectMainServer();
   }
 
