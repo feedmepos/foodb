@@ -59,6 +59,7 @@ mixin _KeyValueChange on _AbstractKeyValue {
           );
         }
         subscription!.onData((entry) async {
+          print('stream length ${await localChangeStreamController.stream.length}');
           // drop the changes if the data already handle by onResult before 'now'
           if (entry.key.key! <= lastSeq) return;
 
