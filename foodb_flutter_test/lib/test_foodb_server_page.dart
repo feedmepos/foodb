@@ -4,11 +4,11 @@ import 'dart:isolate';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:foodb/foodb.dart';
 import 'package:foodb_flutter_test/main.dart';
 import 'package:foodb_objectbox_adapter/foodb_objectbox_adapter.dart';
 import 'package:foodb_objectbox_adapter/objectbox.g.dart';
 import 'package:foodb_server/foodb_server.dart';
-import 'package:foodb/foodb.dart';
 import 'package:path_provider/path_provider.dart';
 
 class TestFoodbServerPage extends StatefulWidget {
@@ -46,8 +46,21 @@ Future<FoodbServer> _initMainServer(dynamic getObjectboxDb) async {
 
 Future<void> _startMainServerInIsolate(Map<String, dynamic> input) async {
   BackgroundIsolateBinaryMessenger.ensureInitialized(input['token']);
-  var server = _initMainServer(input['getObjectboxDb']);
-  input['sendPort'].send(server);
+  GlobalStore.store = await openStore();
+  final receivePort = ReceivePort();
+  final sendPort = input['sendPort'] as SendPort;
+  var server = await _initMainServer(input['getObjectboxDb']);
+  receivePort.listen((message) async {
+    print('isolate:: $message');
+    if (message == "STOP") {
+      print('STOPPING');
+      await server.stop();
+      print('STOPPED');
+      sendPort.send("STOPPPPPPPPED");
+    }
+  });
+  sendPort.send("TEST");
+  sendPort.send(receivePort.sendPort);
 }
 
 Future<Foodb> _getObjectboxDb(String dbName, String path) async {
@@ -58,6 +71,9 @@ Future<Foodb> _getObjectboxDb(String dbName, String path) async {
 class _TestFoodbServerPageState extends State<TestFoodbServerPage> {
   Foodb? foodb;
   FoodbServer? server;
+  Isolate? isolate;
+  SendPort? sendPort;
+  Completer? serverStopCompleter;
 
   @override
   void initState() {
@@ -71,13 +87,29 @@ class _TestFoodbServerPageState extends State<TestFoodbServerPage> {
 
   Future<void> _startIsolateMainServer() async {
     final receivePort = ReceivePort();
+    final completer = Completer();
+    receivePort.listen((message) {
+      print('main:: $message');
+      if (message is SendPort) {
+        sendPort = message;
+        return;
+      }
+      if (message == "TEST") {
+        completer.complete();
+        return;
+      }
+      if (message == "STOPPPPPPPPED") {
+        serverStopCompleter?.complete();
+        return;
+      }
+    });
     final token = RootIsolateToken.instance;
-    Isolate.spawn(_startMainServerInIsolate, {
+    isolate = await Isolate.spawn(_startMainServerInIsolate, {
       'getObjectboxDb': _getObjectboxDb,
       'sendPort': receivePort.sendPort,
       'token': token,
     });
-    server = await receivePort.first;
+    await completer.future;
     await _connectMainServer();
   }
 
@@ -91,9 +123,29 @@ class _TestFoodbServerPageState extends State<TestFoodbServerPage> {
     await foodb!.info();
   }
 
+  Future<void> _stopIsolate() async {
+    sendPort?.send("STOP");
+    serverStopCompleter = Completer();
+    await serverStopCompleter!.future;
+    if (isolate != null) {
+      isolate!.kill();
+      isolate = null;
+      setState(() {});
+    }
+  }
+
   Future<void> _resetMainServer() async {
+    final allDocs = foodb?.fetchAllDesignDocs();
+    await allDocs?.then((docs) async {
+      for (var doc in docs) {
+        if (doc.rev == null) return;
+        await foodb?.delete(id: doc.id, rev: doc.rev!);
+      }
+    });
+    await foodb?.destroy();
     foodb = null;
     server?.stop();
+    setState(() {});
   }
 
   @override
@@ -107,27 +159,29 @@ class _TestFoodbServerPageState extends State<TestFoodbServerPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             if (foodb == null)
-              Wrap(
-                children: [
-                  ElevatedButton(
-                    onPressed: _startMainServer,
-                    child: Text('start main server'),
-                  ),
-                  ElevatedButton(
-                    onPressed: _startIsolateMainServer,
-                    child: Text('start isolate main server'),
-                  ),
-                ],
+              ElevatedButton(
+                onPressed: _startMainServer,
+                child: Text('start main server'),
+              ),
+            if (isolate == null)
+              ElevatedButton(
+                onPressed: _startIsolateMainServer,
+                child: Text('start isolate main server'),
               ),
             if (foodb != null)
               Wrap(
                 children: [
                   Text('Connected'),
                   ElevatedButton(
-                    onPressed: _startIsolateMainServer,
-                    child: Text('reset server'),
+                    onPressed: _resetMainServer,
+                    child: Text('reset main server'),
                   ),
                 ],
+              ),
+            if (isolate != null)
+              ElevatedButton(
+                onPressed: _stopIsolate,
+                child: Text('stop isolate'),
               ),
             Wrap(
               children: [

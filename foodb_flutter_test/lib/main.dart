@@ -2,13 +2,12 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:foodb/foodb.dart';
+import 'package:foodb_flutter_test/telemetry.dart';
 import 'package:foodb_flutter_test/test_concurrent_page.dart';
 import 'package:foodb_flutter_test/test_foodb_server_page.dart';
 import 'package:foodb_flutter_test/test_http_client_page.dart';
 import 'package:foodb_objectbox_adapter/objectbox.g.dart';
-import 'package:permission_handler/permission_handler.dart';
-
-import 'package:foodb/foodb.dart';
 
 class GlobalStore {
   static late Store store;
@@ -19,13 +18,9 @@ Future<void> main() async {
   FoodbDebug.logLevel = LOG_LEVEL.debug;
   HttpOverrides.global = MyHttpOverrides();
 
-  var status = await Permission.storage.request();
-  if (status.isDenied) {
-    throw Exception('no permission');
-    // We haven't asked for permission yet or the permission has been denied before, but not permanently.
-  }
-
+  final telemetry = Telemetry.start("openStore");
   GlobalStore.store = await openStore();
+  telemetry.end('openStore done');
   runApp(const MyApp());
 }
 
