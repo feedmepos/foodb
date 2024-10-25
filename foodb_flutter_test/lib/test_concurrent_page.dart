@@ -49,7 +49,7 @@ class _TestConcurrentPageState extends State<TestConcurrentPage> {
           children: <Widget>[
             Row(
               children: [
-                ...[10, 100, 1000, 3000, 5000].map((count) => ElevatedButton(
+                ...[10, 100, 1000, 3000, 5000, 10000].map((count) => ElevatedButton(
                       child: Text('test $count'),
                       onPressed: () async {
                         await FoodbDebug.timed('test $count', () async {
