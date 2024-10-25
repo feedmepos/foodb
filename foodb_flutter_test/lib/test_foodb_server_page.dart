@@ -85,8 +85,12 @@ class _TestFoodbServerPageState extends State<TestFoodbServerPage> {
   }
 
   Future<void> _startMainServer() async {
+    final telemetry = Telemetry.start("_startMainServer._initMainServer");
     server = await _initMainServer(_getObjectboxDb);
+    telemetry.end();
+    final telemetry2 = Telemetry.start("_startMainServer._connectMainServer");
     await _connectMainServer();
+    telemetry2.end();
     _listenChanges();
   }
 
@@ -132,13 +136,17 @@ class _TestFoodbServerPageState extends State<TestFoodbServerPage> {
       }
     });
     final token = RootIsolateToken.instance;
+    final telemetry = Telemetry.start("_startIsolateMainServer._startMainServerInIsolate");
     isolate = await Isolate.spawn(_startMainServerInIsolate, {
       'getObjectboxDb': _getObjectboxDb,
       'sendPort': receivePort.sendPort,
       'token': token,
     });
     await completer.future;
+    telemetry.end();
+    final telemetry2 = Telemetry.start("_startIsolateMainServer._connectMainServer");
     await _connectMainServer();
+    telemetry2.end();
     _listenChanges();
   }
 
