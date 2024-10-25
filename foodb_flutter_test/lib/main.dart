@@ -19,7 +19,6 @@ Future<void> main() async {
   HttpOverrides.global = MyHttpOverrides();
 
   final telemetry = Telemetry.start("openStore");
-  GlobalStore.store = await openStore();
   telemetry.end('openStore done');
   runApp(const MyApp());
 }

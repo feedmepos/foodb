@@ -25,6 +25,7 @@ const DB_USERNAME = "test-db";
 const DB_PASSWORD = "test-db";
 
 Future<FoodbServer> _initMainServer(dynamic getObjectboxDb) async {
+  GlobalStore.store = await openStore();
   FoodbServer server;
   final Directory dir = await getApplicationSupportDirectory();
   final config = FoodbServerConfig(
@@ -135,16 +136,15 @@ class _TestFoodbServerPageState extends State<TestFoodbServerPage> {
   }
 
   Future<void> _resetMainServer() async {
-    final allDocs = foodb?.fetchAllDesignDocs();
-    await allDocs?.then((docs) async {
-      for (var doc in docs) {
-        if (doc.rev == null) return;
-        await foodb?.delete(id: doc.id, rev: doc.rev!);
-      }
-    });
     await foodb?.destroy();
     foodb = null;
-    server?.stop();
+    await server?.stop();
+    final storeDir = Directory((await getApplicationDocumentsDirectory()).path + '/objectbox');
+    final files = storeDir.listSync();
+    for (var file in files) {
+      file.deleteSync();
+    }
+    GlobalStore.store.close();
     setState(() {});
   }
 
