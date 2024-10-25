@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -24,6 +25,92 @@ class TestFoodbServerPage extends StatefulWidget {
 const DB_NAME = "test-db";
 const DB_USERNAME = "test-db";
 const DB_PASSWORD = "test-db";
+var random = Random();
+
+String generateRandomString(int length, Random random) {
+  const chars =
+      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  return List.generate(length, (index) => chars[random.nextInt(chars.length)])
+      .join();
+}
+
+class RunResult {
+  Map<String, DateTime> checkpoint = {};
+  check(String point) {
+    checkpoint[point] = DateTime.now();
+  }
+
+  @override
+  String toString() {
+    var checkpointStr =
+        checkpoint.entries.map((e) => '${e.key}: ${e.value}').join(', ');
+    var timespentStr =
+        timespent.entries.map((e) => '${e.key}: ${e.value} seconds').join(', ');
+    return 'Checkpoints: { $checkpointStr }\nTime Spent: { $timespentStr }';
+  }
+
+  Map<String, num> get timespent {
+    Map<String, num> timeDifferences = {};
+    DateTime? previousTime;
+    String? previousPoint;
+
+    for (var entry in checkpoint.entries) {
+      if (previousTime != null && previousPoint != null) {
+        // Calculate the difference in seconds and store it in the map
+        num differentInMilliseconds =
+            entry.value.difference(previousTime).inMilliseconds;
+        timeDifferences['$previousPoint -> ${entry.key}'] =
+            differentInMilliseconds;
+      }
+      // Update previousTime and previousPoint for the next iteration
+      previousTime = entry.value;
+      previousPoint = entry.key;
+    }
+    return timeDifferences;
+  }
+}
+
+// Function to calculate average and p99 for each checkpoint transition across multiple RunResult objects
+Map<String, Map<String, num>> calculateStats(List<RunResult> results) {
+  // Initialize a map to store times for each checkpoint transition
+  Map<String, List<num>> timesByTransition = {};
+
+  // Collect all time spent values from each RunResult and organize them by transition
+  for (var result in results) {
+    result.timespent.forEach((transition, time) {
+      timesByTransition.putIfAbsent(transition, () => []).add(time);
+    });
+  }
+
+  // Calculate average and p99 for each transition
+  Map<String, Map<String, num>> statsByTransition = {};
+
+  timesByTransition.forEach((transition, times) {
+    if (times.isNotEmpty) {
+      // Calculate average
+      num average = times.reduce((a, b) => a + b) / times.length;
+
+      // Calculate p99
+      times.sort();
+      int p99Index = (times.length * 0.99).floor();
+      num p99 = times[min(p99Index, times.length - 1)];
+
+      // Store the stats for this transition
+      statsByTransition[transition] = {
+        "average": average,
+        "p99": p99,
+      };
+    } else {
+      // If no times recorded, set stats to zero
+      statsByTransition[transition] = {
+        "average": 0,
+        "p99": 0,
+      };
+    }
+  });
+
+  return statsByTransition;
+}
 
 Future<FoodbServer> _initMainServer(dynamic getObjectboxDb) async {
   GlobalStore.store = await openStore();
@@ -77,6 +164,10 @@ class _TestFoodbServerPageState extends State<TestFoodbServerPage> {
   SendPort? sendPort;
   Completer? serverStopCompleter;
 
+  Map<num, RunResult> results = {};
+
+  Map<String, Map<String, num>> resultStats = {};
+
   List<Doc<Map<String, dynamic>>> docs = [];
 
   @override
@@ -87,30 +178,6 @@ class _TestFoodbServerPageState extends State<TestFoodbServerPage> {
   Future<void> _startMainServer() async {
     server = await _initMainServer(_getObjectboxDb);
     await _connectMainServer();
-    _listenChanges();
-  }
-
-  _listenChanges() {
-    foodb?.changesStream(
-      ChangeRequest(
-        feed: 'continuous',
-        includeDocs: true,
-        since: 'now',
-        heartbeat: 30000,
-      ),
-      onResult: (result) {
-        print('changes ${result.id}');
-        if (result.doc != null) {
-          docs.add(result.doc!);
-        }
-      },
-      onError: (e, s) async {
-        // localDbChangeStream.sink
-        //     .add(ChangeResultOrException(exception: e, stacktrace: s));
-        // stream.cancel();
-        // onError?.call();
-      },
-    );
   }
 
   Future<void> _startIsolateMainServer() async {
@@ -139,7 +206,6 @@ class _TestFoodbServerPageState extends State<TestFoodbServerPage> {
     });
     await completer.future;
     await _connectMainServer();
-    _listenChanges();
   }
 
   Future<void> _connectMainServer() async {
@@ -150,6 +216,25 @@ class _TestFoodbServerPageState extends State<TestFoodbServerPage> {
               Uri.parse('http://$DB_USERNAME:$DB_PASSWORD@127.0.0.1:6984'));
     });
     await foodb!.info();
+    foodb?.changesStream(
+      ChangeRequest(
+        feed: 'continuous',
+        includeDocs: true,
+        since: 'now',
+        heartbeat: 30000,
+      ),
+      onResult: (result) {
+        print('changes ${result.id}');
+        final index = num.parse(result.id.split('_')[0]);
+        results[index]?.check('receiveChange');
+      },
+      onError: (e, s) async {
+        // localDbChangeStream.sink
+        //     .add(ChangeResultOrException(exception: e, stacktrace: s));
+        // stream.cancel();
+        // onError?.call();
+      },
+    );
   }
 
   Future<void> _stopIsolate() async {
@@ -221,26 +306,60 @@ class _TestFoodbServerPageState extends State<TestFoodbServerPage> {
               ),
             Wrap(
               children: [
-                ...[10, 100, 1000, 3000, 5000, 10000].map((count) => ElevatedButton(
+                ...[
+                  10,
+                  100,
+                  1000,
+                  3000,
+                  5000,
+                  10000
+                ].map((count) => ElevatedButton(
                       child: Text('test $count'),
                       onPressed: () async {
-                        await FoodbDebug.timed('test $count', () async {
-                          final futures = List.generate(count, (index) async {
-                            final now = DateTime.now().toIso8601String();
-                            final doc = await foodb?.put(
-                                doc: Doc(id: '${now}_$index', model: {}));
-                            print(doc?.id);
+                        for (var index = 0; index < count; ++index) {
+                          final now = DateTime.now().toIso8601String();
+                          final run = RunResult();
+                          setState(() {
+                            results[index] = run;
                           });
+                          run.check('startPut');
+                          final doc = await foodb?.put(
+                              doc: Doc(id: '${index}_$now', model: {
+                            'data': [1000]
+                                .map((e) => {
+                                      'id': random.nextInt(1000000),
+                                      'name': 'Item ${random.nextInt(1000)}',
+                                      'description':
+                                          generateRandomString(100, random),
+                                      'price': (random.nextDouble() * 100)
+                                          .toStringAsFixed(2),
+                                      'tags': List.generate(
+                                          5,
+                                          (_) =>
+                                              generateRandomString(10, random)),
+                                      'created_at': DateTime.now()
+                                          .subtract(Duration(
+                                              days: random.nextInt(365)))
+                                          .toIso8601String(),
+                                    })
+                                .toList()
+                          }));
+                          run.check('donePut');
+                          run.check('startAllDoc');
                           final allDocs = await foodb?.allDocs(
                               GetViewRequest(startkey: '', endkey: '\ufff0'),
                               (json) => null);
-                          print(allDocs?.totalRows);
-                          await Future.wait(futures);
+                          run.check('doneAllDoc');
+                        }
+                        setState(() {
+                          resultStats = calculateStats(results.values.toList());
                         });
                       },
                     ))
               ],
             ),
+            Text('run completed: ${results.keys.length}'),
+            Text(resultStats.toString())
           ],
         ),
       ),
