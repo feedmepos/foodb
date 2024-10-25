@@ -197,7 +197,19 @@ class _TestFoodbServerPageState extends State<TestFoodbServerPage> {
                 ...[10, 100, 1000, 3000, 5000].map((count) => ElevatedButton(
                       child: Text('test $count'),
                       onPressed: () async {
-                        await FoodbDebug.timed('test $count', () async {});
+                        await FoodbDebug.timed('test $count', () async {
+                          final futures = List.generate(count, (index) async {
+                            final now = DateTime.now().toIso8601String();
+                            final doc = await foodb?.put(
+                                doc: Doc(id: '${now}_$index', model: {}));
+                            print(doc?.id);
+                          });
+                          final allDocs = await foodb?.allDocs(
+                              GetViewRequest(startkey: '', endkey: '\ufff0'),
+                              (json) => null);
+                          print(allDocs?.totalRows);
+                          await Future.wait(futures);
+                        });
                       },
                     ))
               ],
