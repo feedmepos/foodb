@@ -47,7 +47,6 @@ Future<FoodbServer> _initMainServer(dynamic getObjectboxDb) async {
 
 Future<void> _startMainServerInIsolate(Map<String, dynamic> input) async {
   BackgroundIsolateBinaryMessenger.ensureInitialized(input['token']);
-  GlobalStore.store = await openStore();
   final receivePort = ReceivePort();
   final sendPort = input['sendPort'] as SendPort;
   var server = await _initMainServer(input['getObjectboxDb']);
