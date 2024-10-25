@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:foodb/foodb.dart';
 import 'package:foodb_flutter_test/main.dart';
+import 'package:foodb_flutter_test/telemetry.dart';
 import 'package:foodb_objectbox_adapter/foodb_objectbox_adapter.dart';
 import 'package:foodb_objectbox_adapter/objectbox.g.dart';
 import 'package:foodb_server/foodb_server.dart';
@@ -47,6 +48,7 @@ Future<FoodbServer> _initMainServer(dynamic getObjectboxDb) async {
 
 Future<void> _startMainServerInIsolate(Map<String, dynamic> input) async {
   BackgroundIsolateBinaryMessenger.ensureInitialized(input['token']);
+  FoodbDebug.logLevel = LOG_LEVEL.trace;
   final receivePort = ReceivePort();
   final sendPort = input['sendPort'] as SendPort;
   var server = await _initMainServer(input['getObjectboxDb']);
@@ -130,19 +132,25 @@ class _TestFoodbServerPageState extends State<TestFoodbServerPage> {
     if (isolate != null) {
       isolate!.kill();
       isolate = null;
-      setState(() {});
     }
+    foodb = null;
+    setState(() {});
   }
 
   Future<void> _resetMainServer() async {
     await foodb?.destroy();
     foodb = null;
+    final telemetry = Telemetry.start("_resetMainServer.stop");
     await server?.stop();
-    final storeDir = Directory((await getApplicationDocumentsDirectory()).path + '/objectbox');
+    telemetry.end('_resetMainServer.stop.done');
+    final storeDir = Directory(
+        (await getApplicationDocumentsDirectory()).path + '/objectbox');
+    final telemetry2 = Telemetry.start("_resetMainServer.listSync");
     final files = storeDir.listSync();
     for (var file in files) {
       file.deleteSync();
     }
+    telemetry2.end("_resetMainServer.listSync.done");
     GlobalStore.store.close();
     setState(() {});
   }
@@ -162,25 +170,27 @@ class _TestFoodbServerPageState extends State<TestFoodbServerPage> {
                 onPressed: _startMainServer,
                 child: Text('start main server'),
               ),
-            if (isolate == null)
+            if (foodb == null && isolate == null)
               ElevatedButton(
                 onPressed: _startIsolateMainServer,
                 child: Text('start isolate main server'),
               ),
             if (foodb != null)
               Wrap(
+                direction: Axis.vertical,
                 children: [
                   Text('Connected'),
-                  ElevatedButton(
-                    onPressed: _resetMainServer,
-                    child: Text('reset main server'),
-                  ),
+                  if (isolate != null)
+                    ElevatedButton(
+                      onPressed: _stopIsolate,
+                      child: Text('stop isolate'),
+                    )
+                  else
+                    ElevatedButton(
+                      onPressed: _resetMainServer,
+                      child: Text('reset main server'),
+                    ),
                 ],
-              ),
-            if (isolate != null)
-              ElevatedButton(
-                onPressed: _stopIsolate,
-                child: Text('stop isolate'),
               ),
             Wrap(
               children: [

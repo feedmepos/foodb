@@ -15,7 +15,7 @@ class GlobalStore {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  FoodbDebug.logLevel = LOG_LEVEL.debug;
+  FoodbDebug.logLevel = LOG_LEVEL.trace;
   HttpOverrides.global = MyHttpOverrides();
 
   final telemetry = Telemetry.start("openStore");
