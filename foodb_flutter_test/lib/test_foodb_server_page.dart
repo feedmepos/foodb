@@ -50,23 +50,17 @@ class RunResult {
   }
 
   Map<String, num> get timespent {
-    Map<String, num> timeDifferences = {};
-    DateTime? previousTime;
-    String? previousPoint;
-
-    for (var entry in checkpoint.entries) {
-      if (previousTime != null && previousPoint != null) {
-        // Calculate the difference in seconds and store it in the map
-        num differentInMilliseconds =
-            entry.value.difference(previousTime).inMilliseconds;
-        timeDifferences['$previousPoint -> ${entry.key}'] =
-            differentInMilliseconds;
-      }
-      // Update previousTime and previousPoint for the next iteration
-      previousTime = entry.value;
-      previousPoint = entry.key;
-    }
-    return timeDifferences;
+    return {
+      "startPut -> receiveChange": checkpoint['receiveChange']!
+          .difference(checkpoint['startPut']!)
+          .inMilliseconds,
+      "startPut -> donePut": checkpoint['donePut']!
+          .difference(checkpoint['startPut']!)
+          .inMilliseconds,
+      "startAllDoc -> doneAllDoc": checkpoint['doneAllDoc']!
+          .difference(checkpoint['startAllDoc']!)
+          .inMilliseconds,
+    };
   }
 }
 
