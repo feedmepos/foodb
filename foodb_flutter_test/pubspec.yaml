@@ -36,13 +36,22 @@ dependencies:
   cupertino_icons: ^1.0.2
 
   foodb: ^0.8.0
-  foodb_objectbox_adapter: ^0.7.4
+  foodb_objectbox_adapter: 0.10.0
+  platform: ^3.1.0
+  file: ^6.1.4
+  permission_handler: ^11.0.1
+  foodb_server: 0.10.0
+  path_provider: ^2.0.5
 
 dependency_overrides:
   foodb:
     path: ../foodb
-  foodb_objectbox_adapter: 
-    path: ../foodb_objectbox_adapter
+  foodb_server:
+    path: ../foodb_server
+  shelf:
+    git:
+      url: https://github.com/feedmepos/shelf
+      path: pkgs/shelf
 
 dev_dependencies:
   flutter_test:
