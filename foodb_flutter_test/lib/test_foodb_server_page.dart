@@ -57,7 +57,15 @@ Future<void> _startMainServerInIsolate(Map<String, dynamic> input) async {
     if (message == "STOP") {
       print('STOPPING');
       await server.stop();
-      print('STOPPED');
+      final storeDir = Directory(
+          (await getApplicationDocumentsDirectory()).path + '/objectbox');
+      final telemetry2 = Telemetry.start("_startMainServerInIsolate.listSync");
+      final files = storeDir.listSync();
+      for (var file in files) {
+        file.deleteSync();
+      }
+      telemetry2.end("_startMainServerInIsolate.listSync.done");
+      GlobalStore.store.close();
       sendPort.send("STOPPPPPPPPED");
     }
   });
@@ -120,7 +128,7 @@ class _TestFoodbServerPageState extends State<TestFoodbServerPage> {
   Future<void> _startIsolateMainServer() async {
     final receivePort = ReceivePort();
     final completer = Completer();
-    receivePort.listen((message) {
+    receivePort.listen((message) async {
       print('main:: $message');
       if (message is SendPort) {
         sendPort = message;
@@ -132,6 +140,7 @@ class _TestFoodbServerPageState extends State<TestFoodbServerPage> {
       }
       if (message == "STOPPPPPPPPED") {
         serverStopCompleter?.complete();
+
         return;
       }
     });
