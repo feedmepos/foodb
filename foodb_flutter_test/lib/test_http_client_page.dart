@@ -2,12 +2,11 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:foodb/foodb.dart';
 import 'package:foodb_flutter_test/main.dart';
 import 'package:foodb_objectbox_adapter/foodb_objectbox_adapter.dart';
 import 'package:foodb_objectbox_adapter/objectbox.g.dart';
 import 'package:http/http.dart' as http;
-
-import 'package:foodb/foodb.dart';
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -96,9 +95,13 @@ class _TestHttpClientPageState extends State<TestHttpClientPage> {
   void initState() {
     super.initState();
     sourceFoodb = Foodb.couchdb(
-        dbName: 'find-production',
-        baseUri: Uri.parse('http://admin:secret@192.168.68.103:6984'));
-    store = GlobalStore.store;
+      dbName: 'find-production',
+      baseUri: Uri.parse('http://admin:secret@192.168.68.103:6984'),
+    );
+    openStore().then((value) {
+      GlobalStore.store = value;
+      store = GlobalStore.store;
+    });
   }
 
   @override

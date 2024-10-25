@@ -52,6 +52,7 @@ class _TestConcurrentPageState extends State<TestConcurrentPage> {
                 ...[10, 100, 1000, 3000, 5000, 10000].map((count) => ElevatedButton(
                       child: Text('test $count'),
                       onPressed: () async {
+                        GlobalStore.store = await openStore();
                         await FoodbDebug.timed('test $count', () async {
                           await foodbForTest('test $count', (db) async {
                             await Future.wait(List.generate(
@@ -66,6 +67,8 @@ class _TestConcurrentPageState extends State<TestConcurrentPage> {
                             });
                           });
                         });
+
+                        GlobalStore.store.close();
                       },
                     ))
               ],
