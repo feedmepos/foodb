@@ -36,6 +36,7 @@ String generateRandomString(int length, Random random) {
 
 class RunResult {
   Map<String, DateTime> checkpoint = {};
+
   check(String point) {
     checkpoint[point] = DateTime.now();
   }
@@ -59,6 +60,9 @@ class RunResult {
           .inMilliseconds,
       "startAllDoc -> doneAllDoc": checkpoint['doneAllDoc']!
           .difference(checkpoint['startAllDoc']!)
+          .inMilliseconds,
+      "startPut -> doneAllDoc": checkpoint['doneAllDoc']!
+          .difference(checkpoint['startPut']!)
           .inMilliseconds,
     };
   }
