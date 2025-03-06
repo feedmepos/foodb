@@ -119,7 +119,7 @@ class _CouchdbFoodb extends Foodb {
         onComplete?.call(changeRes);
       } else {
         var res =
-            await changeClient.send(http.Request('get', uriBuilder.build()));
+            await changeClient.send(http.Request('GET', uriBuilder.build()));
         String cache = "";
         List<ChangeResult> _results = [];
 
