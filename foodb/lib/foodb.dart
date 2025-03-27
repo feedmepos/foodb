@@ -2,13 +2,12 @@ library foodb;
 
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:crypto/crypto.dart' as crypto;
+import 'package:foodb/key_value_adapter.dart';
 import 'package:foodb/src/common.dart';
-import 'package:foodb/src/methods/purge.dart';
-import 'package:foodb/src/selector.dart';
 import 'package:foodb/src/design_doc.dart';
 import 'package:foodb/src/exception.dart';
-import 'package:foodb/key_value_adapter.dart';
 import 'package:foodb/src/methods/bulk_docs.dart';
 import 'package:foodb/src/methods/bulk_get.dart';
 import 'package:foodb/src/methods/changes.dart';
@@ -18,17 +17,18 @@ import 'package:foodb/src/methods/explain.dart';
 import 'package:foodb/src/methods/find.dart';
 import 'package:foodb/src/methods/index.dart';
 import 'package:foodb/src/methods/info.dart';
+import 'package:foodb/src/methods/purge.dart';
 import 'package:foodb/src/methods/put.dart';
 import 'package:foodb/src/methods/revs_diff.dart';
 import 'package:foodb/src/methods/server.dart';
 import 'package:foodb/src/methods/view.dart';
+import 'package:foodb/src/selector.dart';
 import 'package:http/http.dart' as http;
-import 'package:uri/uri.dart';
 import 'package:synchronized/synchronized.dart';
+import 'package:uri/uri.dart';
 import 'package:uuid/uuid.dart';
+import 'package:web_socket_channel/io.dart';
 
-export 'package:foodb/src/replicate.dart';
-export 'package:foodb/src/selector.dart';
 export 'package:foodb/src/common.dart';
 export 'package:foodb/src/design_doc.dart';
 export 'package:foodb/src/exception.dart';
@@ -41,25 +41,26 @@ export 'package:foodb/src/methods/explain.dart';
 export 'package:foodb/src/methods/find.dart';
 export 'package:foodb/src/methods/index.dart';
 export 'package:foodb/src/methods/info.dart';
+export 'package:foodb/src/methods/purge.dart';
 export 'package:foodb/src/methods/put.dart';
 export 'package:foodb/src/methods/revs_diff.dart';
 export 'package:foodb/src/methods/server.dart';
 export 'package:foodb/src/methods/view.dart';
-export 'package:foodb/src/methods/purge.dart';
-import 'package:web_socket_channel/io.dart';
+export 'package:foodb/src/replicate.dart';
+export 'package:foodb/src/selector.dart';
 
 export 'foodb.dart';
 export 'foodb_worker.dart';
 
 part 'src/couchdb.dart';
-part 'src/websocket.dart';
 part 'src/key_value/key_value_changes.dart';
 part 'src/key_value/key_value_find.dart';
 part 'src/key_value/key_value_get.dart';
+part 'src/key_value/key_value_purge.dart';
 part 'src/key_value/key_value_put.dart';
 part 'src/key_value/key_value_util.dart';
 part 'src/key_value/key_value_view.dart';
-part 'src/key_value/key_value_purge.dart';
+part 'src/websocket.dart';
 
 enum LOG_LEVEL { trace, debug, off }
 
@@ -70,6 +71,7 @@ class FoodbDebug {
   static var printFn = (String message) {
     print(message);
   };
+
   static _printStopwatch(Stopwatch stopwatch, String step) {
     trace(
         '[${stopwatch.elapsed.inMilliseconds.toString().padLeft(7, ' ')} ms]: $step');
@@ -130,6 +132,7 @@ class FoodbDebug {
 
 abstract class Foodb {
   String dbName;
+
   Foodb({required this.dbName});
 
   factory Foodb.couchdb({
@@ -158,12 +161,18 @@ abstract class Foodb {
     );
   }
 
-  factory Foodb.keyvalue(
-      {required String dbName,
-      required KeyValueAdapter keyValueDb,
-      bool autoCompaction = false}) {
+  factory Foodb.keyvalue({
+    required String dbName,
+    required KeyValueAdapter keyValueDb,
+    bool autoCompaction = false,
+    Lock? lock,
+  }) {
     return _KeyvalueFoodb(
-        dbName: dbName, keyValueDb: keyValueDb, autoCompaction: autoCompaction);
+      dbName: dbName,
+      keyValueDb: keyValueDb,
+      autoCompaction: autoCompaction,
+      lock: lock,
+    );
   }
 
   get isCouchdb {
@@ -184,6 +193,7 @@ abstract class Foodb {
   String get dbUri;
 
   Future<GetServerInfoResponse> serverInfo();
+
   Future<GetInfoResponse> info();
 
   Future<void> clearView(String ddocId, String name);
@@ -295,8 +305,7 @@ abstract class _AbstractKeyValue extends Foodb {
   JSRuntime? jsRuntime;
   int _revLimit = 1000;
   bool _autoCompaction;
-
-  final _lock = new Lock();
+  final Lock _lock;
 
   StreamController<MapEntry<SequenceKey, UpdateSequence>>
       localChangeStreamController = StreamController.broadcast();
@@ -304,12 +313,14 @@ abstract class _AbstractKeyValue extends Foodb {
   @override
   String get dbUri => '${this.keyValueDb.type}://${this.dbName}';
 
-  _AbstractKeyValue(
-      {required dbName,
-      required this.keyValueDb,
-      required bool autoCompaction,
-      this.jsRuntime})
-      : _autoCompaction = autoCompaction,
+  _AbstractKeyValue({
+    required dbName,
+    required this.keyValueDb,
+    required bool autoCompaction,
+    this.jsRuntime,
+    Lock? lock,
+  })  : _lock = lock ?? Lock(),
+        _autoCompaction = autoCompaction,
         super(dbName: dbName);
 
   String encodeSeq(int seq) {
@@ -330,13 +341,15 @@ class _KeyvalueFoodb extends _AbstractKeyValue
         _KeyValueChange,
         _KeyValueView,
         _KeyValuePurge {
-  _KeyvalueFoodb(
-      {required dbName,
-      required KeyValueAdapter keyValueDb,
-      required bool autoCompaction,
-      JSRuntime? jsRuntime})
-      : super(
+  _KeyvalueFoodb({
+    required dbName,
+    required KeyValueAdapter keyValueDb,
+    required bool autoCompaction,
+    JSRuntime? jsRuntime,
+    Lock? lock,
+  }) : super(
             dbName: dbName,
+            lock: lock,
             keyValueDb: keyValueDb,
             jsRuntime: jsRuntime,
             autoCompaction: autoCompaction);
