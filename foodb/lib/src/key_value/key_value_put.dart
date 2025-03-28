@@ -107,6 +107,7 @@ mixin _KeyValuePut on _AbstractKeyValue {
     late var docJson;
     late var winnerBeforeUpdate;
     late var history;
+    late Rev newRev;
     if (doc.id == '') {
       throw AdapterException(
           error: 'INVALID_DOC_ID', reason: 'doc _id must not be empty');
@@ -118,45 +119,46 @@ mixin _KeyValuePut on _AbstractKeyValue {
       isLocal = false;
       baseType = DocKey(key: doc.id);
     }
-    history = (await keyValueDb.get(baseType))?.value;
-    docHistory = history == null
-        ? DocHistory(
-            id: doc.id,
-            docs: {},
-            revisions: RevisionTree(nodes: []),
-          )
-        : DocHistory.fromJson(history);
-    docJson = doc.toJson((value) => value);
-    winnerBeforeUpdate = docHistory.winner;
-
-    // Validation
-    _validateUpdate(
-        newEdits: newEdits,
-        winnerBeforeUpdate: winnerBeforeUpdate,
-        inputRev: doc.rev);
-
-    // get new Rev
-    late Rev newRev;
-    newRev = _generateNewRev(
-        docToEncode: docJson,
-        newEdits: newEdits,
-        winnerBeforeUpdate: winnerBeforeUpdate,
-        revisions: doc.revisions,
-        inputRev: doc.rev);
-
-    // rebuild rivision tree
-    late RevisionTree newRevisionTreeObject;
-    newRevisionTreeObject = _rebuildRevisionTree(
-        oldReivisions: docHistory.revisions,
-        newRev: newRev,
-        winnerBeforeUpdate: winnerBeforeUpdate,
-        inputRevision: doc.revisions,
-        newEdits: newEdits);
-
-    // get new update seq
-    late int newUpdateSeq;
-
     await _lock.synchronized(() async {
+
+      // TODO: Add log sequence
+      history = (await keyValueDb.get(baseType))?.value;
+      docHistory = history == null
+          ? DocHistory(
+              id: doc.id,
+              docs: {},
+              revisions: RevisionTree(nodes: []),
+            )
+          : DocHistory.fromJson(history);
+      docJson = doc.toJson((value) => value);
+      winnerBeforeUpdate = docHistory.winner;
+
+      // Validation
+      _validateUpdate(
+          newEdits: newEdits,
+          winnerBeforeUpdate: winnerBeforeUpdate,
+          inputRev: doc.rev);
+
+      newRev = _generateNewRev(
+          docToEncode: docJson,
+          newEdits: newEdits,
+          winnerBeforeUpdate: winnerBeforeUpdate,
+          revisions: doc.revisions,
+          inputRev: doc.rev);
+
+      // rebuild rivision tree
+      late RevisionTree newRevisionTreeObject;
+      newRevisionTreeObject = _rebuildRevisionTree(
+          oldReivisions: docHistory.revisions,
+          newRev: newRev,
+          winnerBeforeUpdate: winnerBeforeUpdate,
+          inputRevision: doc.revisions,
+          newEdits: newEdits);
+
+      // get new update seq
+      late int newUpdateSeq;
+
+      // TODO: Add log sequence
       var lastSeq = await keyValueDb.last<SequenceKey>(SequenceKey(key: 0));
       newUpdateSeq = (lastSeq?.key.key ?? 0) + 1;
 
@@ -176,6 +178,7 @@ mixin _KeyValuePut on _AbstractKeyValue {
       // perform actual database operation base on local doc or normal doc
       if (!isLocal) {
         if (winnerBeforeUpdate != null) {
+          // TODO: Add log sequence
           await keyValueDb.delete(
             SequenceKey(key: winnerBeforeUpdate.localSeq!),
           );
@@ -186,6 +189,8 @@ mixin _KeyValuePut on _AbstractKeyValue {
             winnerRev: newDocHistoryObject.winner?.rev ?? newDocObject.rev,
             allLeafRev:
                 newDocHistoryObject.leafDocs.map((e) => e.rev).toList());
+
+        // TODO: Add log sequence
         await keyValueDb.put(
           SequenceKey(key: newUpdateSeq),
           newUpdateSeqObject.toJson(),
@@ -195,6 +200,7 @@ mixin _KeyValuePut on _AbstractKeyValue {
           newDocHistoryObject = newDocHistoryObject.compact(_revLimit);
         }
 
+        // TODO: Add log sequence
         await keyValueDb.put(
           baseType,
           newDocHistoryObject.toJson(),
