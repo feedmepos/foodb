@@ -1,7 +1,6 @@
 part of '../../foodb.dart';
 
 mixin _KeyValuePut on _AbstractKeyValue {
-
   final logger = Logger('foodb._KeyValuePut');
 
   RevisionTree _rebuildRevisionTree(

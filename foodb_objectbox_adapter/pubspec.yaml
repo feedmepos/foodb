@@ -14,6 +14,7 @@ dependencies:
   foodb: ^0.12.0
   objectbox_flutter_libs: ^4.0.1
   flat_buffers: ^23.5.26
+  logging: ">=1.0.0 <2.0.0"
 
 dev_dependencies:
   foodb_test: ^0.12.0

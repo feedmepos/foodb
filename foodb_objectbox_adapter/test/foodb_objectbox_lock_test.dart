@@ -5,6 +5,7 @@ import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodb/foodb.dart';
+import 'package:logging/logging.dart';
 import 'package:objectbox/objectbox.dart';
 import 'package:path/path.dart';
 import 'package:synchronized/synchronized.dart';
@@ -27,41 +28,28 @@ void main() {
 
     await tester.runAsync(() async {
       FooDBIsolateLockManager();
-      final port = ReceivePort();
-      SendPort? sendPort;
-      final completer = Completer();
-      final port2 = ReceivePort();
-      SendPort? sendPort2;
-      final completer2 = Completer();
-      await Isolate.spawn(isolatesDbInstance, {
-        'sendPort': port.sendPort,
-        'name': 'A',
-      });
-      port.listen((message) {
-        if (message is SendPort) {
-          sendPort = message;
-          completer.complete();
-        }
-      });
+      final sendPorts = <SendPort>[];
+      for (int i = 0; i < 10; i++) {
+        final completer = Completer();
+        final port = ReceivePort();
+        SendPort? sendPort;
+        await Isolate.spawn(isolatesDbInstance, {
+          'sendPort': port.sendPort,
+          'name': 'isolate $i',
+        });
+        port.listen((message) {
+          if (message is SendPort) {
+            sendPort = message;
+            sendPorts.add(sendPort!);
+            completer.complete();
+          }
+        });
+        await completer.future;
+      }
 
-      await completer.future;
-
-      await Isolate.spawn(isolatesDbInstance, {
-        'sendPort': port2.sendPort,
-        'name': 'B',
-        'triggerOnInit': true,
-      });
-      port2.listen((message) {
-        if (message is SendPort) {
-          sendPort2 = message;
-          completer2.complete();
-        }
-      });
-
-      await completer2.future;
-
-      sendPort?.send("invoke");
-      sendPort2?.send("invoke");
+      for (final sendPort in sendPorts) {
+        sendPort.send("invoke");
+      }
 
       await Future.delayed(const Duration(seconds: 10));
     });
@@ -79,43 +67,29 @@ void main() {
 
     await tester.runAsync(() async {
       FooDBIsolateLockManager();
-      final port = ReceivePort();
-      SendPort? sendPort;
-      final completer = Completer();
-      final port2 = ReceivePort();
-      SendPort? sendPort2;
-      final completer2 = Completer();
-      await Isolate.spawn(isolatesDbInstance, {
-        'sendPort': port.sendPort,
-        'name': 'A',
-        'useObjectBoxLock': true,
-      });
-      port.listen((message) {
-        if (message is SendPort) {
-          sendPort = message;
-          completer.complete();
-        }
-      });
+      final sendPorts = <SendPort>[];
+      for (int i = 0; i < 10; i++) {
+        final completer = Completer();
+        final port = ReceivePort();
+        SendPort? sendPort;
+        await Isolate.spawn(isolatesDbInstance, {
+          'sendPort': port.sendPort,
+          'name': 'isolate $i',
+          'useObjectBoxLock': true,
+        });
+        port.listen((message) {
+          if (message is SendPort) {
+            sendPort = message;
+            sendPorts.add(sendPort!);
+            completer.complete();
+          }
+        });
+        await completer.future;
+      }
 
-      await completer.future;
-
-      await Isolate.spawn(isolatesDbInstance, {
-        'sendPort': port2.sendPort,
-        'name': 'B',
-        'triggerOnInit': true,
-        'useObjectBoxLock': true,
-      });
-      port2.listen((message) {
-        if (message is SendPort) {
-          sendPort2 = message;
-          completer2.complete();
-        }
-      });
-
-      await completer2.future;
-
-      sendPort?.send("invoke");
-      sendPort2?.send("invoke");
+      for (final sendPort in sendPorts) {
+        sendPort.send("invoke");
+      }
 
       await Future.delayed(const Duration(seconds: 10));
     });
@@ -123,8 +97,11 @@ void main() {
 }
 
 void isolatesDbInstance(Map input) async {
-  final sendPort = input['sendPort'] as SendPort;
   final isolateName = input['name'] as String;
+  Logger.root.onRecord.listen((message) {
+    print('$isolateName:: $message');
+  });
+  final sendPort = input['sendPort'] as SendPort;
   final receivePort = ReceivePort();
 
   var name = '$prefix$dbName';
@@ -148,15 +125,11 @@ void isolatesDbInstance(Map input) async {
   );
 
   void call() async {
-    print('$isolateName put');
-    var putResponse = await db.put(doc: Doc(id: 'test-get', model: {}));
-    print('$isolateName put ${putResponse.ok}');
+    await db.put(doc: Doc(id: 'test-get', model: {}));
 
     var doc1 = await db.get(id: 'test-get', fromJsonT: (v) => {});
 
-    print('$isolateName delete');
-    final deleteResponse = await db.delete(id: doc1.id, rev: doc1.rev!);
-    print('$isolateName delete ${deleteResponse.ok}');
+    await db.delete(id: doc1.id, rev: doc1.rev!);
 
     await db.get(id: doc1.id, rev: doc1.rev.toString(), fromJsonT: (v) => {});
   }
