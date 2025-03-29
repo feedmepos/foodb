@@ -24,6 +24,7 @@ import 'package:foodb/src/methods/server.dart';
 import 'package:foodb/src/methods/view.dart';
 import 'package:foodb/src/selector.dart';
 import 'package:http/http.dart' as http;
+import 'package:logging/logging.dart';
 import 'package:synchronized/synchronized.dart';
 import 'package:uri/uri.dart';
 import 'package:uuid/uuid.dart';

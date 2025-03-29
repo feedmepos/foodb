@@ -1,6 +1,9 @@
 part of '../../foodb.dart';
 
 mixin _KeyValuePut on _AbstractKeyValue {
+
+  final logger = Logger('foodb._KeyValuePut');
+
   RevisionTree _rebuildRevisionTree(
       {newEdits = true,
       required RevisionTree oldReivisions,
@@ -121,7 +124,7 @@ mixin _KeyValuePut on _AbstractKeyValue {
     }
     await _lock.synchronized(() async {
 
-      // TODO: Add log sequence
+      logger.info("put.keyValueDb.get");
       history = (await keyValueDb.get(baseType))?.value;
       docHistory = history == null
           ? DocHistory(
@@ -158,7 +161,7 @@ mixin _KeyValuePut on _AbstractKeyValue {
       // get new update seq
       late int newUpdateSeq;
 
-      // TODO: Add log sequence
+      logger.info("put.keyValueDb.last");
       var lastSeq = await keyValueDb.last<SequenceKey>(SequenceKey(key: 0));
       newUpdateSeq = (lastSeq?.key.key ?? 0) + 1;
 
@@ -178,7 +181,7 @@ mixin _KeyValuePut on _AbstractKeyValue {
       // perform actual database operation base on local doc or normal doc
       if (!isLocal) {
         if (winnerBeforeUpdate != null) {
-          // TODO: Add log sequence
+          logger.info("put.isLocal.keyValueDb.delete");
           await keyValueDb.delete(
             SequenceKey(key: winnerBeforeUpdate.localSeq!),
           );
@@ -190,7 +193,7 @@ mixin _KeyValuePut on _AbstractKeyValue {
             allLeafRev:
                 newDocHistoryObject.leafDocs.map((e) => e.rev).toList());
 
-        // TODO: Add log sequence
+        logger.info("put.isLocal.keyValueDb.put.SequenceKey");
         await keyValueDb.put(
           SequenceKey(key: newUpdateSeq),
           newUpdateSeqObject.toJson(),
@@ -200,7 +203,7 @@ mixin _KeyValuePut on _AbstractKeyValue {
           newDocHistoryObject = newDocHistoryObject.compact(_revLimit);
         }
 
-        // TODO: Add log sequence
+        logger.info("put.isLocal.keyValueDb.put.newDocHistory");
         await keyValueDb.put(
           baseType,
           newDocHistoryObject.toJson(),
@@ -209,6 +212,7 @@ mixin _KeyValuePut on _AbstractKeyValue {
         localChangeStreamController.sink
             .add(MapEntry(SequenceKey(key: newUpdateSeq), newUpdateSeqObject));
       } else {
+        logger.info("keyValueDb.put.newDocHistory");
         newDocHistoryObject = newDocHistoryObject.compact(1);
         await keyValueDb.put(
           baseType,
