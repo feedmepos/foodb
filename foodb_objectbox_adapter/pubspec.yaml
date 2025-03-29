@@ -24,6 +24,8 @@ dev_dependencies:
   objectbox_generator: ^4.0.1
   flutter_dotenv: ^5.0.0
   path: any
+  foodb_isolate_lock:
+    path: ../foodb_isolate_lock
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

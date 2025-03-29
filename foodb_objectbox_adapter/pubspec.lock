@@ -258,6 +258,13 @@ packages:
       relative: true
     source: path
     version: "0.12.0"
+  foodb_isolate_lock:
+    dependency: "direct dev"
+    description:
+      path: "../foodb_isolate_lock"
+      relative: true
+    source: path
+    version: "0.0.1"
   foodb_test:
     dependency: "direct dev"
     description:
@@ -791,5 +798,5 @@ packages:
     source: hosted
     version: "3.1.2"
 sdks:
-  dart: ">=3.4.0 <4.0.0"
+  dart: ">=3.4.3 <4.0.0"
   flutter: ">=3.18.0-18.0.pre.54"

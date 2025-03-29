@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
-import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodb/foodb.dart';
+import 'package:foodb_isolate_lock/foodb_isolate_lock.dart';
 import 'package:logging/logging.dart';
 import 'package:objectbox/objectbox.dart';
 import 'package:path/path.dart';
@@ -170,126 +170,6 @@ class FooDBObjectBoxLock implements Lock {
       final output = await result;
       return output;
     } else {
-      return result;
-    }
-  }
-}
-
-const isolateName = 'package:foodb_isolate_lock';
-
-enum LockEvent { lock, unlock }
-
-enum LockStatus { locked, unlocked }
-
-class LockMessage {
-  final LockEvent type;
-  final SendPort port;
-
-  LockMessage({required this.type, required this.port});
-}
-
-class LockStatusMessage {
-  final LockStatus type;
-
-  LockStatusMessage({required this.type});
-}
-
-class FooDBIsolateLockManager {
-  final ReceivePort _receivePort = ReceivePort();
-
-  final List<SendPort> _lockedSendPorts = [];
-
-  FooDBIsolateLockManager() {
-    init();
-  }
-
-  void close() {
-    IsolateNameServer.removePortNameMapping(isolateName);
-  }
-
-  void init() {
-    IsolateNameServer.registerPortWithName(_receivePort.sendPort, isolateName);
-    _receivePort.listen((message) {
-      if (message is! LockMessage) return;
-      final type = message.type;
-      final replyPort = message.port;
-
-      if (type == LockEvent.lock) {
-        if (_lockedSendPorts.isEmpty) {
-          replyPort.send(LockStatusMessage(type: LockStatus.unlocked));
-        } else {
-          replyPort.send(LockStatusMessage(type: LockStatus.locked));
-        }
-        _lockedSendPorts.add(replyPort);
-      }
-
-      if (type == LockEvent.unlock) {
-        if (_lockedSendPorts.isEmpty) {
-          replyPort.send(LockStatusMessage(type: LockStatus.unlocked));
-        } else {
-          _lockedSendPorts
-              .removeAt(0)
-              .send(LockStatusMessage(type: LockStatus.unlocked));
-
-          if (_lockedSendPorts.isNotEmpty) {
-            _lockedSendPorts.first
-                .send(LockStatusMessage(type: LockStatus.unlocked));
-          }
-        }
-      }
-    });
-  }
-}
-
-class FooDBIsolatedLock implements Lock {
-  final List<ReceivePort> receivePorts = [];
-
-  FooDBIsolatedLock();
-
-  @override
-  bool get inLock => throw UnimplementedError();
-
-  @override
-  bool get locked => throw UnimplementedError();
-
-  @override
-  Future<T> synchronized<T>(
-    FutureOr<T> Function() computation, {
-    Duration? timeout,
-  }) async {
-    final completer = Completer();
-    final receivePort = ReceivePort();
-    receivePorts.add(receivePort);
-
-    receivePort.listen((message) {
-      if (message is! LockStatusMessage) return;
-      if (message.type == LockStatus.unlocked) {
-        if (!completer.isCompleted) completer.complete();
-      }
-    });
-
-    IsolateNameServer.lookupPortByName(isolateName)?.send(LockMessage(
-      type: LockEvent.lock,
-      port: receivePort.sendPort,
-    ));
-
-    await completer.future;
-
-    var result = computation();
-    if (result is Future) {
-      final output = await result;
-      IsolateNameServer.lookupPortByName(isolateName)?.send(LockMessage(
-        type: LockEvent.unlock,
-        port: receivePort.sendPort,
-      ));
-      receivePorts.remove(receivePort);
-      return output;
-    } else {
-      IsolateNameServer.lookupPortByName(isolateName)?.send(LockMessage(
-        type: LockEvent.unlock,
-        port: receivePort.sendPort,
-      ));
-      receivePorts.remove(receivePort);
       return result;
     }
   }
