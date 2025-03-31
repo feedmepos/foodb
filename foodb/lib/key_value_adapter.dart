@@ -268,21 +268,18 @@ abstract class KeyValueAdapter<T extends KeyValueAdapterSession> {
 
   Future<bool> initDb();
 
-  Future<void> runInSession(Future<void> Function(T) function);
+  void runInSession(void Function(T) function);
 
-  Future<MapEntry<T2, Map<String, dynamic>>?> get<T2 extends AbstractKey>(
-      T2 key,
+  MapEntry<T2, Map<String, dynamic>>? get<T2 extends AbstractKey>(T2 key,
       {T? session});
 
-  Future<Map<T2, Map<String, dynamic>?>> getMany<T2 extends AbstractKey>(
-      List<T2> keys,
+  Map<T2, Map<String, dynamic>?> getMany<T2 extends AbstractKey>(List<T2> keys,
       {T? session});
 
-  Future<MapEntry<T2, Map<String, dynamic>>?> last<T2 extends AbstractKey>(
-      T2 key,
+  MapEntry<T2, Map<String, dynamic>>? last<T2 extends AbstractKey>(T2 key,
       {T? session});
 
-  Future<ReadResult<T2>> read<T2 extends AbstractKey>(
+  ReadResult<T2> read<T2 extends AbstractKey>(
     T2 keyType, {
     T2? startkey,
     T2? endkey,
@@ -294,14 +291,13 @@ abstract class KeyValueAdapter<T extends KeyValueAdapterSession> {
     int? limit,
   });
 
-  Future<bool> put(AbstractKey key, Map<String, dynamic> value, {T? session});
-  Future<bool> putMany(Map<AbstractKey, Map<String, dynamic>> entries,
-      {T? session});
+  bool put(AbstractKey key, Map<String, dynamic> value, {T? session});
+  bool putMany(Map<AbstractKey, Map<String, dynamic>> entries, {T? session});
 
-  Future<bool> delete(AbstractKey key, {T? session});
-  Future<bool> deleteMany(List<AbstractKey> keys, {T? session});
+  bool delete(AbstractKey key, {T? session});
+  bool deleteMany(List<AbstractKey> keys, {T? session});
 
-  Future<int> tableSize(AbstractKey key, {T? session});
-  Future<bool> clearTable(AbstractKey key, {T? session});
-  Future<bool> destroy({T? session});
+  int tableSize(AbstractKey key, {T? session});
+  bool clearTable(AbstractKey key, {T? session});
+  bool destroy({T? session});
 }
