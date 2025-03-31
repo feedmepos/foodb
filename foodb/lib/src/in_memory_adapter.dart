@@ -49,8 +49,7 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
   }
 
   @override
-  Future<void> runInSession(
-      Future<void> Function(InMemoryAdapterSession p1) function) {
+  runInSession(void Function(InMemoryAdapterSession p1) function) {
     return function(InMemoryAdapterSession());
   }
 
@@ -84,8 +83,8 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
   // }
 
   @override
-  Future<MapEntry<T, Map<String, dynamic>>?> get<T extends AbstractKey>(T key,
-      {InMemoryAdapterSession? session}) async {
+  MapEntry<T, Map<String, dynamic>>? get<T extends AbstractKey>(T key,
+      {InMemoryAdapterSession? session}) {
     var table = _getTable(key);
     var val = table[key];
     if (val != null) {
@@ -96,20 +95,19 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
   }
 
   @override
-  Future<Map<T, Map<String, dynamic>?>> getMany<T extends AbstractKey>(
-      List<T> keys,
-      {InMemoryAdapterSession? session}) async {
+  Map<T, Map<String, dynamic>?> getMany<T extends AbstractKey>(List<T> keys,
+      {InMemoryAdapterSession? session}) {
     Map<T, Map<String, dynamic>?> result = {};
     for (final r in keys) {
-      final value = await get(r, session: session);
+      final value = get(r, session: session);
       result.putIfAbsent(r, () => value?.value);
     }
     return result;
   }
 
   @override
-  Future<MapEntry<T, Map<String, dynamic>>?> last<T extends AbstractKey>(T key,
-      {InMemoryAdapterSession? session}) async {
+  MapEntry<T, Map<String, dynamic>>? last<T extends AbstractKey>(T key,
+      {InMemoryAdapterSession? session}) {
     final lastKey = _getTable(key).lastKey();
     if (lastKey != null) {
       final lastVal = _getTable(key)[lastKey]!;
@@ -120,7 +118,7 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
   }
 
   @override
-  Future<ReadResult<T>> read<T extends AbstractKey>(T keyType,
+  ReadResult<T> read<T extends AbstractKey>(T keyType,
       {T? startkey,
       T? endkey,
       required bool desc,
@@ -128,7 +126,7 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
       required bool inclusiveEnd,
       int? skip,
       int? limit,
-      InMemoryAdapterSession? session}) async {
+      InMemoryAdapterSession? session}) {
     var table = _getTable(keyType);
     Map<T, Map<String, dynamic>> result = {};
     int? offSet = null;
@@ -166,8 +164,8 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
   }
 
   @override
-  Future<bool> put(AbstractKey key, Map<String, dynamic> value,
-      {InMemoryAdapterSession? session}) async {
+  bool put(AbstractKey key, Map<String, dynamic> value,
+      {InMemoryAdapterSession? session}) {
     var table = _getTable(key);
     table.update(key, (v) => value, ifAbsent: () => value);
 
@@ -175,17 +173,16 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
   }
 
   @override
-  Future<bool> putMany(Map<AbstractKey, Map<String, dynamic>> entries,
-      {InMemoryAdapterSession? session}) async {
-    await Future.forEach(entries.entries, (MapEntry entry) async {
-      await put(entry.key, entry.value, session: session);
+  bool putMany(Map<AbstractKey, Map<String, dynamic>> entries,
+      {InMemoryAdapterSession? session}) {
+    entries.entries.forEach((MapEntry entry) {
+      put(entry.key, entry.value, session: session);
     });
     return true;
   }
 
   @override
-  Future<bool> delete(AbstractKey key,
-      {InMemoryAdapterSession? session}) async {
+  bool delete(AbstractKey key, {InMemoryAdapterSession? session}) {
     var table = _getTable(key);
     table.remove(key);
 
@@ -193,24 +190,22 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
   }
 
   @override
-  Future<bool> deleteMany(List<AbstractKey> keys,
-      {InMemoryAdapterSession? session}) async {
+  bool deleteMany(List<AbstractKey> keys, {InMemoryAdapterSession? session}) {
     for (final key in keys) {
-      await delete(key, session: session);
+      delete(key, session: session);
     }
     return true;
   }
 
   @override
-  Future<bool> clearTable(AbstractKey key,
-      {InMemoryAdapterSession? session}) async {
+  bool clearTable(AbstractKey key, {InMemoryAdapterSession? session}) {
     final table = _getTable(key);
     table.clear();
     return true;
   }
 
   @override
-  Future<bool> destroy({InMemoryAdapterSession? session}) async {
+  bool destroy({InMemoryAdapterSession? session}) {
     for (final table in _stores.values) {
       table?.clear();
     }
@@ -219,8 +214,7 @@ class InMemoryAdapter implements KeyValueAdapter<InMemoryAdapterSession> {
   }
 
   @override
-  Future<int> tableSize(AbstractKey key,
-      {InMemoryAdapterSession? session}) async {
+  int tableSize(AbstractKey key, {InMemoryAdapterSession? session}) {
     return _getTable(key).length;
   }
 }

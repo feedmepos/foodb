@@ -51,7 +51,7 @@ mixin _KeyValueChange on _AbstractKeyValue {
       // if continuous, register local change stream first so that we won't miss the newly added data
       if (request.feed == ChangeFeed.continuous ||
           (request.feed == ChangeFeed.longpoll && request.since == 'now')) {
-        subscription = localChangeStreamController.stream.listen(null);
+        subscription = clusterChangeStreamController.stream.listen(null);
         if (request.heartbeat > 0) {
           _timer ??= Timer.periodic(
             Duration(milliseconds: request.heartbeat),
