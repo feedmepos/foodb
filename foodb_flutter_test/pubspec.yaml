@@ -18,7 +18,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: '>=2.19.0 <4.0.0'
+  sdk: '>=3.0.0 <4.0.0'
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -36,13 +36,26 @@ dependencies:
   cupertino_icons: ^1.0.2
 
   foodb: ^0.12.0
+  foodb_server:
+    git:
+      url: git@github.com:feedmepos/foodb.git
+      path: foodb_server
+      ref: foodb-0.12.0
   foodb_objectbox_adapter: ^0.12.0
+  path_provider: ^2.1.5
 
 dependency_overrides:
   foodb:
     path: ../foodb
+  foodb_server:
+    path: ../foodb_server
   foodb_objectbox_adapter:
     path: ../foodb_objectbox_adapter
+  shelf:
+    git:
+      url: git@github.com:feedmepos/shelf
+      path: pkgs/shelf
+
 
 dev_dependencies:
   flutter_test:
