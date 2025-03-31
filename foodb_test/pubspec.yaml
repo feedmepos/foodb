@@ -1,16 +1,16 @@
 name: foodb_test
 description: Test suite to run against different flavour of foodb
-version: 0.12.0
+version: 0.13.0
 repository: https://github.com/feedmepos/foodb 
 
 environment:
-  sdk: ">=2.19.0 <4.0.0"
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   test: ^1.16.0
   path: ^1.8.0
   dotenv: ^3.0.0
-  foodb: ^0.12.0
+  foodb: ^0.13.0
 
 dev_dependencies:
   pedantic: ^1.10.0

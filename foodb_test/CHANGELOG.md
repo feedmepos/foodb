@@ -1,3 +1,6 @@
+### 0.13.0 (BREAKING)
+* (BREAKING) support `foodb-0.13.0` where all KV operation will be sync 
+
 ## 0.12.0 (major)
 - (major) upgrade dart to 3.4
 
