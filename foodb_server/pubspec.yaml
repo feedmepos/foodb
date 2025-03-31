@@ -1,6 +1,6 @@
 name: foodb_server
 description: A server app using the shelf package and Docker.
-version: 0.10.0
+version: 0.13.0-3.7
 # homepage: https://www.example.com
 
 environment:
@@ -15,7 +15,7 @@ dependencies:
       path: pkgs/shelf
   shelf_router: ^1.0.0
   shelf_web_socket: ^1.0.2
-  foodb: ">=0.10.0 <0.11.0"
+  foodb: 0.13.0-3.7
 
 dependency_overrides:
   foodb_test:
