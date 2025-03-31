@@ -1,10 +1,10 @@
 name: foodb_server
 description: A server app using the shelf package and Docker.
-version: 0.12.0
+version: 0.13.0
 # homepage: https://www.example.com
 
 environment:
-  sdk: '>=2.19.0 <4.0.0'
+  sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   dotenv: ^3.0.0
@@ -15,7 +15,7 @@ dependencies:
       path: pkgs/shelf
   shelf_router: ^1.0.0
   shelf_web_socket: ^1.0.2
-  foodb: ^0.12.0
+  foodb: ^0.13.0
   collection: ^1.18.0
   web_socket_channel: ^2.4.5
 
