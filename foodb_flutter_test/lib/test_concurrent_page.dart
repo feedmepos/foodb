@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:foodb_flutter_test/main.dart';
 import 'package:foodb_objectbox_adapter/foodb_objectbox_adapter.dart';
-import 'package:foodb_objectbox_adapter/objectbox.g.dart';
 
 import 'package:foodb/foodb.dart';
 

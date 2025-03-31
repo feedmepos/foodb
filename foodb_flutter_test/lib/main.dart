@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:foodb_flutter_test/test_concurrent_page.dart';
 import 'package:foodb_flutter_test/test_http_client_page.dart';
+import 'package:foodb_flutter_test/test_isolate_server.dart';
 import 'package:foodb_objectbox_adapter/objectbox.g.dart';
 
 import 'package:foodb/foodb.dart';
@@ -13,6 +14,7 @@ class GlobalStore {
 }
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   FoodbDebug.logLevel = LOG_LEVEL.debug;
   HttpOverrides.global = MyHttpOverrides();
   GlobalStore.store = await openStore();
@@ -52,7 +54,8 @@ class MainPage extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => TestHttpClientPage()),
+                  MaterialPageRoute(
+                      builder: (context) => const TestHttpClientPage()),
                 );
               },
             ),
@@ -61,7 +64,18 @@ class MainPage extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => TestConcurrentPage()),
+                  MaterialPageRoute(
+                      builder: (context) => const TestConcurrentPage()),
+                );
+              },
+            ),
+            ElevatedButton(
+              child: Text(TestIsolateServerPage.title),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const TestIsolateServerPage()),
                 );
               },
             ),
