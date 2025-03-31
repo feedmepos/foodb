@@ -35,14 +35,27 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
 
-  foodb: ^0.8.0
-  foodb_objectbox_adapter: ^0.7.4
+  foodb: ^0.10.0
+  foodb_server:
+    git:
+      url: git@github.com:feedmepos/foodb.git
+      path: foodb_server
+      ref: foodb-0.10.0
+  foodb_objectbox_adapter: ^0.10.0
+  path_provider: ^2.1.5
 
 dependency_overrides:
   foodb:
     path: ../foodb
-  foodb_objectbox_adapter: 
+  foodb_server:
+    path: ../foodb_server
+  foodb_objectbox_adapter:
     path: ../foodb_objectbox_adapter
+  shelf:
+    git:
+      url: git@github.com:feedmepos/shelf
+      path: pkgs/shelf
+
 
 dev_dependencies:
   flutter_test:
