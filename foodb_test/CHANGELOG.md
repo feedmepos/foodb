@@ -1,3 +1,6 @@
+### 0.13.0 (BREAKING)
+* (BREAKING) support `foodb-0.13.0` where all KV operation will be sync 
+
 ## 0.10.0
 - (add) purge test
 - (add) test to cover race condition during view generation
