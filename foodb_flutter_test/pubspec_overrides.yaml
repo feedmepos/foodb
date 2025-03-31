@@ -2,5 +2,12 @@
 dependency_overrides:
   foodb:
     path: ../foodb
+  foodb_server:
+    path: ../foodb_server
   foodb_objectbox_adapter:
     path: ../foodb_objectbox_adapter
+  shelf:
+    git:
+      url: git@github.com:feedmepos/shelf
+      path: pkgs/shelf
+

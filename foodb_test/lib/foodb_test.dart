@@ -110,11 +110,11 @@ var _rnd = Random();
 String _getRandomString(int length) => String.fromCharCodes(Iterable.generate(
     length, (_) => _chars.codeUnitAt(_rnd.nextInt(_chars.length))));
 
-getDoc(String id) {
+Doc<Map<String, dynamic>> getDoc(String id) {
   return Doc(id: id, model: _getObject(0, () => null));
 }
 
-getLargeDoc(String id) {
+Doc<Map<String, dynamic>> getLargeDoc(String id) {
   return Doc(
     id: id,
     model: _getObject(

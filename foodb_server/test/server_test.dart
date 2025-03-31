@@ -205,7 +205,7 @@ void main() {
       await Future.delayed(Duration(seconds: 5));
 
       final res2 = await client.get(id: '2', fromJsonT: (v) => v);
-      expect(res2?.id, '2');
+      expect(res2.id, '2');
       await server.stop();
     });
 
@@ -261,7 +261,7 @@ void main() {
       print('server stopped');
 
       print('connect with new client');
-      final newClient = Foodb.websocket(
+      Foodb.websocket(
           dbName: ctx.dbId,
           baseUri: Uri.parse(
               'ws://${ctx.fooDbUsername}:${ctx.fooDbPassword}@127.0.0.1:${ctx.fooDbPort.toString()}'),

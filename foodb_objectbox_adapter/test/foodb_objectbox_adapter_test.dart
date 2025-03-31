@@ -13,25 +13,31 @@ Future<ObjectBoxAdapter> getAdapter(String dbName,
   var directory = join(Directory.current.path, 'temp/$dbName');
   final dir = Directory(directory);
   late Store store;
-  if (!persist) {
-    if (dir.existsSync()) dir.deleteSync(recursive: true);
-    addTearDown(() {
-      store.close();
+  if (Store.isOpen(directory)) {
+    store = Store.attach(getObjectBoxModel(), directory);
+  } else {
+    if (!persist) {
       if (dir.existsSync()) dir.deleteSync(recursive: true);
-    });
+      addTearDown(() {
+        store.close();
+        if (dir.existsSync()) dir.deleteSync(recursive: true);
+      });
+    }
+    store = await openStore(directory: directory);
   }
-  store = await openStore(directory: directory);
   final adapter = ObjectBoxAdapter(store);
   await adapter.initDb();
   return adapter;
 }
 
 class ObjectBoxTestContext extends FoodbTestContext {
+  ObjectBoxTestContext();
+
   @override
   Future<Foodb> db(String dbName,
       {bool? persist, String prefix = 'test-', autoCompaction = false}) async {
     var name = '$prefix$dbName';
-    var db = await getAdapter(name);
+    var db = await getAdapter(dbName);
     return Foodb.keyvalue(
         dbName: '$name', keyValueDb: db, autoCompaction: autoCompaction);
   }

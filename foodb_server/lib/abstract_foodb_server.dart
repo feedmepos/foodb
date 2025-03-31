@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:args/args.dart';
 import 'package:foodb/foodb.dart';
 import 'package:foodb_server/types.dart';
 import 'package:collection/collection.dart';
