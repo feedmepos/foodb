@@ -1,3 +1,9 @@
+### 0.13.0 (BREAKING)
+* (BREAKING) changes all KeyValue function call to synchronous
+* (add) implemented `runInSession` with objectbox `runInTransaction` to support multiple isolate
+* (add) added test case to ensure ACID operation within isolate
+* (add) added `addIsolateMembership` test case to ensure changeStream propagate correctly
+
 ### 0.12.0 (Major)
 * (mojor) upgrade objectbox flutter support up to 3.22 and object v2 to v4
 
