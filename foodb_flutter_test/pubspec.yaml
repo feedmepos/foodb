@@ -42,7 +42,6 @@ dependencies:
       path: foodb_server
       ref: foodb-0.10.0
   foodb_objectbox_adapter: ^0.10.0
-  path_provider: ^2.1.5
 
 dependency_overrides:
   foodb:

@@ -64,7 +64,7 @@ class _GenerateViewRes {
  * run mapper to generate new key
  * add new key and update doc meta
  */
-_GenerateViewRes generateViewForDocs(_GenerateViewReq req) {
+Future<_GenerateViewRes> generateViewForDocs(_GenerateViewReq req) async {
   final view = req.view;
   final docMetas = req.docMetas.map((key, value) => MapEntry(key,
       value != null ? ViewDocMeta.fromJson(value) : ViewDocMeta(keys: [])));
@@ -117,6 +117,15 @@ _GenerateViewRes generateViewForDocs(_GenerateViewReq req) {
 }
 
 mixin _KeyValueView on _AbstractKeyValue {
+  Map<String, Lock> _locks = {};
+
+  Lock _getLock(String viewName) {
+    if (!_locks.containsKey(viewName)) {
+      _locks[viewName] = Lock();
+    }
+    return _locks[viewName]!;
+  }
+
   Future<void> _generateView(Doc<DesignDoc> designDoc) async {
     for (var e in designDoc.model.views.entries) {
       var view = e.value;
@@ -133,29 +142,30 @@ mixin _KeyValueView on _AbstractKeyValue {
       var c = new Completer();
       int pending = 1;
       processChange(String since) async {
-        FoodbDebug.timedStart('<_generateView>: getChange');
-        var getChange = new Completer<ChangeResponse>();
-        changesStream(
-            ChangeRequest(limit: 300, since: since, feed: ChangeFeed.normal),
-            onComplete: getChange.complete);
-        var resp = await getChange.future;
-        keyValueDb.runInSession((_) {
+        await _getLock(viewName).synchronized(() async {
+          FoodbDebug.timedStart('<_generateView>: getChange');
+          var getChange = new Completer<ChangeResponse>();
+          changesStream(
+              ChangeRequest(limit: 300, since: since, feed: ChangeFeed.normal),
+              onComplete: getChange.complete);
+          var resp = await getChange.future;
           pending = resp.pending ?? 0;
           FoodbDebug.timedEnd('<_generateView>: getChange');
 
           List<String> docIdToProcess = resp.results.map((e) => e.id).toList();
 
           FoodbDebug.timedStart('<_generateView>: getDocToProcess');
-          final docsToProcess = (keyValueDb.getMany<DocKey>(
+          final docsToProcess = (await keyValueDb.getMany<DocKey>(
               docIdToProcess.map<DocKey>((k) => DocKey(key: k)).toList()));
           FoodbDebug.timedEnd('<_generateView>: getDocToProcess');
           FoodbDebug.timedStart('<_generateView>: getDocMetas');
-          final docMetas = (keyValueDb.getMany<ViewDocMetaKey>(docIdToProcess
-              .map((e) => ViewDocMetaKey(viewName: viewName, key: e))
-              .toList()));
+          final docMetas = (await keyValueDb.getMany<ViewDocMetaKey>(
+              docIdToProcess
+                  .map((e) => ViewDocMetaKey(viewName: viewName, key: e))
+                  .toList()));
           FoodbDebug.timedEnd('<_generateView>: getDocMetas');
           FoodbDebug.timedStart('<_generateView>: generateView');
-          var res = generateViewForDocs(_GenerateViewReq(
+          var res = await generateViewForDocs(_GenerateViewReq(
               view: view,
               viewName: viewName,
               docs: docsToProcess,
@@ -178,7 +188,7 @@ mixin _KeyValueView on _AbstractKeyValue {
             ...keyToAdd.keys.toList()
           ];
           FoodbDebug.timedStart('<_generateView>: updateKey');
-          var fullKey = (keyValueDb.getMany(fullKeyToChange)).map(
+          var fullKey = (await keyValueDb.getMany(fullKeyToChange)).map(
               (key, value) => MapEntry(
                   key,
                   value != null
@@ -195,19 +205,19 @@ mixin _KeyValueView on _AbstractKeyValue {
             exist.docs.addAll(value.docs);
           });
           if (fullKey.isNotEmpty) {
-            keyValueDb.putMany(
+            await keyValueDb.putMany(
                 fullKey.map((key, value) => MapEntry(key, value.toJson())));
           }
           var fullKeyToDelete = Map<ViewKeyMetaKey, ViewValue>.from(fullKey);
           fullKeyToDelete.removeWhere((key, value) => value.docs.length > 0);
           if (fullKeyToDelete.isNotEmpty) {
-            keyValueDb.deleteMany(fullKeyToDelete.keys.toList());
+            await keyValueDb.deleteMany(fullKeyToDelete.keys.toList());
           }
           FoodbDebug.timedEnd('<_generateView>: updateKey');
           if (newDocMetas.isNotEmpty) {
-            keyValueDb.putMany(newDocMetas);
+            await keyValueDb.putMany(newDocMetas);
           }
-          keyValueDb.put(ViewMetaKey(key: viewName),
+          await keyValueDb.put(ViewMetaKey(key: viewName),
               ViewMeta(lastSeq: decodeSeq(resp.lastSeq!)).toJson());
           if (pending > 0) {
             processChange(resp.lastSeq!);
@@ -272,8 +282,66 @@ mixin _KeyValueView on _AbstractKeyValue {
         ),
       );
     } else {
-      throw AdapterException(error: "Design Doc Not Exists");
+      result = await keyValueDb.read<ViewKeyMetaKey>(
+        ViewKeyMetaKey(viewName: viewName),
+        startkey: getViewRequest.startkey == null
+            ? null
+            : ViewKeyMetaKey(
+                viewName: viewName,
+                key: ViewKeyMeta(
+                  key: getViewRequest.startkey,
+                )),
+        endkey: getViewRequest.endkey == null
+            ? null
+            : ViewKeyMetaKey(
+                viewName: viewName,
+                key: ViewKeyMeta(key: getViewRequest.endkey)),
+        desc: getViewRequest.descending == true,
+        inclusiveEnd: getViewRequest.inclusiveEnd != false,
+        inclusiveStart: true,
+        limit: getViewRequest.limit,
+        skip: getViewRequest.skip,
+      );
     }
+
+    var data = result.records.entries.expand(
+        (e) => ViewValue.fromJson(e.value).docs.map((d) => MapEntry(e.key, d)));
+
+    List<ViewRow<T>> rows = [];
+    Map<String, DocHistory> map = {};
+    if (getViewRequest.includeDocs == true) {
+      var docs = (await keyValueDb.getMany(data
+          .map(
+            (e) => DocKey(
+                key: isAllDoc ? e.key.key?.key as String : e.value.docId),
+          )
+          .toList()));
+      docs.removeWhere((key, value) => value == null);
+      map = docs.map<String, DocHistory>(
+        (key, value) => MapEntry(key.key!, DocHistory.fromJson(value!)),
+      );
+    }
+
+    for (var r in data) {
+      final key = r.key.key!;
+      final value = r.value;
+      final docId = isAllDoc ? key.key as String : value.docId;
+      ViewRow<T> row = ViewRow<T>(
+          id: docId,
+          key: key.key,
+          value: value.value,
+          doc: getViewRequest.includeDocs == true
+              ? map[docId]!.toDoc<T>(
+                  map[docId]!.winner!.rev,
+                  fromJsonT,
+                  revLimit: _revLimit,
+                )
+              : null);
+      rows.add(row);
+    }
+
+    return GetViewResponse(
+        offset: result.offset, totalRows: result.totalRows, rows: rows);
   }
 
   @override
