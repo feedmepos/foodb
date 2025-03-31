@@ -1,3 +1,10 @@
+### 0.13.0-3.7 (BREAKING)
+the `3.7` variant is used for flutter-3.7
+* (BREAKING) no longer support hive adapter
+* (BREAKING) KeyValueAdapter should operate in synchronous instead of asynchronous
+* (add) able to launch Foodb inside multiple isolate, the underlying KeyValueAdapter must have the ability to run thread safe transaction, `foodb_objectbox_adapter: 0.13.0-3.7` has the ability
+* (add) able to chain multiple Foodb changeStream togehter through `addIsolateMembership`. See `foodb_flutter_test` for more example
+
 ### 0.10.4
 * (fix) wrongly parse the sequence number in 0.10.3
 
