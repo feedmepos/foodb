@@ -254,17 +254,19 @@ packages:
   foodb:
     dependency: "direct main"
     description:
-      path: "../foodb"
-      relative: true
-    source: path
-    version: "0.10.4"
+      name: foodb
+      sha256: c1fbca49aaac34de233f6116a3ecebff91fc1e8a599d9f31252a2443c7af747f
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.13.0-3.7"
   foodb_test:
     dependency: "direct dev"
     description:
-      path: "../foodb_test"
-      relative: true
-    source: path
-    version: "0.10.0"
+      name: foodb_test
+      sha256: ea342318c93ed4411d7d721928bfcd009c99f955255313bc9fa843155aaea559
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.13.0-3.7"
   frontend_server_client:
     dependency: transitive
     description:
