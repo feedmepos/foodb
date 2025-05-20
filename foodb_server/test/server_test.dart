@@ -91,6 +91,48 @@ void main() {
       expect(responseOne.data['_id'], mockDocs[0].id);
       await server.stop();
     });
+
+    test('changes without since query parameter defaults to 0', () async {
+      Future<Foodb> dbFactory(dbName) async {
+        final db = Foodb.keyvalue(
+          dbName: dbName,
+          keyValueDb: KeyValueAdapter.inMemory(),
+        );
+        await db.bulkDocs(body: mockDocs);
+        return db;
+      }
+
+      final server = WebSocketFoodbServer(
+        dbFactory: dbFactory,
+        config: FoodbServerConfig(auths: [
+          DatabaseAuth(
+              database: ctx.dbId,
+              username: ctx.fooDbUsername,
+              password: ctx.fooDbPassword)
+        ]),
+      );
+
+      await server.start(port: ctx.fooDbPort);
+
+      final response = await server
+          .handleRequest(FoodbServerRequest.fromWebSocketMessage(jsonEncode({
+        'method': 'GET',
+        'url':
+            'http://${ctx.fooDbUsername}:${ctx.fooDbPassword}@127.0.0.1:${ctx.fooDbPort}/${ctx.dbId}/_changes?feed=normal',
+        'messageId': '1',
+        'hold': false,
+      })));
+
+      expect(response.status, isNull);
+      final controller = response.data as StreamController<List<int>>;
+      final bytes = await controller.stream.fold<List<int>>(
+          <int>[], (p, e) => p..addAll(e));
+      final data = jsonDecode(utf8.decode(bytes));
+      expect(data['results'], isA<List>());
+      expect(data['results'].length, greaterThan(0));
+      expect(data['last_seq'], '2-0');
+      await server.stop();
+    });
   });
   group('websocket reconnect |', () {
     Future<Foodb> dbFactory(dbName) async {
