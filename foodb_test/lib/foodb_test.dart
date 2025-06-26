@@ -7,7 +7,7 @@ import 'package:foodb/key_value_adapter.dart';
 import 'package:foodb_test/src/test/purge_test.dart';
 import 'package:test/test.dart';
 
-import './src/test/all_doc_Test.dart';
+import './src/test/all_doc_test.dart';
 import './src/test/bulk_doc_test.dart';
 import './src/test/change_stream_test.dart';
 import './src/test/delete_test.dart';
@@ -15,8 +15,9 @@ import './src/test/find_test.dart';
 import './src/test/get_test.dart';
 import './src/test/put_test.dart';
 import './src/test/util_test.dart';
+import './src/broken_adapter.dart';
 
-export './src/test/all_doc_Test.dart' show allDocTest;
+export './src/test/all_doc_test.dart' show allDocTest;
 export './src/test/bulk_doc_test.dart' show bulkDocTest;
 export './src/test/change_stream_test.dart' show changeStreamTest;
 export './src/test/delete_test.dart' show deleteTest;
@@ -27,6 +28,7 @@ export './src/test/put_test.dart' show putTest;
 export './src/test/replicate_benchmark_test.dart' show replicateBenchmarkTest;
 export './src/test/replicate_test.dart' show replicateTest;
 export './src/test/util_test.dart' show utilTest;
+export './src/broken_adapter.dart' show BrokenAdapter;
 
 abstract class FoodbTestContext {
   Future<Foodb> db(String dbName,
@@ -59,6 +61,33 @@ class InMemoryTestContext extends FoodbTestContext {
         autoCompaction: autoCompaction);
     await inMemoryDb.initDb();
     return inMemoryDb;
+  }
+}
+
+class BrokenTestContext extends FoodbTestContext {
+  Duration? latency;
+  Duration notificationDelay;
+  
+  BrokenTestContext({
+    this.latency,
+    this.notificationDelay = const Duration(milliseconds: 200),
+  });
+  
+  @override
+  Future<Foodb> db(String dbName,
+      {bool? persist,
+      String prefix = 'test-',
+      bool autoCompaction = false}) async {
+    var brokenAdapter = BrokenAdapter(
+      KeyValueAdapter.inMemory(latency: latency),
+      notificationDelay: notificationDelay,
+    );
+    var brokenDb = Foodb.keyvalue(
+        dbName: '$prefix$dbName',
+        keyValueDb: brokenAdapter,
+        autoCompaction: autoCompaction);
+    await brokenDb.initDb();
+    return brokenDb;
   }
 }
 

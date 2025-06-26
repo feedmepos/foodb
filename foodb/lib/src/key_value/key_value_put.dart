@@ -108,6 +108,10 @@ mixin _KeyValuePut on _AbstractKeyValue {
     late var winnerBeforeUpdate;
     late var history;
     late Rev newRev;
+    
+    // Variables to collect change notification data
+    MapEntry<SequenceKey, UpdateSequence>? changeNotification;
+    
     if (doc.id == '') {
       throw AdapterException(
           error: 'INVALID_DOC_ID', reason: 'doc _id must not be empty');
@@ -200,8 +204,9 @@ mixin _KeyValuePut on _AbstractKeyValue {
           newDocHistoryObject.toJson(),
         );
 
-        localChangeStreamController.sink
-            .add(MapEntry(SequenceKey(key: newUpdateSeq), newUpdateSeqObject));
+        // RACE CONDITION FIX: Collect change notification data but don't send yet
+        // The notification will be sent after the transaction completes
+        changeNotification = MapEntry(SequenceKey(key: newUpdateSeq), newUpdateSeqObject);
       } else {
         newDocHistoryObject = newDocHistoryObject.compact(1);
         keyValueDb.put(
@@ -210,6 +215,12 @@ mixin _KeyValuePut on _AbstractKeyValue {
         );
       }
     });
+
+    // RACE CONDITION FIX: Send change notification AFTER transaction completes
+    // This ensures that data is fully persisted before replicators try to fetch it
+    if (changeNotification != null) {
+      localChangeStreamController.sink.add(changeNotification!);
+    }
 
     return PutResponse(ok: true, id: doc.id, rev: newRev);
   }
