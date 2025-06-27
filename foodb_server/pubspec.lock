@@ -108,14 +108,14 @@ packages:
       path: "../foodb"
       relative: true
     source: path
-    version: "0.12.0"
+    version: "0.13.0"
   foodb_test:
     dependency: "direct dev"
     description:
       path: "../foodb_test"
       relative: true
     source: path
-    version: "0.12.0"
+    version: "0.13.0"
   frontend_server_client:
     dependency: transitive
     description:
@@ -454,7 +454,7 @@ packages:
     source: hosted
     version: "14.2.5"
   watcher:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       name: watcher
       sha256: "3d2ad6751b3c16cf07c7fca317a1413b3f26530319181b37e3b9039b84fc01d8"

@@ -10,4 +10,6 @@ dependency_overrides:
     git:
       url: git@github.com:feedmepos/shelf
       path: pkgs/shelf
+  watcher: ^1.1.0
+  
 
