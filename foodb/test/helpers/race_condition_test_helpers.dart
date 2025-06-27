@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 
+import 'package:foodb/foodb.dart';
 import 'package:foodb/key_value_adapter.dart';
 
 /// A broken adapter that simulates the race condition by sending notifications
@@ -201,5 +202,30 @@ class BrokenAdapterSession implements KeyValueAdapterSession {
     for (final key in _pendingDeletes) {
       _adapter._completeTransaction(key.toString());
     }
+  }
+}
+
+/// Test context that provides an in-memory database instance
+class InMemoryTestContext {
+  Future<Foodb> db(String dbName) async {
+    var adapter = KeyValueAdapter.inMemory();
+    var db = Foodb.keyvalue(dbName: dbName, keyValueDb: adapter);
+    await db.initDb();
+    return db;
+  }
+}
+
+/// Test context that provides a broken adapter to simulate race conditions
+class BrokenTestContext {
+  final Duration notificationDelay;
+  
+  BrokenTestContext({this.notificationDelay = const Duration(milliseconds: 100)});
+  
+  Future<Foodb> db(String dbName) async {
+    var baseAdapter = KeyValueAdapter.inMemory();
+    var brokenAdapter = BrokenAdapter(baseAdapter, notificationDelay: notificationDelay);
+    var db = Foodb.keyvalue(dbName: dbName, keyValueDb: brokenAdapter);
+    await db.initDb();
+    return db;
   }
 }

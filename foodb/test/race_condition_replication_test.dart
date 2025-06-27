@@ -1,9 +1,8 @@
 import 'dart:async';
-import 'dart:isolate';
 
 import 'package:test/test.dart';
 import 'package:foodb/foodb.dart';
-import 'package:foodb_test/foodb_test.dart';
+import 'helpers/race_condition_test_helpers.dart';
 
 void main() {
   group('Race condition fix verification', () {
