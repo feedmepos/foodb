@@ -108,14 +108,14 @@ packages:
       path: "../foodb"
       relative: true
     source: path
-    version: "0.12.0"
+    version: "0.13.0"
   foodb_test:
     dependency: "direct dev"
     description:
       path: "../foodb_test"
       relative: true
     source: path
-    version: "0.12.0"
+    version: "0.13.0"
   frontend_server_client:
     dependency: transitive
     description:
