@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:isolate';
+import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodb/foodb.dart';
@@ -87,5 +89,47 @@ void main() {
       expectChanges(changeResult);
     });
     await Future.delayed(Duration(seconds: 5));
+  });
+
+  test('test-isolate-concurrent-put-and-all-docs-race-condition', () async {
+    final dbName = 'test-isolate-concurrent-put-and-all-docs-race-condition';
+    final mainAdapter = await getAdapter(dbName);
+    var docKey = DocKey(key: 'singleDoc');
+    mainAdapter.put(docKey, Map.from({'value': 0}));
+    await Future.delayed(Duration(seconds: 1));
+
+    FoodbDebug.logLevel = LOG_LEVEL.debug;
+
+    final mainFoodb = Foodb.keyvalue(
+      dbName: dbName,
+      keyValueDb: mainAdapter,
+      isolateLeader: true,
+    ) as KeyvalueFoodb;
+    final reference = mainFoodb.isolateReference;
+
+    for (var i = 0; i < 50; ++i) {
+      final isolateName = 'isolate-$i';
+      print('starting isolate $i');
+      Isolate.run(() async {
+        // print('start $isolateName');
+        final adapter = await getAdapter(dbName);
+        final foodb = Foodb.keyvalue(dbName: dbName, keyValueDb: adapter)
+            as KeyvalueFoodb;
+        foodb.addIsolateMembership(reference);
+        for (var docIndex = 0; docIndex < 50; ++docIndex) {
+          final docId = '$isolateName-doc-$docIndex';
+          // print('$docId - put');
+          await foodb.put(doc: Doc(id: docId, model: {"a": 1}));
+          // print('$docId - put done');
+          final allDocs = await foodb.allDocs(GetViewRequest(), (t) => t);
+          print(allDocs.rows.length);
+          ;
+        }
+      }, debugName: 'isolate $i');
+    }
+
+    await Future.delayed(Duration(seconds: 20));
+    var allDocs = await mainFoodb.allDocs(GetViewRequest(), (t) => t);
+    expect(allDocs.rows.length, 2500);
   });
 }

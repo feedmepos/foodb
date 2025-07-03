@@ -128,7 +128,7 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
           doc: Doc<Map<String, dynamic>>.fromJson(
               designDoc.toJson((value) => value.toJson()),
               (json) => json as Map<String, dynamic>));
-      await _generateView(designDoc);
+      _generateView(designDoc);
     } else {
       await delete(id: designDoc.id, rev: designDoc.rev!);
     }
@@ -168,7 +168,7 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
     final selector = findRequest.selector;
     late MapEntry<String, Doc<DesignDoc>> selectedView;
     selectedView = await _pickDesignDoc(selector.keys().toSet());
-    await _generateView(selectedView.value);
+    _generateView(selectedView.value);
     var viewName = keyValueDb.getViewTableName(
         designDocId: selectedView.value.id, viewId: selectedView.key);
 

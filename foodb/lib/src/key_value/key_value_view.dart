@@ -117,108 +117,215 @@ _GenerateViewRes generateViewForDocs(_GenerateViewReq req) {
 }
 
 mixin _KeyValueView on _AbstractKeyValue {
-  Future<void> _generateView(Doc<DesignDoc> designDoc) async {
+  //
+  //  // Non-sync generate view, might cause race condition
+  //
+  //  Future<void> _generateView(Doc<DesignDoc> designDoc) async {
+  //   for (var e in designDoc.model.views.entries) {
+  //     var view = e.value;
+  //     var viewName =
+  //         keyValueDb.getViewTableName(designDocId: designDoc.id, viewId: e.key);
+  //     var json = (await keyValueDb.get(ViewMetaKey(key: viewName)))?.value;
+
+  //     ViewMeta meta;
+  //     if (json == null) {
+  //       meta = ViewMeta(lastSeq: 0);
+  //     } else {
+  //       meta = ViewMeta.fromJson(json);
+  //     }
+  //     var c = new Completer();
+  //     int pending = 1;
+  //     processChange(String since) async {
+  //       FoodbDebug.timedStart('<_generateView>: getChange');
+  //       var getChange = new Completer<ChangeResponse>();
+  //       changesStream(
+  //           ChangeRequest(limit: 300, since: since, feed: ChangeFeed.normal),
+  //           onComplete: getChange.complete);
+  //       var resp = await getChange.future;
+  //       keyValueDb.runInSession((_) {
+  //         pending = resp.pending ?? 0;
+  //         FoodbDebug.timedEnd('<_generateView>: getChange');
+
+  //         List<String> docIdToProcess = resp.results.map((e) => e.id).toList();
+
+  //         FoodbDebug.timedStart('<_generateView>: getDocToProcess');
+  //         final docsToProcess = (keyValueDb.getMany<DocKey>(
+  //             docIdToProcess.map<DocKey>((k) => DocKey(key: k)).toList()));
+  //         FoodbDebug.timedEnd('<_generateView>: getDocToProcess');
+  //         FoodbDebug.timedStart('<_generateView>: getDocMetas');
+  //         final docMetas = (keyValueDb.getMany<ViewDocMetaKey>(docIdToProcess
+  //             .map((e) => ViewDocMetaKey(viewName: viewName, key: e))
+  //             .toList()));
+  //         FoodbDebug.timedEnd('<_generateView>: getDocMetas');
+  //         FoodbDebug.timedStart('<_generateView>: generateView');
+  //         var res = generateViewForDocs(_GenerateViewReq(
+  //             view: view,
+  //             viewName: viewName,
+  //             docs: docsToProcess,
+  //             docMetas: docMetas));
+  //         // var res = await FoodbWorker.execute(
+  //         //     generateViewForDocs,
+  //         //     _GenerateViewReq(
+  //         //         view: view,
+  //         //         viewName: viewName,
+  //         //         docs: docsToProcess,
+  //         //         docMetas: docMetas));
+  //         FoodbDebug.timedEnd('<_generateView>: generateView');
+
+  //         final newDocMetas = res.docMetas;
+  //         final keyToAdd = res.keyToAdd;
+  //         final keyToRemove = res.keyToRemove;
+
+  //         var fullKeyToChange = [
+  //           ...keyToRemove.keys.toList(),
+  //           ...keyToAdd.keys.toList()
+  //         ];
+  //         FoodbDebug.timedStart('<_generateView>: updateKey');
+  //         var fullKey = (keyValueDb.getMany(fullKeyToChange)).map(
+  //             (key, value) => MapEntry(
+  //                 key,
+  //                 value != null
+  //                     ? ViewValue.fromJson(value)
+  //                     : ViewValue(docs: [])));
+  //         keyToRemove.forEach((key, value) {
+  //           var exist = fullKey[key]!;
+  //           exist.docs.removeWhere((element) => value.docs.any((e2) {
+  //                 return e2.docId == element.docId;
+  //               }));
+  //         });
+  //         keyToAdd.forEach((key, value) {
+  //           var exist = fullKey[key]!;
+  //           exist.docs.addAll(value.docs);
+  //         });
+  //         if (fullKey.isNotEmpty) {
+  //           keyValueDb.putMany(
+  //               fullKey.map((key, value) => MapEntry(key, value.toJson())));
+  //         }
+  //         var fullKeyToDelete = Map<ViewKeyMetaKey, ViewValue>.from(fullKey);
+  //         fullKeyToDelete.removeWhere((key, value) => value.docs.length > 0);
+  //         if (fullKeyToDelete.isNotEmpty) {
+  //           keyValueDb.deleteMany(fullKeyToDelete.keys.toList());
+  //         }
+  //         FoodbDebug.timedEnd('<_generateView>: updateKey');
+  //         if (newDocMetas.isNotEmpty) {
+  //           keyValueDb.putMany(newDocMetas);
+  //         }
+  //         keyValueDb.put(ViewMetaKey(key: viewName),
+  //             ViewMeta(lastSeq: decodeSeq(resp.lastSeq!)).toJson());
+  //         if (pending > 0) {
+  //           processChange(resp.lastSeq!);
+  //         } else {
+  //           c.complete();
+  //         }
+  //       });
+  //     }
+
+  //     processChange(encodeSeq(meta.lastSeq));
+  //     await c.future;
+  //   }
+  // }
+
+  void _generateView(Doc<DesignDoc> designDoc) {
     for (var e in designDoc.model.views.entries) {
-      var view = e.value;
-      var viewName =
-          keyValueDb.getViewTableName(designDocId: designDoc.id, viewId: e.key);
-      var json = (await keyValueDb.get(ViewMetaKey(key: viewName)))?.value;
+      keyValueDb.runInSession((_) {
+        var view = e.value;
+        var viewName = keyValueDb.getViewTableName(
+            designDocId: designDoc.id, viewId: e.key);
+        var json = (keyValueDb.get(ViewMetaKey(key: viewName)))?.value;
 
-      ViewMeta meta;
-      if (json == null) {
-        meta = ViewMeta(lastSeq: 0);
-      } else {
-        meta = ViewMeta.fromJson(json);
-      }
-      var c = new Completer();
-      int pending = 1;
-      processChange(String since) async {
+        ViewMeta meta;
+        if (json == null) {
+          meta = ViewMeta(lastSeq: 0);
+        } else {
+          meta = ViewMeta.fromJson(json);
+        }
+
+        // Get all changes since last seq
         FoodbDebug.timedStart('<_generateView>: getChange');
-        var getChange = new Completer<ChangeResponse>();
-        changesStream(
-            ChangeRequest(limit: 300, since: since, feed: ChangeFeed.normal),
-            onComplete: getChange.complete);
-        var resp = await getChange.future;
-        keyValueDb.runInSession((_) {
-          pending = resp.pending ?? 0;
-          FoodbDebug.timedEnd('<_generateView>: getChange');
+        ReadResult result = keyValueDb.read(SequenceKey(key: 0),
+            startkey: SequenceKey(key: meta.lastSeq),
+            desc: false,
+            inclusiveStart: false,
+            inclusiveEnd: true);
+        List<String> docIdToProcess = result.records.entries
+            .map((e) => UpdateSequence.fromJson(e.value).id)
+            .toList();
+        final nextSeq = result.records.isNotEmpty
+            ? (result.records.entries.last.key as SequenceKey).key!
+            : meta.lastSeq;
+        FoodbDebug.timedEnd('<_generateView>: getChange');
 
-          List<String> docIdToProcess = resp.results.map((e) => e.id).toList();
+        // early return if no doc to process
+        if (docIdToProcess.isEmpty) {
+          FoodbDebug.log('<_generateView>: No doc to process for $viewName');
+          return;
+        }
 
-          FoodbDebug.timedStart('<_generateView>: getDocToProcess');
-          final docsToProcess = (keyValueDb.getMany<DocKey>(
-              docIdToProcess.map<DocKey>((k) => DocKey(key: k)).toList()));
-          FoodbDebug.timedEnd('<_generateView>: getDocToProcess');
-          FoodbDebug.timedStart('<_generateView>: getDocMetas');
-          final docMetas = (keyValueDb.getMany<ViewDocMetaKey>(docIdToProcess
-              .map((e) => ViewDocMetaKey(viewName: viewName, key: e))
-              .toList()));
-          FoodbDebug.timedEnd('<_generateView>: getDocMetas');
-          FoodbDebug.timedStart('<_generateView>: generateView');
-          var res = generateViewForDocs(_GenerateViewReq(
-              view: view,
-              viewName: viewName,
-              docs: docsToProcess,
-              docMetas: docMetas));
-          // var res = await FoodbWorker.execute(
-          //     generateViewForDocs,
-          //     _GenerateViewReq(
-          //         view: view,
-          //         viewName: viewName,
-          //         docs: docsToProcess,
-          //         docMetas: docMetas));
-          FoodbDebug.timedEnd('<_generateView>: generateView');
+        FoodbDebug.timedStart('<_generateView>: getDocToProcess');
+        final docsToProcess = (keyValueDb.getMany<DocKey>(
+            docIdToProcess.map<DocKey>((k) => DocKey(key: k)).toList()));
+        FoodbDebug.timedEnd('<_generateView>: getDocToProcess');
+        FoodbDebug.timedStart('<_generateView>: getDocMetas');
+        final docMetas = (keyValueDb.getMany<ViewDocMetaKey>(docIdToProcess
+            .map((e) => ViewDocMetaKey(viewName: viewName, key: e))
+            .toList()));
+        FoodbDebug.timedEnd('<_generateView>: getDocMetas');
+        FoodbDebug.timedStart('<_generateView>: generateView');
+        var res = generateViewForDocs(_GenerateViewReq(
+            view: view,
+            viewName: viewName,
+            docs: docsToProcess,
+            docMetas: docMetas));
+        // var res = await FoodbWorker.execute(
+        //     generateViewForDocs,
+        //     _GenerateViewReq(
+        //         view: view,
+        //         viewName: viewName,
+        //         docs: docsToProcess,
+        //         docMetas: docMetas));
+        FoodbDebug.timedEnd('<_generateView>: generateView');
 
-          final newDocMetas = res.docMetas;
-          final keyToAdd = res.keyToAdd;
-          final keyToRemove = res.keyToRemove;
+        final newDocMetas = res.docMetas;
+        final keyToAdd = res.keyToAdd;
+        final keyToRemove = res.keyToRemove;
 
-          var fullKeyToChange = [
-            ...keyToRemove.keys.toList(),
-            ...keyToAdd.keys.toList()
-          ];
-          FoodbDebug.timedStart('<_generateView>: updateKey');
-          var fullKey = (keyValueDb.getMany(fullKeyToChange)).map(
-              (key, value) => MapEntry(
-                  key,
-                  value != null
-                      ? ViewValue.fromJson(value)
-                      : ViewValue(docs: [])));
-          keyToRemove.forEach((key, value) {
-            var exist = fullKey[key]!;
-            exist.docs.removeWhere((element) => value.docs.any((e2) {
-                  return e2.docId == element.docId;
-                }));
-          });
-          keyToAdd.forEach((key, value) {
-            var exist = fullKey[key]!;
-            exist.docs.addAll(value.docs);
-          });
-          if (fullKey.isNotEmpty) {
-            keyValueDb.putMany(
-                fullKey.map((key, value) => MapEntry(key, value.toJson())));
-          }
-          var fullKeyToDelete = Map<ViewKeyMetaKey, ViewValue>.from(fullKey);
-          fullKeyToDelete.removeWhere((key, value) => value.docs.length > 0);
-          if (fullKeyToDelete.isNotEmpty) {
-            keyValueDb.deleteMany(fullKeyToDelete.keys.toList());
-          }
-          FoodbDebug.timedEnd('<_generateView>: updateKey');
-          if (newDocMetas.isNotEmpty) {
-            keyValueDb.putMany(newDocMetas);
-          }
-          keyValueDb.put(ViewMetaKey(key: viewName),
-              ViewMeta(lastSeq: decodeSeq(resp.lastSeq!)).toJson());
-          if (pending > 0) {
-            processChange(resp.lastSeq!);
-          } else {
-            c.complete();
-          }
+        var fullKeyToChange = [
+          ...keyToRemove.keys.toList(),
+          ...keyToAdd.keys.toList()
+        ];
+        FoodbDebug.timedStart('<_generateView>: updateKey');
+        var fullKey = (keyValueDb.getMany(fullKeyToChange)).map((key, value) =>
+            MapEntry(
+                key,
+                value != null
+                    ? ViewValue.fromJson(value)
+                    : ViewValue(docs: [])));
+        keyToRemove.forEach((key, value) {
+          var exist = fullKey[key]!;
+          exist.docs.removeWhere((element) => value.docs.any((e2) {
+                return e2.docId == element.docId;
+              }));
         });
-      }
-
-      processChange(encodeSeq(meta.lastSeq));
-      await c.future;
+        keyToAdd.forEach((key, value) {
+          var exist = fullKey[key]!;
+          exist.docs.addAll(value.docs);
+        });
+        if (fullKey.isNotEmpty) {
+          keyValueDb.putMany(
+              fullKey.map((key, value) => MapEntry(key, value.toJson())));
+        }
+        var fullKeyToDelete = Map<ViewKeyMetaKey, ViewValue>.from(fullKey);
+        fullKeyToDelete.removeWhere((key, value) => value.docs.length > 0);
+        if (fullKeyToDelete.isNotEmpty) {
+          keyValueDb.deleteMany(fullKeyToDelete.keys.toList());
+        }
+        FoodbDebug.timedEnd('<_generateView>: updateKey');
+        if (newDocMetas.isNotEmpty) {
+          keyValueDb.putMany(newDocMetas);
+        }
+        keyValueDb.put(
+            ViewMetaKey(key: viewName), ViewMeta(lastSeq: nextSeq).toJson());
+      });
     }
   }
 
@@ -244,7 +351,7 @@ mixin _KeyValueView on _AbstractKeyValue {
       designDoc = await fetchDesignDoc(ddocName: ddocId);
     }
 
-    await _generateView(designDoc);
+    _generateView(designDoc);
     var viewName =
         keyValueDb.getViewTableName(designDocId: designDoc.id, viewId: viewId);
     late ReadResult<ViewKeyMetaKey> result;
