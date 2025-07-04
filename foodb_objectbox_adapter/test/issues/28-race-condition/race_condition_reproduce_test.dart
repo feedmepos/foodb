@@ -277,7 +277,7 @@ void main() {
         expect(putResponse['success'], isTrue);
 
         // Put another document directly in source FooDB to trigger second replication
-        Future.delayed(Duration(seconds: 1));
+        await Future.delayed(Duration(seconds: 1));
         await sourceFoodb.put(
             doc: Doc(
                 id: 'trigger-doc', model: {'purpose': 'trigger replication'}));
