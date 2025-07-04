@@ -77,3 +77,8 @@ build/
 *.env
 
 temp/
+
+objectbox.dll
+objectbox.dylib
+objectbox.so
+objectbox.lib

@@ -129,21 +129,21 @@ packages:
       path: "../foodb"
       relative: true
     source: path
-    version: "0.12.0"
+    version: "0.13.0"
   foodb_objectbox_adapter:
     dependency: "direct main"
     description:
       path: "../foodb_objectbox_adapter"
       relative: true
     source: path
-    version: "0.12.0"
+    version: "0.13.0"
   foodb_server:
     dependency: "direct main"
     description:
       path: "../foodb_server"
       relative: true
     source: path
-    version: "0.12.0"
+    version: "0.13.0"
   http:
     dependency: transitive
     description:

@@ -9,7 +9,8 @@ import 'package:foodb_objectbox_adapter/objectbox.g.dart';
 import 'package:path/path.dart';
 
 Future<ObjectBoxAdapter> getAdapter(String dbName,
-    {bool persist = false}) async {
+    {bool persist = false,
+    ObjectBoxAdapter Function(Store store)? factory}) async {
   var directory = join(Directory.current.path, 'temp/$dbName');
   final dir = Directory(directory);
   late Store store;
@@ -25,7 +26,7 @@ Future<ObjectBoxAdapter> getAdapter(String dbName,
     }
     store = await openStore(directory: directory);
   }
-  final adapter = ObjectBoxAdapter(store);
+  final adapter = factory != null ? factory(store) : ObjectBoxAdapter(store);
   await adapter.initDb();
   return adapter;
 }
