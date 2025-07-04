@@ -1,3 +1,8 @@
+### 0.13.2
+* (fix) change result should emit after the `runInSession`
+* (fix) `_generateView` race condition where the lastSeq is not inside `runInSession`
+
+
 ### 0.13.0 (BREAKING)
 * (BREAKING) no longer support hive adapter
 * (BREAKING) KeyValueAdapter should operate in synchronous instead of asynchronous

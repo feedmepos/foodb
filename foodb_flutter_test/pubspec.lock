@@ -129,7 +129,7 @@ packages:
       path: "../foodb"
       relative: true
     source: path
-    version: "0.13.0"
+    version: "0.13.2"
   foodb_objectbox_adapter:
     dependency: "direct main"
     description:
