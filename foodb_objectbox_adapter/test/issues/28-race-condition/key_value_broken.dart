@@ -12,12 +12,12 @@ class KeyvalueFoodbBrokenRaceCondition extends KeyvalueFoodb {
 
   RevisionTree _rebuildRevisionTree(
       {newEdits = true,
-      required RevisionTree oldReivisions,
+      required RevisionTree oldRevisions,
       required Rev newRev,
       InternalDoc? winnerBeforeUpdate,
       Revisions? inputRevision}) {
     Map<String, RevisionNode> mappedRevision = Map.fromIterable(
-        oldReivisions.nodes,
+        oldRevisions.nodes,
         key: (e) => e.rev.toString(),
         value: (e) => e);
     if (newEdits == true) {
