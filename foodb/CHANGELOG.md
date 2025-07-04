@@ -1,3 +1,7 @@
+### 0.13.2-3.7
+* (fix) change result should emit after the `runInSession`
+* (fix) `_generateView` race condition where the lastSeq is not inside `runInSession`
+
 ### 0.13.0-3.7 (BREAKING)
 the `3.7` variant is used for flutter-3.7
 * (BREAKING) no longer support hive adapter
