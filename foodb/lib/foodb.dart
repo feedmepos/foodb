@@ -313,6 +313,8 @@ abstract class _AbstractKeyValue extends Foodb {
   JSRuntime? jsRuntime;
   int _revLimit = 1000;
   bool _autoCompaction;
+  int get revLimit => _revLimit;
+  get autoCompaction => _autoCompaction;
 
   Lock _lock = Lock();
   bool isolateLeader;
