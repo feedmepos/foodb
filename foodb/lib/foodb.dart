@@ -331,6 +331,7 @@ abstract class _AbstractKeyValue extends Foodb {
   int _nextExpectedSeq = 1;
   Map<int, MapEntry<SequenceKey, UpdateSequence>> _sequenceBuffer = {};
   Lock _sequenceLock = Lock();
+  Timer? _sequenceTimeoutTimer;
 
   @override
   String get dbUri => '${this.keyValueDb.type}://${this.dbName}';
@@ -351,15 +352,61 @@ abstract class _AbstractKeyValue extends Foodb {
           clusterChangeStreamController.sink.add(bufferedChange);
           _nextExpectedSeq++;
         }
+        
+        // Cancel timeout if buffer is empty
+        if (_sequenceBuffer.isEmpty) {
+          _sequenceTimeoutTimer?.cancel();
+          _sequenceTimeoutTimer = null;
+        }
       } else if (seqNum > _nextExpectedSeq) {
         // This is a future sequence, buffer it
         _sequenceBuffer[seqNum] = change;
         
+        // Start timeout timer if not already running
+        _sequenceTimeoutTimer ??= Timer(Duration(seconds: 30), () {
+          _handleSequenceTimeout();
+        });
+        
         // Clean up old entries to prevent memory leaks
         // Remove entries that are too far behind (likely from restarted isolates)
         _sequenceBuffer.removeWhere((key, value) => key < _nextExpectedSeq - 1000);
+        
+        // Prevent buffer from growing too large
+        if (_sequenceBuffer.length > 1000) {
+          // Emit oldest buffered changes if buffer is too large
+          final oldestSeq = _sequenceBuffer.keys.reduce((a, b) => a < b ? a : b);
+          final change = _sequenceBuffer.remove(oldestSeq)!;
+          clusterChangeStreamController.sink.add(change);
+          FoodbDebug.debug('Forced emission of sequence $oldestSeq due to buffer size limit');
+        }
       }
       // If seqNum < _nextExpectedSeq, it's a duplicate or old change, ignore it
+    });
+  }
+
+  /// Handle timeout for missing sequences
+  void _handleSequenceTimeout() {
+    _sequenceLock.synchronized(() {
+      if (_sequenceBuffer.isNotEmpty) {
+        FoodbDebug.debug('Sequence timeout: missing sequence $_nextExpectedSeq, emitting buffered changes');
+        
+        // Find the lowest sequence in buffer and adjust expected sequence
+        final lowestSeq = _sequenceBuffer.keys.reduce((a, b) => a < b ? a : b);
+        
+        // Emit warning about missing sequences
+        for (int i = _nextExpectedSeq; i < lowestSeq; i++) {
+          FoodbDebug.debug('Missing sequence $i, may indicate lost change or isolate restart');
+        }
+        
+        // Update expected sequence and emit buffered changes
+        _nextExpectedSeq = lowestSeq;
+        while (_sequenceBuffer.containsKey(_nextExpectedSeq)) {
+          final bufferedChange = _sequenceBuffer.remove(_nextExpectedSeq)!;
+          clusterChangeStreamController.sink.add(bufferedChange);
+          _nextExpectedSeq++;
+        }
+      }
+      _sequenceTimeoutTimer = null;
     });
   }
 
@@ -436,6 +483,13 @@ abstract class _AbstractKeyValue extends Foodb {
       // If we can't determine the last sequence, start from 1
       _nextExpectedSeq = 1;
     }
+  }
+
+  /// Cleanup sequence ordering resources
+  void _cleanupSequenceOrdering() {
+    _sequenceTimeoutTimer?.cancel();
+    _sequenceTimeoutTimer = null;
+    _sequenceBuffer.clear();
   }
 
   String encodeSeq(int seq) {

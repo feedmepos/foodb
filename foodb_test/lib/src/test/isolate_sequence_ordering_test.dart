@@ -141,5 +141,55 @@ List<Function(FoodbTestContext)> isolateSequenceOrderingTest() {
         expect(receivedSequences, equals([1, 2, 3]));
       });
     },
+    
+    (FoodbTestContext ctx) {
+      test('Test sequence timeout handling with missing sequence', () async {
+        final dbName = 'test-sequence-timeout';
+        final mainAdapter = await ctx.keyValueAdapter(dbName);
+        
+        final mainFoodb = Foodb.keyvalue(
+          dbName: dbName,
+          keyValueDb: mainAdapter,
+          isolateLeader: true,
+        ) as KeyvalueFoodb;
+        
+        List<int> receivedSequences = [];
+        
+        mainFoodb.changesStream(
+          ChangeRequest(feed: ChangeFeed.continuous),
+          onResult: (changeResult) {
+            final seqNum = int.parse(changeResult.seq!.split('-')[0]);
+            receivedSequences.add(seqNum);
+          },
+        );
+        
+        // Create first document (sequence 1)
+        final isolateAdapter = await ctx.keyValueAdapter(dbName);
+        final isolateFoodb = Foodb.keyvalue(dbName: dbName, keyValueDb: isolateAdapter)
+            as KeyvalueFoodb;
+        
+        isolateFoodb.addIsolateMembership(mainFoodb.isolateReference);
+        
+        await isolateFoodb.put(doc: Doc(id: 'doc1', model: {'seq': 1}));
+        
+        // Wait for sequence 1 to be processed
+        await Future.delayed(Duration(milliseconds: 100));
+        
+        // At this point, sequence 1 should be received
+        expect(receivedSequences.length, 1);
+        expect(receivedSequences[0], 1);
+        
+        // Now add sequences 2 and 3 to test normal ordering
+        await isolateFoodb.put(doc: Doc(id: 'doc2', model: {'seq': 2}));
+        await isolateFoodb.put(doc: Doc(id: 'doc3', model: {'seq': 3}));
+        
+        // Wait for processing
+        await Future.delayed(Duration(milliseconds: 500));
+        
+        // All sequences should be received in order
+        expect(receivedSequences.length, 3);
+        expect(receivedSequences, equals([1, 2, 3]));
+      });
+    },
   ];
 }
