@@ -44,6 +44,8 @@ mixin _KeyValueUtil on _AbstractKeyValue {
     await keyValueDb.initDb();
     var map = await keyValueDb.get(UtilsKey(key: '_revs_limit'));
     _revLimit = map?.value['_revs_limit'] ?? 1000;
+    _lastClusterSeq =
+        (await keyValueDb.last(SequenceKey(key: 0)))?.key?.key ?? 0;
     return true;
   }
 
