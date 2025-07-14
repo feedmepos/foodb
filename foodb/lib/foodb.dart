@@ -327,10 +327,88 @@ abstract class _AbstractKeyValue extends Foodb {
   StreamController<MapEntry<SequenceKey, UpdateSequence>>
       clusterChangeStreamController = StreamController.broadcast();
 
+  // Buffer for ordered sequence delivery
+  Map<int, MapEntry<SequenceKey, UpdateSequence>> _sequenceBuffer = {};
+  int _expectedNextSeq = 1;
+  Timer? _bufferFlushTimer;
+
+  // Buffer configuration
+  static const Duration _bufferFlushDelay = Duration(milliseconds: 100);
+  static const int _maxBufferSize = 1000;
+
   @override
   String get dbUri => '${this.keyValueDb.type}://${this.dbName}';
 
-  @override
+  // Buffer management methods
+  void _addToSequenceBuffer(MapEntry<SequenceKey, UpdateSequence> entry) {
+    final seq = entry.key.key!;
+
+    // Skip if this sequence is older than what we've already processed
+    if (seq < _expectedNextSeq) {
+      FoodbDebug.debug(
+          'Skipping old sequence: $seq, expected: $_expectedNextSeq');
+      return;
+    }
+
+    // Prevent buffer from growing too large
+    if (_sequenceBuffer.length >= _maxBufferSize) {
+      FoodbDebug.debug('Buffer size limit reached, forcing flush');
+      _flushRemainingBuffer();
+    }
+
+    _sequenceBuffer[seq] = entry;
+    _flushSequenceBuffer();
+  }
+
+  void _flushSequenceBuffer() {
+    // Cancel existing timer
+    _bufferFlushTimer?.cancel();
+
+    // Flush all consecutive sequences starting from expected
+    while (_sequenceBuffer.containsKey(_expectedNextSeq)) {
+      final entry = _sequenceBuffer.remove(_expectedNextSeq)!;
+      clusterChangeStreamController.sink.add(entry);
+      _expectedNextSeq++;
+    }
+
+    // Set a timer to flush remaining buffer after a delay (handles gaps)
+    if (_sequenceBuffer.isNotEmpty) {
+      _bufferFlushTimer = Timer(_bufferFlushDelay, () {
+        _flushRemainingBuffer();
+      });
+    }
+  }
+
+  void _flushRemainingBuffer() {
+    if (_sequenceBuffer.isNotEmpty) {
+      // Find the smallest sequence number and update expected
+      final minSeq = _sequenceBuffer.keys.reduce((a, b) => a < b ? a : b);
+      FoodbDebug.debug(
+          'Jumping sequence from $_expectedNextSeq to $minSeq due to gap timeout');
+      _expectedNextSeq = minSeq;
+      _flushSequenceBuffer();
+    }
+  }
+
+  void _resetSequenceBuffer({int? startSeq}) {
+    _bufferFlushTimer?.cancel();
+    _sequenceBuffer.clear();
+    _expectedNextSeq = startSeq ?? 1;
+  }
+
+  Future<void> _initializeSequenceBuffer() async {
+    try {
+      // Get the current last sequence from the database
+      var lastSeq = keyValueDb.last<SequenceKey>(SequenceKey(key: 0));
+      _expectedNextSeq = (lastSeq?.key.key ?? 0) + 1;
+      FoodbDebug.debug(
+          'Initialized sequence buffer, expecting sequence: $_expectedNextSeq');
+    } catch (e) {
+      FoodbDebug.debug('Failed to initialize sequence buffer: $e');
+      _expectedNextSeq = 1;
+    }
+  }
+
   bool addIsolateMembership(KeyvalueFoodbIsolateRef reference) {
     // if it is a new referece add it into membership
     if (memberships.every(
@@ -364,6 +442,13 @@ abstract class _AbstractKeyValue extends Foodb {
     return false;
   }
 
+  void dispose() {
+    _bufferFlushTimer?.cancel();
+    localChangeStreamController.close();
+    clusterChangeStreamController.close();
+    receiveFromIsolateMember.close();
+  }
+
   _AbstractKeyValue(
       {required dbName,
       required this.keyValueDb,
@@ -377,15 +462,20 @@ abstract class _AbstractKeyValue extends Foodb {
       isolateMemberSendPort: receiveFromIsolateMember.sendPort,
       isLeader: isolateLeader,
     );
+
+    // Initialize sequence buffer with current database state
+    _initializeSequenceBuffer();
+
+    // Set up buffered change streams for ordered delivery
     localChangeStreamController.stream.listen((data) {
-      clusterChangeStreamController.sink.add(data);
+      _addToSequenceBuffer(data);
     });
     receiveFromIsolateMember.listen((data) {
       if (data is KeyvalueFoodbIsolateRef) {
         addIsolateMembership(data);
       }
       if (data is MapEntry<SequenceKey, UpdateSequence>) {
-        clusterChangeStreamController.sink.add(data);
+        _addToSequenceBuffer(data);
       }
     });
   }
