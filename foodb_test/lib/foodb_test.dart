@@ -13,6 +13,7 @@ import './src/test/change_stream_test.dart';
 import './src/test/delete_test.dart';
 import './src/test/find_test.dart';
 import './src/test/get_test.dart';
+import './src/test/isolate_sequence_ordering_test.dart';
 import './src/test/put_test.dart';
 import './src/test/util_test.dart';
 
@@ -23,6 +24,7 @@ export './src/test/delete_test.dart' show deleteTest;
 export './src/test/find_benchmark_test.dart' show findBenchmarkTest;
 export './src/test/find_test.dart' show findTest;
 export './src/test/get_test.dart' show getTest;
+export './src/test/isolate_sequence_ordering_test.dart' show isolateSequenceOrderingTest;
 export './src/test/put_test.dart' show putTest;
 export './src/test/replicate_benchmark_test.dart' show replicateBenchmarkTest;
 export './src/test/replicate_test.dart' show replicateTest;
@@ -31,6 +33,8 @@ export './src/test/util_test.dart' show utilTest;
 abstract class FoodbTestContext {
   Future<Foodb> db(String dbName,
       {bool? persist, String prefix, bool autoCompaction = false});
+  
+  Future<KeyValueAdapter> keyValueAdapter(String dbName, {String prefix = 'test-'});
 }
 
 class CouchdbTestContext extends FoodbTestContext {
@@ -40,6 +44,11 @@ class CouchdbTestContext extends FoodbTestContext {
       String prefix = 'test-',
       bool autoCompaction = false}) async {
     return getCouchDb('$prefix$dbName', persist: persist ?? false);
+  }
+  
+  @override
+  Future<KeyValueAdapter> keyValueAdapter(String dbName, {String prefix = 'test-'}) async {
+    throw UnsupportedError('CouchDB context does not support direct KeyValueAdapter access');
   }
 }
 
@@ -59,6 +68,11 @@ class InMemoryTestContext extends FoodbTestContext {
         autoCompaction: autoCompaction);
     await inMemoryDb.initDb();
     return inMemoryDb;
+  }
+  
+  @override
+  Future<KeyValueAdapter> keyValueAdapter(String dbName, {String prefix = 'test-'}) async {
+    return KeyValueAdapter.inMemory(latency: latency);
   }
 }
 
@@ -140,6 +154,7 @@ final List<Function(FoodbTestContext)> foodbFullTestSuite = [
   ...deleteTest(),
   ...findTest(),
   ...getTest(),
+  ...isolateSequenceOrderingTest(),
   ...putTest(),
   ...utilTest(),
   // ...purgeTest(),

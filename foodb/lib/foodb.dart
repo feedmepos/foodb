@@ -327,8 +327,41 @@ abstract class _AbstractKeyValue extends Foodb {
   StreamController<MapEntry<SequenceKey, UpdateSequence>>
       clusterChangeStreamController = StreamController.broadcast();
 
+  // Sequence ordering buffer fields
+  int _nextExpectedSeq = 1;
+  Map<int, MapEntry<SequenceKey, UpdateSequence>> _sequenceBuffer = {};
+  Lock _sequenceLock = Lock();
+
   @override
   String get dbUri => '${this.keyValueDb.type}://${this.dbName}';
+
+  /// Emit changes to cluster stream in sequence order
+  void _emitOrderedChange(MapEntry<SequenceKey, UpdateSequence> change) {
+    _sequenceLock.synchronized(() {
+      final seqNum = change.key.key!;
+      
+      if (seqNum == _nextExpectedSeq) {
+        // This is the next expected sequence, emit it
+        clusterChangeStreamController.sink.add(change);
+        _nextExpectedSeq++;
+        
+        // Check if any buffered changes can now be emitted
+        while (_sequenceBuffer.containsKey(_nextExpectedSeq)) {
+          final bufferedChange = _sequenceBuffer.remove(_nextExpectedSeq)!;
+          clusterChangeStreamController.sink.add(bufferedChange);
+          _nextExpectedSeq++;
+        }
+      } else if (seqNum > _nextExpectedSeq) {
+        // This is a future sequence, buffer it
+        _sequenceBuffer[seqNum] = change;
+        
+        // Clean up old entries to prevent memory leaks
+        // Remove entries that are too far behind (likely from restarted isolates)
+        _sequenceBuffer.removeWhere((key, value) => key < _nextExpectedSeq - 1000);
+      }
+      // If seqNum < _nextExpectedSeq, it's a duplicate or old change, ignore it
+    });
+  }
 
   @override
   bool addIsolateMembership(KeyvalueFoodbIsolateRef reference) {
@@ -377,17 +410,32 @@ abstract class _AbstractKeyValue extends Foodb {
       isolateMemberSendPort: receiveFromIsolateMember.sendPort,
       isLeader: isolateLeader,
     );
+    
+    // Initialize the next expected sequence based on current database state
+    _initializeSequenceTracking();
+    
     localChangeStreamController.stream.listen((data) {
-      clusterChangeStreamController.sink.add(data);
+      _emitOrderedChange(data);
     });
     receiveFromIsolateMember.listen((data) {
       if (data is KeyvalueFoodbIsolateRef) {
         addIsolateMembership(data);
       }
       if (data is MapEntry<SequenceKey, UpdateSequence>) {
-        clusterChangeStreamController.sink.add(data);
+        _emitOrderedChange(data);
       }
     });
+  }
+
+  /// Initialize sequence tracking based on current database state
+  void _initializeSequenceTracking() {
+    try {
+      var lastSeq = keyValueDb.last<SequenceKey>(SequenceKey(key: 0));
+      _nextExpectedSeq = (lastSeq?.key.key ?? 0) + 1;
+    } catch (e) {
+      // If we can't determine the last sequence, start from 1
+      _nextExpectedSeq = 1;
+    }
   }
 
   String encodeSeq(int seq) {
