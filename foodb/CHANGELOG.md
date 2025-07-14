@@ -1,3 +1,6 @@
+### 0.13.4-3.7
+* (fix) `clusterChangeStream` will produce out of order sequence which lead to missing sync
+
 ### 0.13.2-3.7
 * (fix) change result should emit after the `runInSession`
 * (fix) `_generateView` race condition where the lastSeq is not inside `runInSession`
