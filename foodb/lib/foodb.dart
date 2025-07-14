@@ -4,6 +4,7 @@ library foodb;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:isolate';
+import 'dart:collection';
 
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:foodb/key_value_adapter.dart';
@@ -326,6 +327,9 @@ abstract class _AbstractKeyValue extends Foodb {
       localChangeStreamController = StreamController.broadcast();
   StreamController<MapEntry<SequenceKey, UpdateSequence>>
       clusterChangeStreamController = StreamController.broadcast();
+  final SplayTreeMap<int, MapEntry<SequenceKey, UpdateSequence>>
+      _pendingClusterChanges = SplayTreeMap();
+  int _lastClusterSeq = 0;
 
   @override
   String get dbUri => '${this.keyValueDb.type}://${this.dbName}';
@@ -378,16 +382,31 @@ abstract class _AbstractKeyValue extends Foodb {
       isLeader: isolateLeader,
     );
     localChangeStreamController.stream.listen((data) {
-      clusterChangeStreamController.sink.add(data);
+      _handleIncomingChange(data);
     });
     receiveFromIsolateMember.listen((data) {
       if (data is KeyvalueFoodbIsolateRef) {
         addIsolateMembership(data);
       }
       if (data is MapEntry<SequenceKey, UpdateSequence>) {
-        clusterChangeStreamController.sink.add(data);
+        _handleIncomingChange(data);
       }
     });
+  }
+
+  void _handleIncomingChange(MapEntry<SequenceKey, UpdateSequence> entry) {
+    _pendingClusterChanges[entry.key.key!] = entry;
+    _flushClusterChanges();
+  }
+
+  void _flushClusterChanges() {
+    while (_pendingClusterChanges.isNotEmpty &&
+        _pendingClusterChanges.firstKey() == _lastClusterSeq + 1) {
+      final next =
+          _pendingClusterChanges.remove(_pendingClusterChanges.firstKey())!;
+      _lastClusterSeq = next.key.key!;
+      clusterChangeStreamController.sink.add(next);
+    }
   }
 
   String encodeSeq(int seq) {
