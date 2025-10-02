@@ -487,6 +487,75 @@ class _CouchdbFoodb extends Foodb {
           jsonDecode(utf8.decode(response.bodyBytes)));
     }
   }
+
+  @override
+  Future<Uint8List?> getAttachment(String docId, String attachmentName) async {
+    try {
+      final uri = getUri('$docId/$attachmentName');
+      final response = await this.client.get(uri);
+      
+      if (response.statusCode == 200) {
+        return response.bodyBytes;
+      } else if (response.statusCode == 404) {
+        return null;
+      } else {
+        throw AdapterException.fromResponse(response);
+      }
+    } catch (e) {
+      if (e is AdapterException) rethrow;
+      throw AdapterException(error: 'Failed to get attachment', reason: e.toString());
+    }
+  }
+
+  @override
+  Future<void> putAttachment(
+    String docId,
+    String attachmentName,
+    Uint8List data,
+    String contentType,
+    {Rev? rev}
+  ) async {
+    try {
+      final uri = rev != null 
+          ? getUri('$docId/$attachmentName?rev=${RevToJsonString(rev)}')
+          : getUri('$docId/$attachmentName');
+      
+      final response = await this.client.put(
+        uri,
+        headers: {
+          'Content-Type': contentType,
+          'Accept': 'application/json',
+        },
+        body: data,
+      );
+      
+      if (response.statusCode != 201 && response.statusCode != 200) {
+        throw AdapterException.fromResponse(response);
+      }
+    } catch (e) {
+      if (e is AdapterException) rethrow;
+      throw AdapterException(error: 'Failed to put attachment', reason: e.toString());
+    }
+  }
+
+  @override
+  Future<void> deleteAttachment(
+    String docId,
+    String attachmentName,
+    {required Rev rev}
+  ) async {
+    try {
+      final uri = getUri('$docId/$attachmentName?rev=${RevToJsonString(rev)}');
+      final response = await this.client.delete(uri);
+      
+      if (response.statusCode != 200) {
+        throw AdapterException.fromResponse(response);
+      }
+    } catch (e) {
+      if (e is AdapterException) rethrow;
+      throw AdapterException(error: 'Failed to delete attachment', reason: e.toString());
+    }
+  }
 }
 
 Map<String, String> convertToParams(Map<String, dynamic> objects) {
