@@ -1,10 +1,10 @@
 name: foodb
 description: A CouchDB warpper with dart implementation
-version: 0.13.3
-repository: https://github.com/feedmepos/foodb 
+version: 0.13.4
+repository: https://github.com/feedmepos/foodb
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   http: ^1.1.0

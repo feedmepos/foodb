@@ -1,3 +1,7 @@
+### 0.13.4
+* (fix) `changesStream` continuous feed trims leading spaces from JSON string values when a chunk boundary falls mid-word, corrupting large document fields
+* (fix) `explain` API `Opts.r` deserialization now handles both `int` and `List<int>` responses from CouchDB
+
 ### 0.13.3
 * (fix) `clusterChangeStream` will produce out of order sequence which lead to missing sync
   
