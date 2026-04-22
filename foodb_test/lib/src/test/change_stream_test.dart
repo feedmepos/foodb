@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -171,6 +172,59 @@ List<Function(FoodbTestContext)> changeStreamTest() {
                     .map((key, value) => MapEntry(key.toString(), value))),
           );
         });
+      });
+    },
+    (FoodbTestContext ctx) {
+      test(
+          'Test change stream: continuous feed, large document preserves spaces in string values',
+          () async {
+        // Reproduce the trim bug: when a large JSON is split across multiple
+        // HTTP stream events, event.trim() removes spaces at chunk boundaries
+        // that are part of JSON string values, corrupting the document data.
+        final db = await ctx.db('change-stream-continuous-spaces');
+
+        // Build a large document whose field values contain spaces.
+        // The combined JSON must exceed typical HTTP chunk size (~16KB) so the
+        // stream is split across events, causing the trim bug to manifest.
+        const wordCount = 200;
+        final valueWithSpaces =
+            List.generate(wordCount, (i) => 'word$i').join(' ');
+        final Map<String, dynamic> largeModel = Map.fromEntries(
+          List.generate(
+              300, (i) => MapEntry<String, dynamic>('field$i', '$valueWithSpaces value$i')),
+        );
+
+        final Completer<ChangeResult> completer = Completer();
+
+        final stream = db.changesStream(
+          ChangeRequest(
+              feed: ChangeFeed.continuous, includeDocs: true, since: 'now'),
+          onResult: (result) {
+            if (result.id == 'large-doc-with-spaces' &&
+                !completer.isCompleted) {
+              completer.complete(result);
+            }
+          },
+        );
+
+        // Wait for the stream to be established before writing the document.
+        await Future.delayed(Duration(milliseconds: 500));
+        await db.put(
+            doc: Doc(id: 'large-doc-with-spaces', model: largeModel));
+
+        final result =
+            await completer.future.timeout(Duration(seconds: 15));
+        await stream.cancel();
+
+        expect(result.doc, isNotNull,
+            reason: 'doc must be included in the change result');
+        // Verify every field value has its spaces intact.
+        for (int i = 0; i < 300; i++) {
+          expect(result.doc!.model!['field$i'],
+              equals('$valueWithSpaces value$i'),
+              reason:
+                  'field$i value must preserve spaces (trim bug would remove them at chunk boundaries)');
+        }
       });
     },
   ];

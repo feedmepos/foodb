@@ -58,6 +58,7 @@ class Opts {
   int skip;
   Object? sort;
   Object? fields;
+  @JsonKey(fromJson: _rFromJson)
   List<int> r;
   bool conflicts;
 
@@ -71,6 +72,12 @@ class Opts {
     required this.r,
     required this.conflicts,
   });
+
+  static List<int> _rFromJson(dynamic json) {
+    if (json is List) return json.cast<int>();
+    if (json is int) return [json];
+    return [];
+  }
 
   factory Opts.fromJson(Map<String, dynamic> json) => _$OptsFromJson(json);
   Map<String, dynamic> toJson() => _$OptsToJson(this);
