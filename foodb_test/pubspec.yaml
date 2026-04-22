@@ -1,7 +1,7 @@
 name: foodb_test
 description: Test suite to run against different flavour of foodb
 version: 0.10.0
-repository: https://github.com/feedmepos/foodb 
+repository: https://github.com/feedmepos/foodb
 
 environment:
   sdk: ">=2.12.0 <3.0.0"
