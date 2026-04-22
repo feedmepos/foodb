@@ -56,7 +56,7 @@ Opts _$OptsFromJson(Map<String, dynamic> json) {
     skip: json['skip'] as int,
     sort: json['sort'],
     fields: json['fields'],
-    r: (json['r'] as List<dynamic>).map((e) => e as int).toList(),
+    r: Opts._rFromJson(json['r']),
     conflicts: json['conflicts'] as bool,
   );
 }
