@@ -244,10 +244,11 @@ abstract class FoodbServer {
      * long poll, onResult -> onComplete
      * continuous, onResult -> onResult -> onResult
      */
-    final changesRequest = ChangeRequest.fromJson({
+    final Map<String, dynamic> changesParams = {
       ...request.queryParams,
-      'since': request.queryParams['since'].toString(),
-    });
+      'since': request.queryParams['since']?.toString() ?? '0',
+    };
+    final changesRequest = ChangeRequest.fromJson(changesParams);
     final streamController = StreamController<List<int>>();
 
     final cs = (await _getDb(request)).changesStream(
