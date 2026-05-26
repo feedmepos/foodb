@@ -1,3 +1,6 @@
+### 0.13.6
+* (fix) Couchdb changeStream certain character being trimmed
+
 ### 0.13.4
 * (fix) `changesStream` continuous feed trims leading spaces from JSON string values when a chunk boundary falls mid-word, corrupting large document fields
 * (fix) `explain` API `Opts.r` deserialization now handles both `int` and `List<int>` responses from CouchDB
