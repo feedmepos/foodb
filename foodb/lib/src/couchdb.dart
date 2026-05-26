@@ -148,12 +148,12 @@ class _CouchdbFoodb extends Foodb {
               onHeartbeat?.call();
             }
             // uncomment this to simulate changes_stream_trim_bug_test.dart
-            if (trimmed != '') cache += trimmed;
+            // if (trimmed != '') cache += trimmed;
 
             // Append the raw event (not trimmed) so that spaces inside JSON
             // string values are preserved when a chunk boundary falls mid-word.
             // Heartbeat lines (trimmed == '') are all-whitespace and skipped.
-            // if (trimmed != '') cache += event;
+            if (trimmed != '') cache += event;
             var items =
                 RegExp("^{\".*},?\n?\$", multiLine: true).allMatches(cache);
             if (items.isNotEmpty) {

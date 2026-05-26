@@ -1,3 +1,6 @@
+### 0.13.6-3.7
+* (fix) Couchdb changeStream certain character being trimmed
+
 ### 0.13.4-3.7
 * (fix) `clusterChangeStream` will produce out of order sequence which lead to missing sync
 
