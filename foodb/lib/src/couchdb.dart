@@ -153,23 +153,39 @@ class _CouchdbFoodb extends Foodb {
             // string values are preserved when a chunk boundary falls mid-word.
             // Heartbeat lines (trimmed == '') are all-whitespace and skipped.
             if (trimmed != '') cache += event;
-            var items =
-                RegExp("^{\".*},?\n?\$", multiLine: true).allMatches(cache);
-            if (items.isNotEmpty) {
-              var parseSuccess = false;
-              items.forEach((i) {
-                try {
-                  var json = jsonDecode(cache.substring(i.start, i.end).trim());
-                  if (json['id'] != null) {
-                    onResult?.call(ChangeResult.fromJson(json));
-                    parseSuccess = true;
-                  }
-                } catch (err) {}
-              });
-              if (parseSuccess) {
-                cache = '';
-              }
+            // A network chunk can end in the middle of a line. Parse only
+            // complete lines (ending in '\n'). Keep the trailing part in the
+            // cache until its line is complete, so no change is dropped.
+            void emit(String line) {
+              final text = line.trim();
+              if (!text.startsWith('{"')) return;
+              try {
+                final json = jsonDecode(text.endsWith(',')
+                    ? text.substring(0, text.length - 1)
+                    : text);
+                if (json['id'] != null) {
+                  onResult?.call(ChangeResult.fromJson(json));
+                }
+              } catch (err) {}
             }
+
+            final lastNewline = cache.lastIndexOf('\n');
+            if (lastNewline >= 0) {
+              cache.substring(0, lastNewline).split('\n').forEach(emit);
+            }
+            var tail = cache.substring(lastNewline + 1);
+            // A last line whose '\n' is still in flight: use it now only when
+            // it is already a whole JSON object, otherwise keep waiting.
+            if (tail.trim().startsWith('{"')) {
+              try {
+                jsonDecode(tail.trim());
+                emit(tail);
+                tail = '';
+              } catch (err) {}
+            } else if (!tail.trim().startsWith('{') && tail.trim() != '') {
+              tail = ''; // not the start of a change line
+            }
+            cache = tail;
           } else {
             cache += event;
             if (event.contains('last_seq')) {
