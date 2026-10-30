@@ -1,3 +1,6 @@
+### Unreleased
+* (fix) `changesStream` continuous feed (HTTP) dropped a change when a network read ended in the middle of a line after whole lines. The parser cleared its cache after any successful parse, which deleted the first part of the next line. It now parses only lines that end in a newline and keeps the trailing part until its line is complete. A replication checkpoint no longer moves past a change that was never delivered
+
 ### 0.13.6
 * (fix) Couchdb changeStream certain character being trimmed
 
