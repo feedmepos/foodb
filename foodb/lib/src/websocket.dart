@@ -603,4 +603,29 @@ class _WebSocketFoodb extends Foodb {
     );
     return PurgeResponse.fromJson(response.data);
   }
+
+  @override
+  Future<Uint8List?> getAttachment(String docId, String attachmentName) async {
+    throw UnimplementedError('Attachment methods not yet implemented for WebSocket adapter');
+  }
+
+  @override
+  Future<void> putAttachment(
+    String docId,
+    String attachmentName,
+    Uint8List data,
+    String contentType,
+    {Rev? rev}
+  ) async {
+    throw UnimplementedError('Attachment methods not yet implemented for WebSocket adapter');
+  }
+
+  @override
+  Future<void> deleteAttachment(
+    String docId,
+    String attachmentName,
+    {required Rev rev}
+  ) async {
+    throw UnimplementedError('Attachment methods not yet implemented for WebSocket adapter');
+  }
 }

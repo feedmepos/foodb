@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:isolate';
 import 'dart:collection';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:foodb/key_value_adapter.dart';
@@ -34,6 +35,8 @@ import 'package:web_socket_channel/io.dart';
 
 export 'foodb.dart';
 export 'foodb_worker.dart';
+export 'attachment_store.dart';
+export 'package:foodb/src/file_system_attachment_store.dart';
 export 'package:foodb/src/common.dart';
 export 'package:foodb/src/design_doc.dart';
 export 'package:foodb/src/exception.dart';
@@ -62,6 +65,7 @@ part 'src/key_value/key_value_purge.dart';
 part 'src/key_value/key_value_put.dart';
 part 'src/key_value/key_value_util.dart';
 part 'src/key_value/key_value_view.dart';
+part 'src/key_value/key_value_attachment.dart';
 part 'src/websocket.dart';
 
 enum LOG_LEVEL { trace, debug, off }
@@ -288,6 +292,23 @@ abstract class Foodb {
       T Function(Map<String, dynamic> json) fromJsonT);
 
   Future<PurgeResponse> purge(Map<String, List<String>> payload);
+
+  // Attachment methods
+  Future<Uint8List?> getAttachment(String docId, String attachmentName);
+  
+  Future<void> putAttachment(
+    String docId,
+    String attachmentName,
+    Uint8List data,
+    String contentType,
+    {Rev? rev}
+  );
+  
+  Future<void> deleteAttachment(
+    String docId,
+    String attachmentName,
+    {required Rev rev}
+  );
 }
 
 abstract class JSRuntime {
@@ -426,7 +447,8 @@ class KeyvalueFoodb extends _AbstractKeyValue
         _KeyValuePut,
         _KeyValueChange,
         _KeyValueView,
-        _KeyValuePurge {
+        _KeyValuePurge,
+        _KeyValueAttachment {
   KeyvalueFoodb(
       {required dbName,
       required KeyValueAdapter keyValueDb,
