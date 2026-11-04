@@ -243,6 +243,44 @@ List<Function(FoodbTestContext)> findTest() {
       });
     },
     (FoodbTestContext ctx) {
+      test('find-map-fields-order-differs-from-def-fields', () async {
+        final db = await ctx.db('find-map-fields-order');
+        // map.fields sorted alphabetically, def.fields in the creator's order
+        await db.put(
+            doc: Doc(id: '_design/type_bill_status', model: {
+          'language': 'query',
+          'views': {
+            'type_bill_status': {
+              'map': {
+                'fields': {'status': 'asc', 'type_bill': 'asc'}
+              },
+              'reduce': '_count',
+              'options': {
+                'def': {
+                  'fields': ['type_bill', 'status']
+                }
+              }
+            }
+          }
+        }));
+        await db.put(
+            doc: Doc(id: '1', model: {'type_bill': true, 'status': 'DRAFT'}));
+        await db.put(
+            doc: Doc(id: '2', model: {'type_bill': true, 'status': 'DRAFT'}));
+        await db.put(
+            doc: Doc(id: '3', model: {'type_bill': true, 'status': 'PAID'}));
+
+        var result = await db.find(
+            FindRequest(
+                selector: AndOperator(operators: [
+              EqualOperator(key: 'type_bill', expected: true),
+              EqualOperator(key: 'status', expected: 'DRAFT')
+            ])),
+            (p0) => p0);
+        expect(result.docs.map((e) => e.id), unorderedEquals(['1', '2']));
+      });
+    },
+    (FoodbTestContext ctx) {
       group('find()', () {
         test(
             'flat selector without _id, docs with missing keys, fields of design_doc< fields of selector',
