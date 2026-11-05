@@ -1,3 +1,6 @@
+### 0.13.7-3.7
+* (fix) `find` returned no docs when an index's `map.fields` order differed from its `options.def.fields`, for example in design docs written by goodb. `find` now decodes index keys in `map.fields` order, the same order the mapper writes them.
+
 ### 0.13.6-3.7
 * (fix) Couchdb changeStream certain character being trimmed
 

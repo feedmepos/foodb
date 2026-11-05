@@ -185,7 +185,8 @@ mixin _KeyValueFind on _AbstractKeyValue implements _KeyValueView {
 
     List<String> docFields;
     if (docView is QueryDesignDocView) {
-      docFields = (docView as QueryDesignDocView).options.def.fields;
+      // read keys in the same field order _runMapper wrote them
+      docFields = (docView as QueryDesignDocView).map.fields.keys.toList();
     } else {
       docFields = ["_id"];
     }
