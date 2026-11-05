@@ -134,3 +134,69 @@ void main() {
 | ----------- | --------------------- | ------------------------------------- |
 | `analyze`   | `melos run analyze`   | Run `flutter analyze` in all packages |
 | `unit_test` | `melos run unit_test` | Run all Flutter tests with coverage   |
+
+## Release Procedure
+
+Packages are published to pub.dev under the `feedme.cc` verified publisher. `foodb_server` is the exception: it is released by git tag only.
+
+### What gets released, and how
+
+| Package                   | Internal dependencies                    | Released to   | Consumers depend on it via                                              |
+| ------------------------- | ---------------------------------------- | ------------- | ----------------------------------------------------------------------- |
+| `foodb`                   | none                                     | pub.dev       | `foodb: ^0.13.0`                                                        |
+| `foodb_test`              | `foodb`                                  | pub.dev       | `foodb_test: ^0.13.0`                                                   |
+| `foodb_objectbox_adapter` | `foodb`; dev: `foodb_test`               | pub.dev       | `foodb_objectbox_adapter: ^0.13.0`                                      |
+| `foodb_server`            | `foodb`; dev: `foodb_test`               | git tag only  | `git: { url: …/feedmepos/foodb, path: foodb_server, ref: foodb_server-<version> }` |
+| `foodb_flutter_test`      | `foodb`, `foodb_server`, `foodb_objectbox_adapter` | never | (`publish_to: none`)                                                    |
+| `foodb_hive_adapter`      | n/a                                      | never         | (removed in 0.13.0; the directory is empty)                             |
+
+`foodb_server` can't be published to pub.dev because it depends on `shelf` from git (`feedmepos/shelf`), which `pub publish` rejects.
+
+### Which packages need a new release
+
+All internal constraints are caret constraints on a 0.x version. `^0.13.0` means `>=0.13.0 <0.14.0`.
+
+- **Patch release of `foodb`** (e.g. 0.13.6 → 0.13.7): release `foodb` only. Dependents pick it up through their existing constraint. This is the usual case.
+- **Minor bump of `foodb`** (e.g. 0.13.x → 0.14.0, which counts as breaking under 0.x): every dependent must raise its `foodb:` (and `foodb_test:`) constraint and be released again, in the order below.
+- **Change inside a dependent package only**: release just that package.
+
+### Release order
+
+1. `foodb`
+2. `foodb_test` (depends on `foodb`)
+3. `foodb_objectbox_adapter` (depends on `foodb`, dev-depends on `foodb_test`)
+4. `foodb_server` (depends on `foodb`, dev-depends on `foodb_test`): tag only
+
+Finish each package, and confirm it is live on pub.dev, before starting the next. Local validation won't catch a wrong order: the committed, melos-managed `pubspec_overrides.yaml` files point internal dependencies at the local `../foodb` and `../foodb_test`, so `pub publish` resolves against local source, not pub.dev.
+
+### Steps for each package
+
+1. **Branch** from `main`: `chore/<package>-<version>` (e.g. `chore/foodb-0.13.7`).
+2. **Bump the pubspec.** Set `version:` in `<package>/pubspec.yaml`. For a minor release, also raise the dependents' constraints (`foodb: ^0.14.0`, `foodb_test: ^0.14.0`), each in that dependent's own release commit.
+3. **Update the CHANGELOG.** Add a `### <version>` entry at the top of `<package>/CHANGELOG.md`, in the existing `* (fix|add|change|BREAKING) …` style. `pub publish` warns when the CHANGELOG doesn't mention the current version.
+4. **Commit and merge.** Use the commit message `<package>-<version>` (e.g. `foodb-0.13.7`), open a PR, and merge it into `main`.
+5. **Tag the release commit on `main`** as `<package>-<version>` and push the tag:
+   ```shell
+   git checkout main && git pull
+   git tag -a foodb-0.13.8 -m "foodb-0.13.8"
+   git push origin foodb-0.13.8
+   ```
+   Always include the package prefix. The tags `0.13.6` and `0.13.7` were created without it, which is a mistake; don't copy them.
+6. **Publish** (pub.dev packages only) from the package directory, using the FVM-pinned SDK (`fvm flutter …` or `../.fvm/flutter_sdk/bin/flutter …`):
+   ```shell
+   cd foodb
+   fvm flutter pub publish --dry-run
+   fvm flutter pub publish
+   ```
+   You must be signed in as a member of the `feedme.cc` publisher. The dry run currently reports some `dart analyze` warnings and the hint "Non-dev dependencies are overridden in pubspec_overrides.yaml". Neither blocks publishing. Read anything else it reports before you continue.
+7. **Verify** that the new version is listed at `https://pub.dev/packages/<package>/versions` before you release the next package in the order.
+
+For `foodb_server`, do steps 1–5 only. The `foodb_server-<version>` tag is what consumers pin, so it must exist and be pushed.
+
+### Flutter 3.7 backport (`release/flutter-3.7`)
+
+The long-lived `release/flutter-3.7` branch keeps a Dart 2 build (`sdk: <3.0.0`, FVM-pinned to Flutter 3.7.12) for apps still on Flutter 3.7. `foodb` fixes have usually been backported and published on the same day as the `main` release:
+
+- Cherry-pick the fix onto `release/flutter-3.7`, and adapt it to Dart 2 if needed.
+- Use the version `<version>-3.7` (e.g. `0.13.6-3.7`) in the pubspec, the CHANGELOG, the commit message (`foodb-0.13.6-3.7`) and the tag (`foodb-0.13.6-3.7`).
+- Publish from that branch with its own FVM SDK (Flutter 3.7.12). The `main` SDK (Flutter 3.22.2, Dart 3) can't resolve a package constrained to `sdk: <3.0.0`.
